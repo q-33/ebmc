@@ -79,7 +79,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 					if (handle == IntPtr.Zero)
 					{
 						throw new DllNotFoundException(
-							"MatterControl could not load the SQLite library (libsqlite3). "
+							Program.AppName + " could not load the SQLite library (libsqlite3). "
 							+ "It is part of macOS; on Linux install it with: sudo apt install libsqlite3-0");
 					}
 				}
@@ -211,7 +211,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 
 		private static string GlfwHelp()
 		{
-			string message = "MatterControl could not load the GLFW library, which it needs to open its window.";
+			string message = Program.AppName + " could not load the GLFW library, which it needs to open its window.";
 
 			if (OperatingSystem.IsMacOS())
 			{

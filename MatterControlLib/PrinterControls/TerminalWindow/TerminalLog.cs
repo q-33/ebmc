@@ -66,7 +66,7 @@ namespace MatterHackers.MatterControl
 			AggContext.FileDialogs.SaveFileDialog(
 				new SaveFileDialogParams("Save as Text|*.txt")
 				{
-					Title = "MatterControl: Terminal Log",
+					Title = ApplicationController.Instance.ProductName + ": Terminal Log",
 					ActionButtonLabel = "Export",
 					FileName = "print_log.txt"
 				},

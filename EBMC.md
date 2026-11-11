@@ -17,7 +17,10 @@ BSD-style license (see `LICENSE`). This edition is not produced or supported by 
 | Default theme | A new user profile starts in the dark club theme | `MatterControlLib/ApplicationView/AppContext.cs` |
 | Vendor services removed | No Upgrade or Store tab, update check, account sign-in, Community links, "Shop filament" button or Pro upsell; the interface tour no longer opens at every start; the first-run MatterHackers agreement page is skipped. Controlled by `ShowVendorServices`, `ShowTourOnStartup` and `ShowLicenseAgreement` in the OEM settings (set any to `true` to restore) | `StaticData/OEMSettings/Settings.json`, `MatterControlLib/PartPreviewWindow/MainViewWidget.cs`, `MatterControlLib/ApplicationView/BrandMenuButton.cs`, `MatterControlLib/ApplicationView/Application.cs` and three others |
 | Printer list | Printer setup offers only the club printer; the stock "Setup New Pulse" shortcut is hidden. Controlled by `PrinterWhiteList` in the OEM settings | `StaticData/OEMSettings/Settings.json`, `MatterControlLib/Library/Widgets/AddPrinterWidget.cs`, `MatterControlLib/DialogPages/StartupPage.cs`, `MatterControlLib/SettingsManagement/OemSettings.cs` |
-| Product name | "MatterControl EBMC Edition", window title suffix "East Bay Makers Club", shop button hidden | `StaticData/OEMSettings/Settings.json` |
+| Product name | "EBMC", window title suffix "East Bay Makers Club", shop button hidden | `StaticData/OEMSettings/Settings.json` |
+| Name in the interface | "MatterControl" is replaced by the product name in every translated string and in dialog titles, the G-code footer, startup errors and the Mac bundle (`EBMC.app`). English is complete; some other languages spell the old name differently and still show it | `MatterControlLib/ApplicationView/BrandedTranslationMap.cs`, `MatterControl.CrossPlatform/Program.cs`, `Tools/macOS/build-app.sh` and about ten dialog files |
+| Logos and icon | The club's EBMC badge replaces the "M" logos: app icon, dialog title bars, bed watermark, splash and About spinner, parts-sheet footer | `Tools/EBMC/generate_brand_assets.py` writes `StaticData/Icons/application.png`, `application.ico`, `StaticData/Icons/mh.png`, `StaticData/OEMSettings/bedimage.png`, `StaticData/Stls/EBMC Badge.stl` and others |
+| Sample parts | The astronaut, "MH Logo" and coin sample parts are removed; the default part on a new bed is a printable EBMC badge | `StaticData/OEMSettings/SampleParts/EBMC Badge.stl`, `MatterControlLib/PartPreviewWindow/View3D/SceneActions.cs` |
 | macOS and Linux | A second host that runs the application without WinForms | `MatterControl.CrossPlatform/`, see `MACOS.md` |
 | Slicing | Ordinary meshes are sent to the slicer again (upstream's pinned `agg-sharp` marks them not printable) | `MatterControlLib/DesignTools/PrintableExtensions.cs` |
 
@@ -25,6 +28,14 @@ The data files are produced by `Tools/EBMC/generate_ebmc_files.py` from the stoc
 and the stock light themes. Re-run it from the repository root after changing a value:
 
     python Tools/EBMC/generate_ebmc_files.py .
+
+The badge artwork (icons, bed watermark, badge meshes) is produced by
+`Tools/EBMC/generate_brand_assets.py` from `Tools/EBMC/assets/ebmc-badge-source.png`. It needs a
+few Python packages; they are listed at the top of the script.
+
+The EBMC badge belongs to the East Bay Makers Club and is used here with the club's permission.
+It is not covered by the software licence in `LICENSE`; that applies to the badge image, the
+files generated from it and the badge meshes.
 
 ## Printer profile values
 
@@ -78,8 +89,8 @@ The dark theme uses warm near-black grounds built from the ink colours (`#1F1C19
 green are too dark to read on that ground, so its accent choices include lightened versions
 (`#6C9BFF`, `#35B98B`); those two are not from the website.
 
-Not done: the club wordmark is not included (add it only with the club's permission), and the
-application font is unchanged (the website uses a monospace face).
+Not done: the full "East Bay Makers Club" wordmark is not included (only the EBMC badge is), and
+the application font is unchanged (the website uses a monospace face).
 
 ## Building
 
@@ -94,8 +105,9 @@ and what has and has not been tested, are in `MACOS.md`.
 been run.
 
 The club profile, theme and product name were run on Linux through the new host: the profile
-appears under "East Bay Makers Club" in printer setup, and the default part slices with its
-settings.
+appears under "East Bay Makers Club" in printer setup, and the default part of that time (the astronaut, since replaced by the EBMC badge) sliced with
+its settings. The rebranded build was run on an Apple silicon Mac; the badge part has not been
+sliced or printed.
 
 An existing user profile keeps its saved theme. To see the club theme on a PC that has run
 MatterControl before, pick "East Bay Makers Club" in the theme settings, or use a fresh

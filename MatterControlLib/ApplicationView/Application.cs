@@ -458,7 +458,7 @@ namespace MatterHackers.MatterControl
 				{
 					try
 					{
-						ReportStartupProgress(0.15, "MatterControlApplication.Initialize");
+						ReportStartupProgress(0.15, "Application.Initialize");
 
 						ApplicationController.LoadTranslationMap();
 

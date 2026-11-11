@@ -400,7 +400,7 @@ namespace MatterHackers.MatterControl.PrintHistory
 			}
 
 			AggContext.FileDialogs.SaveFileDialog(
-				new SaveFileDialogParams("MatterControl Printer Export|*.printer", title: "Export Printer Settings")
+				new SaveFileDialogParams(ApplicationController.Instance.ProductName + " Printer Export|*.printer", title: "Export Printer Settings")
 				{
 					FileName = "Printer History.csv",
 					Filter = "CSV Files|*.csv"

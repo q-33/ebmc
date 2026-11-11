@@ -29,6 +29,11 @@ namespace MatterHackers.MatterControl.CrossPlatform
 	{
 		private const string RepositoryRootKey = "MatterControl.RepositoryRoot";
 
+		/// <summary>
+		/// Product name shown in messages that can appear before the OEM settings are loaded.
+		/// </summary>
+		internal const string AppName = "EBMC";
+
 		public static int Main(string[] args)
 		{
 			AppDomain.CurrentDomain.UnhandledException += (s, e) => ReportFatal(e.ExceptionObject as Exception);
@@ -203,7 +208,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 			}
 
 			throw new DirectoryNotFoundException(
-				"MatterControl could not find its StaticData folder. Looked next to the application ("
+				AppName + " could not find its StaticData folder. Looked next to the application ("
 				+ beside + ") and in the source tree it was built from. "
 				+ "Set MATTERCONTROL_STATICDATA to the folder's full path to point at it directly.");
 		}
@@ -222,7 +227,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 			if (monitor == GLFW.Monitor.None)
 			{
 				throw new InvalidOperationException(
-					"No display was found, so MatterControl cannot open its window. " + GlfwPlatformWindow.LastError);
+					"No display was found, so " + AppName + " cannot open its window. " + GlfwPlatformWindow.LastError);
 			}
 
 			// Measured from a real window rather than assumed from the monitor
@@ -298,7 +303,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 
 		private static void PrintInfo()
 		{
-			Console.WriteLine("MatterControl (GLFW / OpenGL host)");
+			Console.WriteLine(AppName + " (GLFW / OpenGL host)");
 			Console.WriteLine("  Runtime:      " + RuntimeInformation.FrameworkDescription);
 			Console.WriteLine("  System:       " + RuntimeInformation.OSDescription);
 			Console.WriteLine("  Architecture: " + RuntimeInformation.ProcessArchitecture);
@@ -313,7 +318,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 				return;
 			}
 
-			string report = $"{DateTime.Now:u} MatterControl stopped because of an error:{Environment.NewLine}{exception}{Environment.NewLine}";
+			string report = $"{DateTime.Now:u} {AppName} stopped because of an error:{Environment.NewLine}{exception}{Environment.NewLine}";
 			Console.Error.WriteLine(report);
 
 			try

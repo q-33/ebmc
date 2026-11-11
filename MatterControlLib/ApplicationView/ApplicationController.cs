@@ -394,7 +394,7 @@ namespace MatterHackers.MatterControl
 		internal void ExportAsMatterControlConfig(PrinterConfig printer)
 		{
 			AggContext.FileDialogs.SaveFileDialog(
-				new SaveFileDialogParams("MatterControl Printer Export|*.printer", title: "Export Printer Settings")
+				new SaveFileDialogParams(ProductName + " Printer Export|*.printer", title: "Export Printer Settings")
 				{
 					FileName = printer.PrinterName
 				},
@@ -2264,14 +2264,14 @@ namespace MatterHackers.MatterControl
 
 				var machineTranslationStream = StaticData.Instance.OpenStream(machineTranslation);
 				var machineTranlationReader = new StreamReader(machineTranslationStream);
-				TranslationMap.ActiveTranslationMap = new TranslationMap(machineTranlationReader, humanTranlationReader, twoLetterIsoLanguageName);
+				TranslationMap.ActiveTranslationMap = new BrandedTranslationMap(machineTranlationReader, humanTranlationReader, twoLetterIsoLanguageName);
 
 				machineTranlationReader.Close();
 				humanTranlationReader?.Close();
 			}
 			else
             {
-				TranslationMap.ActiveTranslationMap = new TranslationMap(twoLetterIsoLanguageName);
+				TranslationMap.ActiveTranslationMap = new BrandedTranslationMap(twoLetterIsoLanguageName);
 			}
 		}
 

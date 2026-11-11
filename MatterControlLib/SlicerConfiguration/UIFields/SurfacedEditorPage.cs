@@ -48,7 +48,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 
 		public SurfacedEditorPage(IObject3D selectedItem)
 		{
-			this.WindowTitle = "MatterControl - " + "Editor Selector".Localize();
+			this.WindowTitle = ApplicationController.Instance.ProductName + " - " + "Editor Selector".Localize();
 			this.HeaderText = "Surfaced Editor".Localize();
 
 			contentRow.Padding = 0;

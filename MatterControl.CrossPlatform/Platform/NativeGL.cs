@@ -219,7 +219,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 			if (address == null)
 			{
 				throw new NotSupportedException(
-					$"The OpenGL driver does not provide {names[0]}. MatterControl needs a legacy (compatibility) OpenGL 2.1 context with fixed-function support.");
+					$"The OpenGL driver does not provide {names[0]}. {Program.AppName} needs a legacy (compatibility) OpenGL 2.1 context with fixed-function support.");
 			}
 
 			return address;

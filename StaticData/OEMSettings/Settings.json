@@ -3,14 +3,10 @@
   "ThemeColor": "Blue - Dark",
   "AffiliateCode": "7423",
   "PreloadedLibraryFiles": [
-    "MatterControl - Coin.stl",
-    "MatterControl - Stand.stl",
-    "Phil A Ment.stl",
-    "MH Logo.stl",
     "Calibration - Box.stl"
   ],
-  "UnregisteredProductName": "MatterControl EBMC Edition",
-  "RegisteredProductName": "MatterControl EBMC Edition",
+  "UnregisteredProductName": "EBMC",
+  "RegisteredProductName": "EBMC",
   "WindowTitleExtra": "East Bay Makers Club",
   "PrinterWhiteList": [
     "East Bay Makers Club"

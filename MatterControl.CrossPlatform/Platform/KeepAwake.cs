@@ -79,7 +79,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 					// Holds the inhibitor for as long as tail runs, and tail ends with this process
 					startInfo.FileName = "systemd-inhibit";
 					startInfo.ArgumentList.Add("--what=idle:sleep");
-					startInfo.ArgumentList.Add("--who=MatterControl");
+					startInfo.ArgumentList.Add("--who=" + Program.AppName);
 					startInfo.ArgumentList.Add("--why=A print is running");
 					startInfo.ArgumentList.Add("tail");
 					startInfo.ArgumentList.Add("--pid=" + processId);

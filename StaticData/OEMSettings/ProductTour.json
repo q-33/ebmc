@@ -50,9 +50,9 @@
     "Description": "Click here to sign into your MatterHackers account."
   },
   {
-    "Title": "Search MatterControl",
+    "Title": "Search EBMC",
     "WidgetName": "App Search Button",
-    "Description": "Enter a query to search MatterControl."
+    "Description": "Enter a query to search EBMC."
   },
   {
     "Title": "Printer Setup",

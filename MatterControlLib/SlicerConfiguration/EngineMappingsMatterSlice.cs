@@ -528,7 +528,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 						{
 							using (StreamWriter gcodeWriter = File.AppendText(gcodeFilePath))
 							{
-								string oemName = "MatterControl";
+								string oemName = ApplicationController.Instance.ProductName;
 								if (OemSettings.Instance.WindowTitleExtra != null && OemSettings.Instance.WindowTitleExtra.Trim().Length > 0)
 								{
 									oemName += $" - {OemSettings.Instance.WindowTitleExtra}";

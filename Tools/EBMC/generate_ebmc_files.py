@@ -123,8 +123,8 @@ W('StaticData/Themes/System/EBMC/EBMC-Dark.themeset', {
 
 # ---------- product settings ----------
 s = J('StaticData/OEMSettings/Settings.json')
-s.update({'ShowShopButton': False, 'UnregisteredProductName': 'MatterControl EBMC Edition',
-          'RegisteredProductName': 'MatterControl EBMC Edition', 'WindowTitleExtra': 'East Bay Makers Club',
+s.update({'ShowShopButton': False, 'UnregisteredProductName': 'EBMC',
+          'RegisteredProductName': 'EBMC', 'WindowTitleExtra': 'East Bay Makers Club',
           # Printer setup offers only these makes (the club's own printer)
           'PrinterWhiteList': [MAKE],
           # No Upgrade/Store tabs, update check, sign-in, Community links or filament shop button
@@ -133,5 +133,9 @@ s.update({'ShowShopButton': False, 'UnregisteredProductName': 'MatterControl EBM
           'ShowTourOnStartup': False,
           # No first-run agreement page (MatterHackers' EULA for their own builds)
           'ShowLicenseAgreement': False})
+# Drop upstream's branded sample parts from the preloaded list (no C# code reads this key;
+# Phil A Ment.stl and MH Logo.stl are also deleted from SampleParts)
+s['PreloadedLibraryFiles'] = [f for f in s.get('PreloadedLibraryFiles', []) if f not in (
+    'MatterControl - Coin.stl', 'MatterControl - Stand.stl', 'Phil A Ment.stl', 'MH Logo.stl')]
 W('StaticData/OEMSettings/Settings.json', s)
 print('ok')

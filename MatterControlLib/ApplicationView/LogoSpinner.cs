@@ -54,7 +54,7 @@ namespace MatterHackers.MatterControl
 
 			Mesh logoMesh;
 
-			using (var logoStream = StaticData.Instance.OpenStream(Path.Combine("Stls", "MH Logo.stl")))
+			using (var logoStream = StaticData.Instance.OpenStream(Path.Combine("Stls", "EBMC Badge.stl")))
 			{
 				logoMesh = StlProcessing.Load(logoStream, CancellationToken.None);
 			}

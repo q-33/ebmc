@@ -170,10 +170,11 @@ namespace MatterHackers.MatterControl
             partImagesToPrint.Sort(BiggestToLittlestImages);
 
             PdfDocument document = new PdfDocument();
-            document.Info.Title = "MatterHackers Parts Sheet";
-            document.Info.Author = "MatterHackers Inc.";
-            document.Info.Subject = "This is a list of the parts that are in a queue from MatterControl.";
-            document.Info.Keywords = "MatterControl, STL, 3D Printing";
+            var productName = ApplicationController.Instance.ProductName;
+            document.Info.Title = productName + " Parts Sheet";
+            document.Info.Author = productName;
+            document.Info.Subject = "This is a list of the parts that are in a queue from " + productName + ".";
+            document.Info.Keywords = productName + ", STL, 3D Printing";
 
             int nextPartToPrintIndex = 0;
             int plateNumber = 1;

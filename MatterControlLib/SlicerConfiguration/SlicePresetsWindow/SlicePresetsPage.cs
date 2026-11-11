@@ -129,7 +129,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 				{
 					// show a system save dialog
 					AggContext.FileDialogs.SaveFileDialog(
-							new SaveFileDialogParams("MatterControl Settings Export|*.material", title: "Export Material Setting")
+							new SaveFileDialogParams(ApplicationController.Instance.ProductName + " Settings Export|*.material", title: "Export Material Setting")
 							{
 								FileName = ApplicationController.Instance.SanitizeFileName(presetsContext.PersistenceLayer.Name)
 							},

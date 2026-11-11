@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Builds "MatterControl EBMC.app" for the Mac this script runs on
+# Builds "EBMC.app" for the Mac this script runs on
 # (Apple silicon or Intel) and puts it in dist/ at the top of the repository.
 #
 #   Tools/macOS/build-app.sh          build the app
@@ -24,7 +24,7 @@ fi
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PROJECT="$REPO/MatterControl.CrossPlatform/MatterControl.CrossPlatform.csproj"
-APP_NAME="MatterControl EBMC"
+APP_NAME="EBMC"
 BUNDLE_ID="org.eastbaymakersclub.mattercontrol"
 DIST="$REPO/dist"
 APP="$DIST/$APP_NAME.app"

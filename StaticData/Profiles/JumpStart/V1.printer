@@ -179,7 +179,7 @@
     "baud_rate": "250000",
     "default_material_presets": "PLA",
     "windows_driver": "MHSerial.inf",
-    "calibration_files": "Calibration - Circle.stl;Calibration - Box.stl;MatterControl - Coin.stl"
+    "calibration_files": "Calibration - Circle.stl;Calibration - Box.stl"
   },
   "ActiveQualityKey": "",
   "MaterialSettingsKeys": [],

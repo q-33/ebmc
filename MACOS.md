@@ -41,7 +41,7 @@ If you cloned without `--recurse-submodules`: `git submodule update --init --rec
 Tools/macOS/build-app.sh --run
 ```
 
-This creates `dist/MatterControl EBMC.app` and opens it. Drag it to Applications if you
+This creates `dist/EBMC.app` and opens it. Drag it to Applications if you
 like. The first build downloads packages and takes a few minutes.
 
 The app bundle matters on a Retina display: its `Info.plist` tells macOS to give the

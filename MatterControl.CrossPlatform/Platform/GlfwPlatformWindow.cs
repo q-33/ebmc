@@ -323,7 +323,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 
 			if (preCreatedWindow == Window.None)
 			{
-				preCreatedWindow = CreateHiddenWindow(800, 600, "MatterControl");
+				preCreatedWindow = CreateHiddenWindow(800, 600, Program.AppName);
 			}
 
 			Glfw.GetWindowSize(preCreatedWindow, out int windowWidth, out _);
@@ -372,7 +372,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 
 			glfwWindow = preCreatedWindow != Window.None
 				? preCreatedWindow
-				: CreateHiddenWindow(800, 600, "MatterControl");
+				: CreateHiddenWindow(800, 600, Program.AppName);
 			preCreatedWindow = Window.None;
 
 			this.UpdatePixelRatio();

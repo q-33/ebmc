@@ -19,8 +19,9 @@ namespace MatterControl.Tests.MatterControl
 				bool hasCoin = lines.Where(l => l.Contains("\"MatterControl - Coin.stl\",")).Any();
 				bool hasTabletStand = lines.Where(l => l.Contains("\"MatterControl - Stand.stl\",")).Any();
 
-				Assert.IsTrue(hasCoin, "Expected coin file not found");
-				Assert.IsTrue(hasTabletStand, "Expected stand file not found");
+				// EBMC Edition: the MatterControl-branded sample parts are no longer preloaded
+				Assert.IsFalse(hasCoin, "Unexpected coin file found");
+				Assert.IsFalse(hasTabletStand, "Unexpected stand file found");
 			}
 		}
 
@@ -29,8 +30,8 @@ namespace MatterControl.Tests.MatterControl
 		{
 			string samplePartsPath = Path.Combine(MatterControlUtilities.StaticDataPath, "OEMSettings", "SampleParts");
 			string[] files = Directory.GetFiles(samplePartsPath);
-			bool hasPhil = files.Where(l => l.Contains("Phil A Ment.stl")).Any();
-			Assert.IsTrue(hasPhil, "Expected Phil file not found");
+			bool hasBadge = files.Where(l => l.Contains("EBMC Badge.stl")).Any();
+			Assert.IsTrue(hasBadge, "Expected EBMC Badge file not found");
 		}
 	}
 }

@@ -53,7 +53,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
         public static void AddPhilToBed(this ISceneContext sceneContext)
         {
-            var philStl = StaticData.Instance.MapPath(Path.Combine("OEMSettings", "SampleParts", "Phil A Ment.stl"));
+            var philStl = StaticData.Instance.MapPath(Path.Combine("OEMSettings", "SampleParts", "EBMC Badge.stl"));
             sceneContext.AddToPlate(new string[] { philStl }, false);
         }
 
