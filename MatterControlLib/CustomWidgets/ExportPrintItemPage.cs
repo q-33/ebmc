@@ -132,6 +132,12 @@ namespace MatterHackers.MatterControl
 							var errors = new List<ValidationError>();
 							printer.ValidateSettings(errors, validatePrintBed: false);
 
+							// Exporting the bed leaves out parts outside the printable area: warn, or block when nothing is inside
+							if (PartsOutsideBedValidation.IsBedSource(libraryItems))
+							{
+								PartsOutsideBedValidation.AddValidationErrors(printer, errors);
+							}
+
 							exportButton.Enabled = !errors.Any(item => item.ErrorLevel == ValidationErrorLevel.Error);
 
 							validationPanel.AddChild(
@@ -259,6 +265,15 @@ namespace MatterHackers.MatterControl
                 return;
             }
             
+			// Nothing on the bed is inside the printable area: the G-code would be empty (the menus starting the
+			// export already list the non-blocking warning)
+			if (exportPlugin is GCodeExport
+				&& PartsOutsideBedValidation.ExportError(printer, libraryItems) is ValidationError nothingInside)
+			{
+				ApplicationController.Instance.ShowValidationErrors("Export Error".Localize(), new List<ValidationError> { nothingInside });
+				return;
+			}
+
 			UiThread.RunOnIdle(() =>
 			{
 				string title = ApplicationController.Instance.ProductName + " - " + "Export File".Localize();

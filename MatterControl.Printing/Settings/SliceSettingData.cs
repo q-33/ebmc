@@ -71,6 +71,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 			VECTOR3,
 			VECTOR4,
 			WIDE_STRING,
+			OCTOPRINT_API_KEY,
 		};
 
 		public string SlicerConfigName { get; set; }

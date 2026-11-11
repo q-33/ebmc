@@ -958,7 +958,7 @@ namespace MatterHackers.MatterControl.Tests.Automation
 			var mainViewWidget = testRunner.GetWidgetByName("PartPreviewContent", out _) as MainViewWidget;
 			if (mainViewWidget.TabControl.AllTabs.First(t => t.TabContent is PrinterTabPage) is GuiWidget widget)
 			{
-				var closeWidget = widget.Descendants<ImageWidget>().First();
+				var closeWidget = widget.Descendants().First(w => w.Name == "Close Tab Button");
 				Assert.AreEqual("Close Tab Button", closeWidget.Name, "Expected widget ('Close Tab Button') not found");
 
 				testRunner.ClickWidget(closeWidget);

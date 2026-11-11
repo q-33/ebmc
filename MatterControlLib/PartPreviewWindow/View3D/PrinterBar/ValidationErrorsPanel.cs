@@ -53,8 +53,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			foreach (var validationError in errors.OrderByDescending(e => e.ErrorLevel))
 			{
-				if (validationError.ErrorLevel == ValidationErrorLevel.Warning
-					&& UserSettings.Instance.get($"Ignore_{validationError.ID}") == "true")
+				if (PartsOutsideBedValidation.IsDismissed(validationError))
 				{
 					continue;
 				}
@@ -123,7 +122,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					});
 				}
 
-				if (validationError.ErrorLevel == ValidationErrorLevel.Warning)
+				if (PartsOutsideBedValidation.CanDismiss(validationError))
 				{
 					var dismissButton = theme.CreateSmallResetButton();
 					dismissButton.HAnchor = HAnchor.Absolute;

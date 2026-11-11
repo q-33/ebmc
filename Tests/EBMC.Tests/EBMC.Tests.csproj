@@ -12,6 +12,8 @@
 	<ItemGroup>
 		<!-- Compile the OctoPrint client sources directly so the tests do not depend on the app's other projects -->
 		<Compile Include="..\..\MatterControl.Printing\OctoPrint\*.cs" Link="OctoPrint\%(Filename)%(Extension)" />
+		<!-- The wording and warning/error decision for parts outside the printable area -->
+		<Compile Include="..\..\MatterControl.Printing\Settings\PartsOutsideBedMessages.cs" Link="Settings\%(Filename)%(Extension)" />
 	</ItemGroup>
 
 	<ItemGroup>

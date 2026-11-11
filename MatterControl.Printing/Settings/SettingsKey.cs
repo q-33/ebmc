@@ -185,6 +185,9 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 		public const string monotonic_solid_infill = nameof(monotonic_solid_infill);
 		public const string nozzle_diameter = nameof(nozzle_diameter);
 		public const string number_of_first_layers = nameof(number_of_first_layers);
+		public const string octoprint_api_key = nameof(octoprint_api_key);
+		public const string octoprint_enabled = nameof(octoprint_enabled);
+		public const string octoprint_host = nameof(octoprint_host);
 		public const string oem_profile_token = nameof(oem_profile_token);
 		public const string output_only_first_layer = nameof(output_only_first_layer);
 		public const string pause_gcode = nameof(pause_gcode);

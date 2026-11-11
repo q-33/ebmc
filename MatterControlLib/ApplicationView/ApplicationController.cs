@@ -100,6 +100,7 @@ namespace MatterHackers.MatterControl
 			{"Liberation_Sans_Bold", LiberationSansBoldFont.Instance},
 			{"Lobster", null},
 			{"Nunito_Regular", null},
+			{"Nunito_SemiBold", null},
 			{"Nunito_Bold", null},
 			{"Nunito_Bold_Italic", null},
 			{"Nunito_Italic", null},
@@ -735,6 +736,12 @@ namespace MatterHackers.MatterControl
 					{
 						if (sceneContext.Printer != null)
 						{
+							if (OctoPrint.OctoPrintSettings.Enabled(sceneContext.Printer))
+							{
+								// No USB connection is needed to send to OctoPrint
+								return OctoPrint.OctoPrintValidation.CanSend(sceneContext.Printer);
+							}
+
 							return sceneContext.Printer.PrintButtonEnabled();
 						}
 
@@ -1849,7 +1856,8 @@ namespace MatterHackers.MatterControl
 
 			if (printer != null
 				&& printer.Settings.PrinterSelected
-				&& printer.Settings.GetValue<bool>(SettingsKey.auto_connect))
+				&& printer.Settings.GetValue<bool>(SettingsKey.auto_connect)
+				&& !OctoPrint.OctoPrintSettings.Enabled(printer))
 			{
 				printer.Connection.Connect();
 			}
@@ -2244,7 +2252,7 @@ namespace MatterHackers.MatterControl
 			}
 		}
 
-		public void ShowValidationErrors(string windowTitle, List<ValidationError> errors)
+		public void ShowValidationErrors(string windowTitle, List<ValidationError> errors, string headerText = null)
 		{
 			UiThread.RunOnIdle(() =>
 			{
@@ -2252,7 +2260,7 @@ namespace MatterHackers.MatterControl
 				{
 					HAnchor = HAnchor.Stretch,
 					WindowTitle = windowTitle,
-					HeaderText = "Action Required".Localize()
+					HeaderText = headerText ?? "Action Required".Localize()
 				};
 
 				dialogPage.ContentRow.AddChild(new ValidationErrorsPanel(errors, AppContext.Theme)
@@ -2711,7 +2719,6 @@ namespace MatterHackers.MatterControl
 
 				helpDocsTab = new ChromeTab("HelpDocs", "Help".Localize(), tabControl, helpTreePanel, theme, icon)
 				{
-					MinimumSize = new Vector2(0, theme.TabButtonHeight),
 					Name = "Help Tab",
 				};
 

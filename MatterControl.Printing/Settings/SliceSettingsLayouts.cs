@@ -291,6 +291,9 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 							SettingsKey.selector_ip_address,
 							SettingsKey.ip_address,
 							SettingsKey.ip_port,
+							SettingsKey.octoprint_enabled,
+							SettingsKey.octoprint_host,
+							SettingsKey.octoprint_api_key,
 						}),
 						("Bed", new[]
 						{

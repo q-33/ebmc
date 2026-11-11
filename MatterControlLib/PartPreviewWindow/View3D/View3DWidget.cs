@@ -943,8 +943,14 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 		public void PushToPrinterAndPrint()
 		{
+			// When the printer is driven by OctoPrint, print means upload and print there (never over USB)
+			if (this.Printer != null
+				&& OctoPrint.OctoPrintSettings.Enabled(this.Printer))
+			{
+				OctoPrint.OctoPrintSender.SendBed(this.Printer, startPrint: true);
+			}
 			// If invoked from a printer tab, simply start the print
-			if (this.Printer != null)
+			else if (this.Printer != null)
 			{
 				// Save any pending changes before starting print operation
 				ApplicationController.Instance.Tasks.Execute("Saving Changes".Localize(), printer, printer.Bed.SaveChanges).ContinueWith(task =>
@@ -1080,6 +1086,13 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 				// Save any pending changes before starting print operation
 				await ApplicationController.Instance.Tasks.Execute("Saving Changes".Localize(), printer, printer.Bed.SaveChanges);
+
+				if (OctoPrint.OctoPrintSettings.Enabled(printer))
+				{
+					// The plate is now on this printer's bed: upload and print it through OctoPrint, never over USB
+					UiThread.RunOnIdle(() => OctoPrint.OctoPrintSender.SendBed(printer, startPrint: true));
+					return;
+				}
 
 				// Slice and print
 				await ApplicationController.Instance.PrintPart(

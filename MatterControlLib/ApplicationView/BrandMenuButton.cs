@@ -49,27 +49,45 @@ namespace MatterHackers.MatterControl
 			: base (theme)
 		{
 			this.Name = "MatterControl BrandMenuButton";
-			this.VAnchor = VAnchor.Fit;
+
+			// EBMC Edition: club badge + product name + chevron, a rounded hover fill and no resting background
+			this.VAnchor = VAnchor.Center;
 			this.HAnchor = HAnchor.Fit;
+			this.Height = ClubTabStyle.BrandHeight * GuiWidget.DeviceScale;
 			this.Margin = 0;
+			this.Padding = new BorderDouble(ClubTabStyle.BrandPaddingX, 0);
+			this.BackgroundColor = Color.Transparent;
+			this.BackgroundRadius = new RadiusCorners(ClubTabStyle.ButtonRadius * GuiWidget.DeviceScale);
+			this.HoverColor = ClubTabStyle.HoverFillColor(theme);
+			this.MouseDownColor = ClubTabStyle.LineColor(theme);
 
 			this.DynamicPopupContent = () => BrandMenuButton.CreatePopupMenu(theme);
 
 			var row = new FlowLayoutWidget()
 			{
 				HAnchor = HAnchor.Fit,
-				VAnchor = VAnchor.Fit,
+				VAnchor = VAnchor.Center | VAnchor.Fit,
 			};
 			this.AddChild(row);
 
-			row.AddChild(new ThemedIconButton(StaticData.Instance.LoadIcon("mh-app-logo.png", 16, 16).GrayToColor(theme.TextColor), theme)
+			row.AddChild(new ImageWidget(StaticData.Instance.LoadIcon("mh.png", ClubTabStyle.BrandBadgeSize, ClubTabStyle.BrandBadgeSize).GrayToColor(theme.TextColor))
 			{
 				VAnchor = VAnchor.Center,
-				Margin = theme.ButtonSpacing,
+				Margin = new BorderDouble(right: ClubTabStyle.BrandItemGap),
 				Selectable = false
 			});
 
-			row.AddChild(new TextWidget(ApplicationController.Instance.ProductName, textColor: theme.TextColor)
+			row.AddChild(new TextWidget(
+				ApplicationController.Instance.ProductName,
+				pointSize: ClubTabStyle.BrandPointSize,
+				textColor: theme.TextColor,
+				typeFace: ApplicationController.Instance.GetTypeFace(ClubTabStyle.BrandFontName))
+			{
+				VAnchor = VAnchor.Center,
+				Margin = new BorderDouble(right: ClubTabStyle.BrandItemGap)
+			});
+
+			row.AddChild(new ClubGlyphWidget(ClubGlyph.ChevronDown, ClubTabStyle.ChevronGlyphSize, ClubTabStyle.MutedTextColor(theme))
 			{
 				VAnchor = VAnchor.Center
 			});

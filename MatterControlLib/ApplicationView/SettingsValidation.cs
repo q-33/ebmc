@@ -101,6 +101,14 @@ namespace MatterHackers.MatterControl
 				}
 			}
 
+			if (validatePrintBed)
+			{
+				// Parts the slicer would leave out: a warning, or an error when nothing is left. Not tied to a USB
+				// connection, so Slice and the OctoPrint Send menu see it too. It comes before "Empty Bed", whose
+				// no-errors condition then keeps the two from both appearing
+				PartsOutsideBedValidation.AddValidationErrors(printer, errors);
+			}
+
 			if (printer.Connection.IsConnected
 				&& !PrinterSetupRequired(printer)
 				&& validatePrintBed

@@ -32,6 +32,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using MatterHackers.Agg;
+using MatterHackers.Agg.Font;
 using MatterHackers.Agg.Image;
 using MatterHackers.Agg.Platform;
 using MatterHackers.Agg.UI;
@@ -254,15 +255,15 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		public ChromeTabs(GuiWidget rightAnchorItem, ThemeConfig theme)
 			: base(theme, null, rightAnchorItem)
 		{
+			// EBMC Edition: the space before the first tab holds the vertical rule after the brand button
 			leadingTabAdornment = new GuiWidget()
 			{
-				MinimumSize = new Vector2(16 * GuiWidget.DeviceScale, theme.TabButtonHeight),
-				VAnchor = VAnchor.Bottom
+				MinimumSize = new Vector2((ClubTabStyle.RuleSpace * 2 + ClubTabStyle.LineWidth) * GuiWidget.DeviceScale, ClubTabStyle.TabHeight * GuiWidget.DeviceScale),
+				VAnchor = VAnchor.Stretch
 			};
 			leadingTabAdornment.AfterDraw += (s, e) =>
 			{
-				var firstItem = this.AllTabs.OfType<ChromeTab>().FirstOrDefault();
-				ChromeTab.DrawTabLowerRight(e.Graphics2D, leadingTabAdornment.LocalBounds, (firstItem == this.ActiveTab) ? theme.BackgroundColor : theme.InactiveTabColor);
+				e.Graphics2D.FillRectangle(ClubTabStyle.RuleRect(leadingTabAdornment.LocalBounds, GuiWidget.DeviceScale), ClubTabStyle.LineColor(theme));
 			};
 			this.TabBar.ActionArea.AddChild(leadingTabAdornment);
 
@@ -298,17 +299,17 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				}
 			};
 
-			tabTrailer = new TabTrailer(this, theme)
+			tabTrailer = new TabTrailer()
 			{
 				VAnchor = VAnchor.Bottom,
-				MinimumSize = new Vector2(8 * GuiWidget.DeviceScale, theme.TabButtonHeight),
+				MinimumSize = new Vector2(ClubTabStyle.NewTabLeadingSpace * GuiWidget.DeviceScale, ClubTabStyle.TabHeight * GuiWidget.DeviceScale),
 			};
 
 			this.TabBar.ActionArea.AddChild(tabTrailer);
 
-			var plusTabButton = new NewTabButton(StaticData.Instance.LoadIcon("fa-plus_12.png", 12, 12).GrayToColor(theme.TextColor), theme)
+			var plusTabButton = new NewTabButton(theme)
 			{
-				Height = 20 * GuiWidget.DeviceScale,
+				Height = ClubTabStyle.SquareButtonSize * GuiWidget.DeviceScale,
 			};
 
 			plusTabButton.IconButton.Click += (s, e) =>
@@ -411,7 +412,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 		private bool hasClose = false;
 
-		public SimpleTab(string tabKey, string tabLabel, SimpleTabs parentTabControl, GuiWidget tabContent, ThemeConfig theme, string tabImageUrl = null, bool hasClose = true, double pointSize = 12, ImageBuffer iconImage = null)
+		public SimpleTab(string tabKey, string tabLabel, SimpleTabs parentTabControl, GuiWidget tabContent, ThemeConfig theme, string tabImageUrl = null, bool hasClose = true, double pointSize = 12, ImageBuffer iconImage = null, TypeFace typeFace = null)
 		{
 			this.Key = tabKey;
 			this.HAnchor = HAnchor.Fit;
@@ -426,11 +427,11 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			if (iconImage != null)
 			{
-				tabPill = new TabPill(tabLabel, theme.TextColor, iconImage, pointSize);
+				tabPill = new TabPill(tabLabel, theme.TextColor, iconImage, pointSize, typeFace);
 			}
 			else
 			{
-				tabPill = new TabPill(tabLabel, theme.TextColor, tabImageUrl, pointSize);
+				tabPill = new TabPill(tabLabel, theme.TextColor, tabImageUrl, pointSize, typeFace);
 			}
 
 			tabPill.Margin = hasClose ? new BorderDouble(right: 16) : 0;
@@ -443,8 +444,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				// fadeRegion.HAnchor |= HAnchor.Right;
 				// this.AddChild(fadeRegion);
 
-				var closeButton = theme.CreateSmallResetButton();
-				closeButton.Margin = new BorderDouble(right: 7, top: 1);
+				var closeButton = this.CreateCloseButton();
 				closeButton.Name = "Close Tab Button";
 				closeButton.ToolTipText = "Close".Localize();
 				closeButton.Click += (s, e) => ConditionallyCloseTab();
@@ -453,6 +453,16 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				// fadeRegion.AddChild(closeButton);
 				this.AddChild(closeButton);
 			}
+		}
+
+		/// <summary>
+		/// Creates the close button widget. Called from the constructor, after the theme is set.
+		/// </summary>
+		protected virtual GuiWidget CreateCloseButton()
+		{
+			var closeButton = theme.CreateSmallResetButton();
+			closeButton.Margin = new BorderDouble(right: 7, top: 1);
+			return closeButton;
 		}
 
 		public override void OnMouseDown(MouseEventArgs mouseEvent)
@@ -569,8 +579,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			private TextWidget label;
 			private ImageWidget imageWidget;
 
-			public TabPill(string tabTitle, Color textColor, string imageUrl = null, double pointSize = 12)
-				: this(tabTitle, textColor, string.IsNullOrEmpty(imageUrl) ? null : new ImageBuffer(16, 16).CreateScaledImage(GuiWidget.DeviceScale), pointSize)
+			public TabPill(string tabTitle, Color textColor, string imageUrl = null, double pointSize = 12, TypeFace typeFace = null)
+				: this(tabTitle, textColor, string.IsNullOrEmpty(imageUrl) ? null : new ImageBuffer(16, 16).CreateScaledImage(GuiWidget.DeviceScale), pointSize, typeFace)
 			{
 				if (imageWidget != null
 					&& !string.IsNullOrEmpty(imageUrl))
@@ -585,7 +595,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				}
 			}
 
-			public TabPill(string tabTitle, Color textColor, ImageBuffer imageBuffer = null, double pointSize = 12)
+			public TabPill(string tabTitle, Color textColor, ImageBuffer imageBuffer = null, double pointSize = 12, TypeFace typeFace = null)
 			{
 				this.Selectable = false;
 				this.Padding = new BorderDouble(10, 5, 10, 4);
@@ -600,7 +610,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					this.AddChild(imageWidget);
 				}
 
-				label = new TextWidget(tabTitle, pointSize: pointSize)
+				label = new TextWidget(tabTitle, pointSize: pointSize, typeFace: typeFace)
 				{
 					TextColor = textColor,
 					VAnchor = VAnchor.Center,
@@ -662,17 +672,55 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 	public class ChromeTab : SimpleTab
 	{
 		public ChromeTab(string tabKey, string tabLabel, SimpleTabs parentTabControl, GuiWidget tabContent, ThemeConfig theme, string tabImageUrl = null, bool hasClose = true)
-			: base(tabKey, tabLabel, parentTabControl, tabContent, theme, tabImageUrl, hasClose)
+			: base(tabKey, tabLabel, parentTabControl, tabContent, theme, tabImageUrl, hasClose, ClubTabStyle.LabelPointSize, typeFace: LabelTypeFace)
 		{
+			this.ApplyClubLayout(hasClose);
 		}
 
 		public ChromeTab(string tabKey, string tabLabel, SimpleTabs parentTabControl, GuiWidget tabContent, ThemeConfig theme, ImageBuffer imageBuffer, bool hasClose = true)
-			: base(tabKey, tabLabel, parentTabControl, tabContent, theme, iconImage: imageBuffer, hasClose: hasClose)
+			: base(tabKey, tabLabel, parentTabControl, tabContent, theme, pointSize: ClubTabStyle.LabelPointSize, iconImage: imageBuffer, hasClose: hasClose, typeFace: LabelTypeFace)
 		{
 			this.Text = tabLabel;
+			this.ApplyClubLayout(hasClose);
 		}
 
-		private static int tabInsetDistance = 14 / 2;
+		// EBMC Edition: "A. Club label" tabs - see ClubTabStyle for the design values
+		private static TypeFace LabelTypeFace => ApplicationController.Instance.GetTypeFace(ClubTabStyle.LabelFontName);
+
+		private void ApplyClubLayout(bool hasClose)
+		{
+			this.Padding = new BorderDouble(ClubTabStyle.TabPaddingX, 0, hasClose ? ClubTabStyle.ClosablePaddingRight : ClubTabStyle.TabPaddingX, 0);
+			this.Margin = new BorderDouble(right: ClubTabStyle.TabGap);
+			this.MinimumSize = new Vector2(0, ClubTabStyle.TabHeight * GuiWidget.DeviceScale);
+
+			tabPill.Padding = 0;
+			tabPill.VAnchor = VAnchor.Center | VAnchor.Fit;
+
+			// Reserve the close button's space (label gap + circle) so the label never moves when it shows or hides
+			tabPill.Margin = hasClose ? new BorderDouble(right: ClubTabStyle.CloseGap + ClubTabStyle.CloseButtonSize) : 0;
+		}
+
+		protected override GuiWidget CreateCloseButton()
+		{
+			// Shown on the active tab, and on an inactive tab while the pointer is over it
+			return new ClubTabCloseButton(theme, () => this.IsActiveTab || this.IsHovered);
+		}
+
+		private bool IsActiveTab => parentTabControl != null && this == parentTabControl.ActiveTab;
+
+		private bool IsHovered => this.UnderMouseState != UnderMouseState.NotUnderMouse;
+
+		public override void OnMouseEnterBounds(MouseEventArgs mouseEvent)
+		{
+			Invalidate();
+			base.OnMouseEnterBounds(mouseEvent);
+		}
+
+		public override void OnMouseLeaveBounds(MouseEventArgs mouseEvent)
+		{
+			Invalidate();
+			base.OnMouseLeaveBounds(mouseEvent);
+		}
 
         internal ChromeTab NextTab
 		{
@@ -700,91 +748,29 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			}
 		}
 
-		internal ChromeTab PreviousTab
-		{
-			get
-			{
-				var owner = this.Parent;
-				if (owner != null)
-				{
-					ChromeTab last = null;
-					foreach (var item in owner.Children)
-					{
-						if (item == this)
-						{
-							return last;
-						}
-						else if (item is ChromeTab chromeTab)
-						{
-							last = chromeTab;
-						}
-					}
-				}
-
-				return null;
-			}
-		}
-
-
 		public override void OnDraw(Graphics2D graphics2D)
 		{
-			var rect = LocalBounds;
-			var centerY = rect.YCenter;
-
 			if (this.Parent == null)
 			{
 				return;
 			}
 
-			var siblings = this.Parent.Children.OfType<ChromeTab>().ToList();
+			bool isActive = this.IsActiveTab;
+			bool isHovered = this.IsHovered;
 
-			int position = siblings.IndexOf(this);
-
-			// MainTab leftSibling = (position > 0) ? siblings[position - 1] : null;
-			// MainTab rightSibling = (position < siblings.Count - 1) ? siblings[position + 1] : null;
-
-			var activeTab = parentTabControl.ActiveTab;
-
-			bool isFirstTab = position == 0;
-			bool rightSiblingSelected = this.NextTab == activeTab;
-			bool leftSiblingSelected = this.PreviousTab == activeTab;
-
-			bool drawLeftTabOverlap = this != activeTab && !isFirstTab;
-
-			// Tab - core
-			var tabShape = new VertexStorage();
-			tabShape.MoveTo(rect.Left, centerY);
-			tabShape.LineTo(rect.Left + tabInsetDistance, rect.Top);
-			tabShape.LineTo(rect.Right - tabInsetDistance, rect.Top);
-			tabShape.LineTo(rect.Right, centerY);
-			if (!rightSiblingSelected)
+			if (isActive)
 			{
-				tabShape.LineTo(rect.Right, rect.Bottom);
+				// Same colour as the workspace below, with a line border on left/top/right and the accent along the top.
+				// It is drawn over the bar's bottom line, so the line is interrupted under the active tab.
+				ClubTabStyle.DrawActiveTab(graphics2D, this.LocalBounds, GuiWidget.DeviceScale, theme.BackgroundColor, ClubTabStyle.LineColor(theme), theme.PrimaryAccentColor);
+			}
+			else if (isHovered)
+			{
+				ClubTabStyle.DrawHoverTab(graphics2D, this.LocalBounds, GuiWidget.DeviceScale, ClubTabStyle.HoverFillColor(theme));
 			}
 
-			tabShape.LineTo(rect.Right - tabInsetDistance, rect.Bottom);
-			tabShape.LineTo(rect.Left + tabInsetDistance, rect.Bottom);
-			if (!drawLeftTabOverlap)
-			{
-				tabShape.LineTo(rect.Left, rect.Bottom);
-			}
-
-			graphics2D.Render(
-				tabShape,
-				(this == activeTab) ? theme.BackgroundColor : theme.InactiveTabColor);
-
-			if (drawLeftTabOverlap)
-			{
-				DrawTabLowerLeft(
-					graphics2D,
-					rect,
-					(leftSiblingSelected || this == activeTab) ? theme.BackgroundColor : theme.InactiveTabColor);
-			}
-
-			if (rightSiblingSelected)
-			{
-				DrawTabLowerRight(graphics2D, rect, theme.BackgroundColor);
-			}
+			// Set before the children draw; TextColor only invalidates when it changes
+			tabPill.TextColor = (isActive || isHovered) ? theme.TextColor : ClubTabStyle.MutedTextColor(theme);
 
 			base.OnDraw(graphics2D);
 		}
@@ -826,29 +812,6 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			}
 		}
 
-		public static void DrawTabLowerRight(Graphics2D graphics2D, RectangleDouble rect, Color color)
-		{
-			// Tab - right nub
-			var tabRight = new VertexStorage();
-			tabRight.MoveTo(rect.Right, rect.YCenter);
-			tabRight.LineTo(rect.Right, rect.Bottom);
-			tabRight.LineTo(rect.Right - tabInsetDistance, rect.Bottom);
-
-			graphics2D.Render(tabRight, color);
-		}
-
-		public static void DrawTabLowerLeft(Graphics2D graphics2D, RectangleDouble rect, Color color)
-		{
-			// Tab - left nub
-			var tabLeft = new VertexStorage();
-			tabLeft.MoveTo(rect.Left, rect.YCenter);
-			tabLeft.LineTo(rect.Left + tabInsetDistance, rect.Bottom);
-			tabLeft.LineTo(rect.Left, rect.Bottom);
-
-			graphics2D.Line(rect.Left, rect.YCenter, rect.Left + tabInsetDistance, rect.Bottom, AppContext.Theme.MinimalShade, 1.3);
-
-			graphics2D.Render(tabLeft, color);
-		}
 	}
 
 	public static class TabsExtensions

@@ -845,6 +845,15 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 					}
 
 					break;
+				case SliceSettingData.DataEditTypes.OCTOPRINT_API_KEY:
+					// The key is kept in UserSettings, never in the profile: the field ignores the profile value and
+					// nothing here saves to the profile
+					useDefaultSavePattern = false;
+					placeFieldInDedicatedRow = true;
+					sliceSettingValue = "";
+					uiField = new OctoPrint.OctoPrintApiKeyField(printer, theme);
+					break;
+
 #if !__ANDROID__
 				case SliceSettingData.DataEditTypes.IP_LIST:
 					uiField = new IpAddessField(printer, theme);

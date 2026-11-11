@@ -777,15 +777,16 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				};
 				theme.MakeRoundedButton(resliceButton);
 				bool activelySlicing = false;
+				var partsOutsideBedNotice = new PartsOutsideBedValidation.SliceNotice();
 				resliceButton.Click += (s, e) =>
 				{
 					resliceButton.Enabled = false;
 					UiThread.RunOnIdle(async () =>
 					{
 						bool doSlicing = !activelySlicing && printer.Bed.EditContext.SourceItem != null;
+						var errors = new List<ValidationError>();
 						if (doSlicing)
 						{
-							var errors = new List<ValidationError>();
 							printer.ValidateSettings(errors);
 							if (errors.Any(err => err.ErrorLevel == ValidationErrorLevel.Error))
 							{
@@ -805,10 +806,13 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 							await ApplicationController.Instance.Tasks.Execute("Saving".Localize(), printer, printer.Bed.SaveChanges);
 
 							// start up a new slice on a background thread
-							await ApplicationController.Instance.SliceItemLoadOutput(
+							(bool sliceSucceeded, _) = await ApplicationController.Instance.SliceItemLoadOutput(
 								printer,
 								printer.Bed.Scene,
 								await printer.Bed.EditContext.GCodeFilePath(printer));
+
+							// Slicing went ahead without parts that are outside the bed: say so
+							partsOutsideBedNotice.AfterSlice(errors, sliceSucceeded);
 
 							// Switch to the 3D layer view if on Model view
 							if (printer.ViewState.ViewMode == PartViewMode.Model)

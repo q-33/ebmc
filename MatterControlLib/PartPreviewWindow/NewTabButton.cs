@@ -35,69 +35,27 @@ using MatterHackers.MatterControl.CustomWidgets;
 
 namespace MatterHackers.MatterControl.PartPreviewWindow
 {
-	// Holds the space and draws the trailing tabs LowerLeft notch
+	// Holds the space between the last tab and the new tab button
 	public class TabTrailer : GuiWidget
 	{
-		private SimpleTabs parentTabControl;
-		private ThemeConfig theme;
-
-		public ITab LastTab
-		{
-			get
-			{
-				ITab lastTab = null;
-				var owner = this.Parent;
-				if (owner != null)
-				{
-					foreach (var item in owner.Children)
-					{
-						if (item is ITab tab)
-						{
-							lastTab = tab;
-						}
-					}
-
-				}
-
-				return lastTab;
-			}
-		}
-
-		public TabTrailer(SimpleTabs parentTabControl, ThemeConfig theme)
-		{
-			this.parentTabControl = parentTabControl;
-			this.theme = theme;
-		}
-
-		public override void OnDraw(Graphics2D graphics2D)
-		{
-			ChromeTab.DrawTabLowerLeft(
-				graphics2D,
-				this.LocalBounds,
-				(parentTabControl.ActiveTab == this.LastTab) ? theme.BackgroundColor : theme.InactiveTabColor);
-
-			base.OnDraw(graphics2D);
-		}
 	}
 
 	public class NewTabButton : GuiWidget
 	{
 		private ThemeConfig theme;
 
-		public NewTabButton(ImageBuffer imageBuffer, ThemeConfig theme)
+		public NewTabButton(ThemeConfig theme)
 		{
 			this.HAnchor = HAnchor.Fit;
 			this.VAnchor = VAnchor.Center;
 			this.theme = theme;
 
-			IconButton = new ThemedIconButton(imageBuffer, theme)
+			IconButton = new ClubGlyphButton(ClubGlyph.Plus, ClubTabStyle.PlusGlyphSize, theme)
 			{
 				HAnchor = HAnchor.Left,
-				Height = theme.MicroButtonHeight,
-				Width = theme.MicroButtonHeight,
+				VAnchor = VAnchor.Center,
 				Name = "Create New",
 				ToolTipText = "Create New Design".Localize(),
-				HoverColor = theme.AccentMimimalOverlay
 			};
 
 			this.AddChild(IconButton);
@@ -105,6 +63,6 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 		public ITab LastTab { get; set; }
 
-		public ThemedIconButton IconButton { get; }
+		public ThemedButton IconButton { get; }
 	}
 }

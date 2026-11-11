@@ -105,6 +105,11 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			var searchButton = theme.CreateSearchButton();
 			searchButton.Name = "App Search Button";
+			if (searchButton is ThemedButton themedSearchButton)
+			{
+				ClubTabStyle.ApplySquareButtonStyle(themedSearchButton, theme);
+				themedSearchButton.Margin = new BorderDouble(right: ClubTabStyle.SearchMarginRight);
+			}
 			searchButton.MouseDown += (s, e) =>
 			{
 				searchPanelOpenOnMouseDown = searchPanel != null;
@@ -220,8 +225,21 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			tabControl.TabBar.BackgroundColor = theme.TabBarBackground;
 			tabControl.TabBar.BorderColor = theme.BackgroundColor;
 
-			// Force common padding into top region
-			tabControl.TabBar.Padding = theme.TabbarPadding.Clone(top: theme.TabbarPadding.Top * 2, bottom: 0);
+			// EBMC Edition: no top or bottom padding, the bar is exactly ClubTabStyle.BarHeight tall and tabs sit on its bottom edge
+			tabControl.TabBar.Padding = new BorderDouble(left: ClubTabStyle.BarPaddingLeft);
+
+			// A hairline along the bottom of the bar. Drawn before the children, so the active tab covers it.
+			// The right hand extension area paints its own background over the bar, so it draws the line too.
+			void DrawBarBottomLine(object sender, DrawEventArgs e)
+			{
+				if (sender is GuiWidget widget)
+				{
+					e.Graphics2D.FillRectangle(ClubTabStyle.BarLineRect(widget.LocalBounds, DeviceScale), ClubTabStyle.LineColor(theme));
+				}
+			}
+
+			tabControl.TabBar.BeforeDraw += DrawBarBottomLine;
+			extensionArea.BeforeDraw += DrawBarBottomLine;
 
 			if (Application.EnableNetworkTraffic && OemSettings.Instance.ShowVendorServices)
 			{
@@ -266,9 +284,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			{
 				tab = new ChromeTab("Upgrade", "Upgrade".Localize(), tabControl, new UpgradeToProTabPage(theme), theme, hasClose: false)
 				{
-					MinimumSize = new Vector2(0, theme.TabButtonHeight),
 					Name = "Upgrade",
-					Padding = new BorderDouble(15, 0),
 				};
 				tabControl.AddTab(tab);
 
@@ -294,9 +310,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				tabControl.AddTab(
 					tab = new ChromeTab("Store", "Store".Localize(), tabControl, new StoreTabPage(theme), theme, hasClose: false)
 					{
-						MinimumSize = new Vector2(0, theme.TabButtonHeight),
 						Name = "Store Tab",
-						Padding = new BorderDouble(15, 0),
 					});
 
 				EnableReduceWidth(tab, theme);
@@ -311,9 +325,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			tabControl.AddTab(
 				tab = new ChromeTab("Library", "Library".Localize(), tabControl, libraryWidget, theme, hasClose: false)
 				{
-					MinimumSize = new Vector2(0, theme.TabButtonHeight),
 					Name = "Library Tab",
-					Padding = new BorderDouble(15, 0),
 				});
 			EnableReduceWidth(tab, theme);
 
@@ -332,9 +344,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					theme,
 					hasClose: false)
 				{
-					MinimumSize = new Vector2(0, theme.TabButtonHeight),
 					Name = "Hardware Tab",
-					Padding = new BorderDouble(15, 0),
 				});
 			}
 
@@ -342,18 +352,13 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			SetInitialTab();
 
-			var brandMenu = new BrandMenuButton(theme)
-			{
-				HAnchor = HAnchor.Fit,
-				VAnchor = VAnchor.Fit,
-				BackgroundColor = theme.TabBarBackground,
-				Padding = theme.TabbarPadding.Clone(right: theme.DefaultContainerPadding)
-			};
+			// EBMC Edition: size, padding and colours of the brand button are set in BrandMenuButton
+			var brandMenu = new BrandMenuButton(theme);
 
 			tabControl.TabBar.ActionArea.AddChild(brandMenu, 0);
 
 			tabControl.TabBar.ActionArea.VAnchor = VAnchor.Absolute;
-			tabControl.TabBar.ActionArea.Height = brandMenu.Height;
+			tabControl.TabBar.ActionArea.Height = ClubTabStyle.BarHeight * DeviceScale;
 			tabControl.FirstMovableTab = tabControl.AllTabs.Count();
 
 			// Restore active workspace tabs
@@ -1055,17 +1060,13 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		private static void EnableReduceWidth(ChromeTab partTab, ThemeConfig theme)
 		{
 			var scale = GuiWidget.DeviceScale;
-			partTab.MinimumSize = new Vector2(40 * scale, theme.TabButtonHeight);
+			partTab.MinimumSize = new Vector2(ClubTabStyle.TabMinimumWidth * scale, ClubTabStyle.TabHeight * scale);
 
 			var textWidget = partTab.Descendants<TextWidget>().First();
 			var tabPill = partTab.Descendants<SimpleTab.TabPill>().First();
 			tabPill.HAnchor = HAnchor.Stretch;
-			var closeBox = partTab.Descendants<ImageWidget>().FirstOrDefault();
-			if (closeBox != null)
-			{
-				var tabPillMarign = tabPill.Margin;
-				tabPill.Margin = new BorderDouble(tabPillMarign.Left, tabPillMarign.Bottom, tabPillMarign.Right + 10, tabPillMarign.Top);
-			}
+			// the tab's icon, if it has one (the close button is not an ImageWidget)
+			var icon = tabPill.Children.OfType<ImageWidget>().FirstOrDefault();
 
 			UpadetMaxWidth();
 
@@ -1074,21 +1075,17 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			void UpadetMaxWidth()
 			{
-				// the text
-				var width = textWidget.Width;
-				// the tab pill
-				width += (tabPill.Margin.Width + tabPill.Padding.Width) * scale;
-				if (closeBox != null)
+				// The tab's natural width, from the measured label and the device (already scaled) spacing that layout uses.
+				// The pill's right margin holds the space of the close button.
+				var width = textWidget.Width + textWidget.DeviceMarginAndBorder.Width;
+				width += partTab.DevicePadding.Width;
+				width += tabPill.DeviceMarginAndBorder.Width + tabPill.DevicePadding.Width;
+				if (icon != null)
 				{
-					// the close box
-					width += closeBox.Width;
-				}
-				else
-				{
-					width += 32 * scale;
+					width += icon.Width + icon.DeviceMarginAndBorder.Width;
 				}
 
-				partTab.MaximumSize = new Vector2(width, partTab.MaximumSize.Y);
+				partTab.MaximumSize = new Vector2(Math.Ceiling(width), partTab.MaximumSize.Y);
 				partTab.Width -= 1;
 			}
 

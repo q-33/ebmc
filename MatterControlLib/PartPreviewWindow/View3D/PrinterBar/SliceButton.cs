@@ -43,6 +43,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		private PrinterConfig printer;
 		private PrinterTabPage printerTabPage;
 		private bool activelySlicing;
+		private readonly PartsOutsideBedValidation.SliceNotice partsOutsideBedNotice = new PartsOutsideBedValidation.SliceNotice();
 
 		public SliceButton(PrinterConfig printer, PrinterTabPage printerTabPage, ThemeConfig theme)
 			: base("Slice".Localize(), theme)
@@ -115,9 +116,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			if (printer.Settings.PrinterSelected)
 			{
 				bool doSlicing = !activelySlicing && printer.Bed.EditContext.SourceItem != null;
+				var errors = new List<ValidationError>();
 				if (doSlicing)
 				{
-					var errors = new List<ValidationError>();
 					printer.ValidateSettings(errors);
 					if (errors.Any(e => e.ErrorLevel == ValidationErrorLevel.Error))
 					{
@@ -131,11 +132,12 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					activelySlicing = true;
 					this.SetButtonStates();
 
+					bool sliceSucceeded = false;
 					try
 					{
 						await ApplicationController.Instance.Tasks.Execute("Saving".Localize(), printer, printer.Bed.SaveChanges);
 
-						await ApplicationController.Instance.SliceItemLoadOutput(
+						(sliceSucceeded, _) = await ApplicationController.Instance.SliceItemLoadOutput(
 							printer,
 							printer.Bed.Scene,
 							await printer.Bed.EditContext.GCodeFilePath(printer));
@@ -146,6 +148,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					}
 
 					activelySlicing = false;
+
+					// Slicing went ahead without parts that are outside the bed: say so
+					partsOutsideBedNotice.AfterSlice(errors, sliceSucceeded);
 				};
 
 				this.SetButtonStates();

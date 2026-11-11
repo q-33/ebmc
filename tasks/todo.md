@@ -83,3 +83,17 @@ Z homes to max, msd_disable true (SD card must be pulled to edit config).
 - [ ] Clear per-Mac baby_step_z_offset when switching to OctoPrint (it is baked into exports)
 - [ ] EBMC.md: add the levelling settings to the profile table; correct the Z-offset note
 - [ ] Existing installs keep their old copy of the profile: remove and re-add the printer to pick this up
+
+## Done 2026-11-11 (third checkpoint)
+- [x] OctoPrint "Send" in the app: settings (on/off, address, API key in per-user store), Send popup, Upload / Upload and Print,
+      part-based timestamped names; verified against Tools/EBMC/octoprint_mock.py. Not yet tried against the real Pi.
+- [x] Off-bed parts: warning/error, khaki colour in the 3D view, Arrange fix, export/send blocked when nothing is inside
+- [x] UX step 1: "Club label" top bar and tabs (designer mockups in the session scratchpad; direction A chosen)
+- [ ] UX step 2: icon refresh (needs owner yes to download the Lucide icon set + an SVG rasteriser)
+- [ ] Tabs follow-ups: faint labels/hairline in stock Solarized-Light and Classic-Dark themes; stale private test helper
+      CloseAllPrinterTabs (Tests/MatterControl.AutomationTests/SliceSettingsTests.cs:774); unit tests for ClubTabStyle geometry
+- [ ] Send follow-ups: Stop during slicing waits for the slice; key shown in clear while pasting; no print-history record
+
+## OctoPrint Pi (found 2026-11-11)
+OctoprintPulseXE.local, Raspberry Pi 4B 4 GB, OctoPi 1.1.0 / OctoPrint 1.11.8, a club account,
+SSH key [key path removed] (owner installed it). Printer = Smoothieboard on the USB serial port.

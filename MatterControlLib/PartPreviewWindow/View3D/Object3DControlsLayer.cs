@@ -88,6 +88,10 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			gCodeMeshColor = new Color(theme.PrimaryAccentColor, 35);
 
+			// The theme's caution yellow (the club palette's #FFDF69 in both EBMC themes), muted toward grey so it is
+			// not mistaken for a support (bright yellow) or the accent, and slightly see-through like before
+			outsideBedColor = new Color(theme.PresetColors.QualityPreset.Blend(Color.Gray, .4), 200);
+
 			BuildVolumeColor = new ColorF(.2, .8, .3, .2).ToColor();
 
 			floorDrawable = new FloorDrawable(editorType, sceneContext, this.BuildVolumeColor, theme);
@@ -650,6 +654,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		private Color darkWireframe = new Color("#3334");
 		private Color gCodeMeshColor;
 
+		// Parts that will not be printed because they are outside the build volume
+		private Color outsideBedColor;
+
 		private readonly InteractiveScene scene;
 
 		private readonly ISceneContext sceneContext;
@@ -913,7 +920,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		{
 			var drawColor = item.WorldColor();
 			var drawColorWithOutputType = item.WorldColor(checkOutputType: true);
-			if (drawColor != drawColorWithOutputType)
+			bool colorSetByOutputType = drawColor != drawColorWithOutputType;
+			if (colorSetByOutputType)
             {
 				// color bering set by output type
 				drawColor = drawColorWithOutputType;
@@ -970,9 +978,15 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 						}
 					}
 				}
+				else if (!colorSetByOutputType
+					&& PrinterExtensionMethods.IsPrintableCandidate(item))
+				{
+					// Outside of printer build volume: a part the slicer leaves out (the "Parts Outside the Bed" warning)
+					drawColor = outsideBedColor;
+				}
 				else
 				{
-					// Outside of printer build volume
+					// Outside of printer build volume (holes, supports, wipe towers and non-printing items stay faded)
 					drawColor = new Color(drawColor, 65);
 				}
 			}

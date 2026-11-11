@@ -176,7 +176,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 				var hasErrors = errors.Any(e => e.ErrorLevel == ValidationErrorLevel.Error);
 				var hasWarnings = errors.Any(e => e.ErrorLevel == ValidationErrorLevel.Warning
-					&& UserSettings.Instance.get($"Ignore_{e.ID}") != "true");
+					&& !PartsOutsideBedValidation.IsDismissed(e));
 
 				var hasErrorsOrWarnings = hasErrors || hasWarnings;
 				if (hasErrorsOrWarnings)

@@ -146,11 +146,32 @@ namespace MatterHackers.MatterControl
 		/// <returns>An enumerable set of printable items</returns>
 		public static IEnumerable<IObject3D> PrintableItems(this PrinterConfig printer, IObject3D source)
 		{
-			return source.VisibleMeshes().Where(item => item.WorldPersistable()
+			return source.VisibleMeshes().Where(item => IsPrintableCandidate(item)
+				&& printer.InsidePrintableArea(item));
+		}
+
+		/// <summary>
+		/// True when the given mesh item would be printed if it were inside the printable area: the part of
+		/// <see cref="PrintableItems"/> that does not depend on where the item is.
+		/// </summary>
+		public static bool IsPrintableCandidate(IObject3D item)
+		{
+			return item.WorldPersistable()
 				&& item.IsWorldPrintableItem()
-				&& printer.InsideBuildVolume(item)
-				&& printer.InsideHotendBounds(item)
-				&& !item.GetType().GetCustomAttributes(typeof(NonPrintableAttribute), true).Any());
+				&& !nonPrintableTypes.GetOrAdd(item.GetType(), type => type.GetCustomAttributes(typeof(NonPrintableAttribute), true).Any());
+		}
+
+		// Whether a type has [NonPrintable], looked up once per type: the 3D view asks for every outside mesh every frame
+		private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> nonPrintableTypes = new System.Collections.Concurrent.ConcurrentDictionary<Type, bool>();
+
+		/// <summary>
+		/// True when the given mesh item is inside the printable area: the part of <see cref="PrintableItems"/> that
+		/// depends on where the item is (the build volume and, with several hotends, the hotend's reach).
+		/// </summary>
+		public static bool InsidePrintableArea(this PrinterConfig printer, IObject3D item)
+		{
+			return printer.InsideBuildVolume(item)
+				&& printer.InsideHotendBounds(item);
 		}
 
 		/// <summary>

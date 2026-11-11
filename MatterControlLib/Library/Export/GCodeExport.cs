@@ -110,6 +110,13 @@ namespace MatterHackers.MatterControl.Library.Export
 
 		public virtual bool ExportPossible(ILibraryAsset libraryItem) => true;
 
+		/// <summary>
+		/// True only when the last <see cref="Generate"/> call wrote the complete file to its output path. Errors
+		/// in Generate are otherwise only shown in a message box (or swallowed), so callers that use the file
+		/// automatically (OctoPrint upload) must check this.
+		/// </summary>
+		public bool LastExportSucceeded { get; private set; }
+
 		public GuiWidget GetOptionsPanel(IEnumerable<ILibraryItem> libraryItems, RadioButton radioButton)
 		{
 			var container = new FlowLayoutWidget()
@@ -158,6 +165,8 @@ namespace MatterHackers.MatterControl.Library.Export
 
 		public virtual async Task<List<ValidationError>> Generate(IEnumerable<ILibraryItem> libraryItems, string outputPath, Action<double, string> progress, CancellationToken cancellationToken)
 		{
+			LastExportSucceeded = false;
+
 			var firstItem = libraryItems.OfType<ILibraryAsset>().FirstOrDefault();
 			if (firstItem != null)
 			{
@@ -204,6 +213,7 @@ namespace MatterHackers.MatterControl.Library.Export
 					await loadedItem.PersistAssets();
 
 					string gcodePath = null;
+					bool sliceSucceeded = false;
 
 					try
 					{
@@ -225,15 +235,21 @@ namespace MatterHackers.MatterControl.Library.Export
 							}
 
 							// Slice
+							bool oldSpiralVaseSetting = Printer.Settings.GetValue<bool>(SettingsKey.spiral_vase);
 							try
 							{
-								bool oldSpiralVaseSetting = Printer.Settings.GetValue<bool>(SettingsKey.spiral_vase);
 								if (spiralVaseOverride != SpiralVaseOptions.USE_SETTINGS)
 								{
 									Printer.Settings.SetValue(SettingsKey.spiral_vase, spiralVaseOverride == SpiralVaseOptions.FORCE_ON ? "1" : "0");
 								}
 
 								Printer.ValidateSettings(errors, validatePrintBed: false);
+
+								// Nothing on the bed is inside the printable area: do not write an empty file (OctoPrint Send too)
+								if (PartsOutsideBedValidation.ExportError(Printer, libraryItems) is ValidationError nothingInside)
+								{
+									errors.Add(nothingInside);
+								}
 
 								if (errors.Any(e => e.ErrorLevel == ValidationErrorLevel.Error))
 								{
@@ -248,22 +264,27 @@ namespace MatterHackers.MatterControl.Library.Export
 								await ApplicationController.Instance.Tasks.Execute(
 									"Slicing Item".Localize() + " " + loadedItem.Name,
 									Printer,
-									(reporter, cancellationToken2) =>
+									async (reporter, cancellationToken2) =>
 									{
-										return Slicer.SliceItem(loadedItem, gcodePath, Printer, reporter, cancellationToken2.Token);
+										sliceSucceeded = await Slicer.SliceItem(loadedItem, gcodePath, Printer, reporter, cancellationToken2.Token);
 									});
-
-								Printer.Settings.SetValue(SettingsKey.spiral_vase, oldSpiralVaseSetting ? "1" : "0");
 							}
 							finally
 							{
-								Printer.Settings.SetValue(SettingsKey.spiral_vase, "0");
+								// Restore only what was forced for this export (it used to set "0" unconditionally)
+								if (spiralVaseOverride != SpiralVaseOptions.USE_SETTINGS)
+								{
+									Printer.Settings.SetValue(SettingsKey.spiral_vase, oldSpiralVaseSetting ? "1" : "0");
+								}
 							}
 						}
 
 						if (File.Exists(gcodePath))
 						{
 							ApplyStreamPipelineAndExport(gcodePath, outputPath, progress);
+
+							// A cancelled or failed slice can leave a truncated G-code file behind
+							LastExportSucceeded = LastExportSucceeded && sliceSucceeded;
 							return errors;
 						}
 					}
@@ -385,6 +406,8 @@ namespace MatterHackers.MatterControl.Library.Export
 						currentLine++;
 					}
 				}
+
+				LastExportSucceeded = true;
 			}
 			catch (Exception e)
 			{

@@ -75,7 +75,20 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			var defaultMargin = theme.ButtonSpacing;
 
 			var printerType = printer.Settings.Slicer.PrinterType;
-			if (printerType == PrinterType.FFF)
+			bool sendToOctoPrint = OctoPrint.OctoPrintSettings.Enabled(printer);
+			if (printerType == PrinterType.FFF
+				&& sendToOctoPrint)
+			{
+				// OctoPrint drives the printer: Send replaces Connect and Print, and the USB-only Reset is not shown
+				var sendButton = new OctoPrint.OctoPrintSendPopupMenu(printer, theme)
+				{
+					Margin = theme.ButtonSpacing
+				};
+				this.AddChild(sendButton);
+
+				theme.ApplyPrimaryActionStyle(sendButton);
+			}
+			else if (printerType == PrinterType.FFF)
 			{
 				// add the reset button first (if there is one)
 				if (printer.Settings.GetValue<bool>(SettingsKey.show_reset_connection))
@@ -206,7 +219,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			if (printerType == PrinterType.FFF)
 			{
-				int hotendCount = printer.Settings.Helpers.HotendCount();
+				// The temperature widgets drive the USB connection, so they are not shown when OctoPrint drives the printer
+				int hotendCount = sendToOctoPrint ? 0 : printer.Settings.Helpers.HotendCount();
 
 				for (int extruderIndex = 0; extruderIndex < hotendCount; extruderIndex++)
 				{
@@ -216,7 +230,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					});
 				}
 
-				if (printer.Settings.GetValue<bool>(SettingsKey.has_heated_bed))
+				if (printer.Settings.GetValue<bool>(SettingsKey.has_heated_bed)
+					&& !sendToOctoPrint)
 				{
 					this.AddChild(new TemperatureWidgetBed(printer, theme));
 				}

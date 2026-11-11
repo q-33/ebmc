@@ -2722,6 +2722,7 @@ To Create:
 					HelpText = "The serial port communication speed of the printers firmware.".Localize(),
 					DataEditType = DataEditTypes.INT,
 					ShowAsOverride = false,
+					Show = (settings) => !settings.GetBool(SettingsKey.octoprint_enabled),
 					RequiredDisplayDetail = DisplayDetailRequired.Simple,
 					DefaultValue = "250000",
 					RebuildGCodeOnChange = false
@@ -2753,6 +2754,7 @@ To Create:
 					HelpText = "If set, the printer will automatically attempt to connect when selected.".Localize(),
 					DataEditType = DataEditTypes.CHECK_BOX,
 					ShowAsOverride = false,
+					Show = (settings) => !settings.GetBool(SettingsKey.octoprint_enabled),
 					DefaultValue = "1",
 					RebuildGCodeOnChange = false
 				},
@@ -2763,7 +2765,7 @@ To Create:
 					HelpText = "The serial port to use while connecting to this printer.".Localize(),
 					DataEditType = DataEditTypes.COM_PORT,
 					ShowAsOverride = false,
-					Show = (settings) => !settings.GetBool(SettingsKey.enable_network_printing),
+					Show = (settings) => !settings.GetBool(SettingsKey.enable_network_printing) && !settings.GetBool(SettingsKey.octoprint_enabled),
 					RequiredDisplayDetail = DisplayDetailRequired.Simple,
 					UiUpdate = UiUpdateRequired.SliceSettings,
 					DefaultValue = "",
@@ -2815,6 +2817,7 @@ To Create:
 					HelpText = "Sets MatterControl to attempt to connect to a printer over the network. (You must disconnect and reconnect for this to take effect)".Localize(),
 					RequiredDisplayDetail = DisplayDetailRequired.Advanced,
 					DataEditType = DataEditTypes.CHECK_BOX,
+					Show = (settings) => !settings.GetBool(SettingsKey.octoprint_enabled),
 					SetSettingsOnChange = new List<Dictionary<string, string>>
 					{
 						new Dictionary<string, string>
@@ -2874,7 +2877,7 @@ To Create:
 					HelpText = "List of IP's discovered on the network".Localize(),
 					DataEditType = DataEditTypes.IP_LIST,
 					ShowAsOverride = false,
-					Show = (settings) => !settings.GetBool(SettingsKey.enable_network_printing),
+					Show = (settings) => !settings.GetBool(SettingsKey.enable_network_printing) && !settings.GetBool(SettingsKey.octoprint_enabled),
 					DefaultValue = "Manual",
 					RebuildGCodeOnChange = false,
 					UiUpdate = UiUpdateRequired.SliceSettings
@@ -2886,7 +2889,7 @@ To Create:
 					HelpText = "IP Address of printer/printer controller".Localize(),
 					DataEditType = DataEditTypes.STRING,
 					ShowAsOverride = false,
-					Show = (settings) => settings.GetBool(SettingsKey.enable_network_printing),
+					Show = (settings) => settings.GetBool(SettingsKey.enable_network_printing) && !settings.GetBool(SettingsKey.octoprint_enabled),
 					EnableIfSet = "selector_ip_address=Manual",
 					DefaultValue = "127.0.0.1",
 					RebuildGCodeOnChange = false
@@ -2898,9 +2901,48 @@ To Create:
 					HelpText = "Port number to be used with IP Address to connect to printer over the network".Localize(),
 					DataEditType = DataEditTypes.INT,
 					ShowAsOverride = false,
-					Show = (settings) => settings.GetBool(SettingsKey.enable_network_printing),
+					Show = (settings) => settings.GetBool(SettingsKey.enable_network_printing) && !settings.GetBool(SettingsKey.octoprint_enabled),
 					EnableIfSet = "selector_ip_address=Manual",
 					DefaultValue = "23",
+					RebuildGCodeOnChange = false
+				},
+				new SliceSettingData()
+				{
+					SlicerConfigName = SettingsKey.octoprint_enabled,
+					PresentationName = "Send jobs to OctoPrint".Localize(),
+					HelpText = "Upload sliced jobs to an OctoPrint server (for example OctoPi on a Raspberry Pi) instead of printing over USB.".Localize(),
+					DataEditType = DataEditTypes.CHECK_BOX,
+					ShowAsOverride = false,
+					RequiredDisplayDetail = DisplayDetailRequired.Simple,
+					DefaultValue = "0",
+					RebuildGCodeOnChange = false,
+					UiUpdate = UiUpdateRequired.Application
+				},
+				new SliceSettingData()
+				{
+					SlicerConfigName = SettingsKey.octoprint_host,
+					PresentationName = "OctoPrint Address".Localize(),
+					HelpText = "The address of the OctoPrint server, for example http://octopi.local or http://192.168.1.50".Localize(),
+					DataEditType = DataEditTypes.WIDE_STRING,
+					ShowAsOverride = false,
+					Show = (settings) => settings.GetBool(SettingsKey.octoprint_enabled),
+					RequiredDisplayDetail = DisplayDetailRequired.Simple,
+					DefaultValue = "",
+					RebuildGCodeOnChange = false,
+					UiUpdate = UiUpdateRequired.SliceSettings
+				},
+				new SliceSettingData()
+				{
+					// The key itself is never stored in the printer profile: the field reads and writes it in this
+					// computer's user settings (see OctoPrintSettings in MatterControlLib), keyed by the server address
+					SlicerConfigName = SettingsKey.octoprint_api_key,
+					PresentationName = "OctoPrint API Key".Localize(),
+					HelpText = "The key this computer uses to talk to OctoPrint. It is kept in this computer's user settings, not in the printer profile, so it is not included when the printer is exported or shared.".Localize(),
+					DataEditType = DataEditTypes.OCTOPRINT_API_KEY,
+					ShowAsOverride = false,
+					Show = (settings) => settings.GetBool(SettingsKey.octoprint_enabled),
+					RequiredDisplayDetail = DisplayDetailRequired.Simple,
+					DefaultValue = "",
 					RebuildGCodeOnChange = false
 				},
 				new SliceSettingData()

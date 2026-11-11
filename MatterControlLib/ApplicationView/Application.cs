@@ -191,6 +191,7 @@ namespace MatterHackers.MatterControl
 							if (keyEvent.Control)
 							{
 								view3D.PushToPrinterAndPrint();
+								keyEvent.Handled = true;
 							}
 
 							break;
