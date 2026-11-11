@@ -86,6 +86,13 @@ namespace MatterHackers.MatterControl.SettingsManagement
         /// </summary>
         public bool ShowTourOnStartup = true;
 
+        /// <summary>
+        /// EBMC Edition: false skips the first-run agreement page. That page shows MatterHackers' end user
+        /// licence for the builds MatterHackers distributes; this build is made from the BSD-licensed source,
+        /// whose licence and the third-party notices remain in LICENSE and on the About page.
+        /// </summary>
+        public bool ShowLicenseAgreement = true;
+
         public string UnregisteredProductName { get; set; } = "MatterControl";
         public string RegisteredProductName { get; set; } = "MatterControl Pro";
 

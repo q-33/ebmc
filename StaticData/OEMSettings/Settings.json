@@ -16,5 +16,6 @@
     "East Bay Makers Club"
   ],
   "ShowVendorServices": false,
-  "ShowTourOnStartup": false
+  "ShowTourOnStartup": false,
+  "ShowLicenseAgreement": false
 }

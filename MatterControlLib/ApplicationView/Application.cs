@@ -433,6 +433,7 @@ namespace MatterHackers.MatterControl
 			{
 				// Show the End User License Agreement if it has not been shown (on windows it is shown in the installer)
 				if (AggContext.OperatingSystem != OSType.Windows
+					&& SettingsManagement.OemSettings.Instance.ShowLicenseAgreement
 					&& UserSettings.Instance.get(UserSettingsKey.SoftwareLicenseAccepted) != "true")
 				{
 					var eula = new LicenseAgreementPage(LoadMC)

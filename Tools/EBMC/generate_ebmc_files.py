@@ -130,6 +130,8 @@ s.update({'ShowShopButton': False, 'UnregisteredProductName': 'MatterControl EBM
           # No Upgrade/Store tabs, update check, sign-in, Community links or filament shop button
           'ShowVendorServices': False,
           # The interface tour stays in the main menu but no longer opens at every start
-          'ShowTourOnStartup': False})
+          'ShowTourOnStartup': False,
+          # No first-run agreement page (MatterHackers' EULA for their own builds)
+          'ShowLicenseAgreement': False})
 W('StaticData/OEMSettings/Settings.json', s)
 print('ok')
