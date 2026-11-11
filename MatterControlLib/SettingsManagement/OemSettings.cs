@@ -203,7 +203,7 @@ namespace MatterHackers.MatterControl.SettingsManagement
 
             try
             {
-                return JsonConvert.DeserializeObject<OemProfileDictionary>(json);
+                return MergeBundledProfiles(JsonConvert.DeserializeObject<OemProfileDictionary>(json));
             }
             catch
             {
@@ -213,6 +213,48 @@ namespace MatterHackers.MatterControl.SettingsManagement
                 json = StaticData.Instance.ReadAllText(Path.Combine("Profiles", "oemprofiles.json"));
                 return JsonConvert.DeserializeObject<OemProfileDictionary>(json);
             }
+        }
+
+        /// <summary>
+        /// EBMC Edition: adds any make/model that ships in StaticData but is missing from the given list.
+        /// The cached and server lists only know MatterHackers' public printers, so without this the
+        /// club's bundled profile would disappear whenever a cached list exists.
+        /// </summary>
+        private static OemProfileDictionary MergeBundledProfiles(OemProfileDictionary profiles)
+        {
+            if (profiles == null)
+            {
+                return profiles;
+            }
+
+            try
+            {
+                var bundled = JsonConvert.DeserializeObject<OemProfileDictionary>(
+                    StaticData.Instance.ReadAllText(Path.Combine("Profiles", "oemprofiles.json")));
+
+                foreach (var make in bundled)
+                {
+                    if (!profiles.TryGetValue(make.Key, out Dictionary<string, PublicDevice> models))
+                    {
+                        profiles[make.Key] = make.Value;
+                        continue;
+                    }
+
+                    foreach (var model in make.Value)
+                    {
+                        if (!models.ContainsKey(model.Key))
+                        {
+                            models[model.Key] = model.Value;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // The bundled list is optional here; keep whatever was loaded
+            }
+
+            return profiles;
         }
 
         public async Task ReloadOemProfiles()
@@ -232,7 +274,7 @@ namespace MatterHackers.MatterControl.SettingsManagement
                     if (result != null)
                     {
                         // Refresh the in memory instance any time the server responds with updated content - caller will serialize
-                        OemProfiles = result;
+                        OemProfiles = MergeBundledProfiles(result);
 
                         SetManufacturers(result.Keys.ToDictionary(oem => oem));
                     }

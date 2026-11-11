@@ -1,0 +1,14 @@
+{
+  "Name": "East Bay Makers Club",
+  "DefaultColorIndex": 0,
+  "AccentColors": [
+    "#0648D8",
+    "#0034A8",
+    "#FF3D12",
+    "#D42609",
+    "#087F5B",
+    "#38322C"
+  ],
+  "ThemeID": "EBMC-Paper",
+  "MenuThemeID": "EBMC-Paper-Menu"
+}

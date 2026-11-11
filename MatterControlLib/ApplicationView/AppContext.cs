@@ -120,8 +120,16 @@ namespace MatterHackers.MatterControl
 
 			if (ThemeSet == null)
 			{
-				var themeProvider = ThemeProviders["Modern"];
-				_themeset = themeProvider.GetTheme("Modern-Dark");
+				// EBMC Edition: default to the club theme, falling back to the stock default if it is missing
+				if (ThemeProviders.TryGetValue("EBMC", out IColorTheme clubThemeProvider))
+				{
+					_themeset = clubThemeProvider.GetTheme("EBMC-Paper");
+				}
+				else
+				{
+					var themeProvider = ThemeProviders["Modern"];
+					_themeset = themeProvider.GetTheme("Modern-Dark");
+				}
 			}
 
 			ToolTipManager.CreateToolTip = MatterControlToolTipWidget;
