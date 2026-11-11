@@ -59,6 +59,13 @@ namespace MatterHackers.MatterControl
 
 		public static MatterControlOptions Options { get; set; } = new MatterControlOptions();
 
+		/// <summary>
+		/// Gets or sets the scale the platform asks for on high density displays (2 on a Retina Mac).
+		/// The user's text size setting is multiplied by this to produce GuiWidget.DeviceScale.
+		/// Hosts that do not report a display scale, such as the Windows WinForms host, leave this at 1.
+		/// </summary>
+		public static double DisplayScale { get; set; } = 1;
+
 		public static bool IsLoading { get; internal set; } = true;
 
 		/// <summary>

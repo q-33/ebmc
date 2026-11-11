@@ -83,7 +83,7 @@ namespace MatterHackers.MatterControl
 			{
 				if (double.TryParse(textSizeMode, out double textSize))
 				{
-					GuiWidget.DeviceScale = textSize;
+					GuiWidget.DeviceScale = textSize * AppContext.DisplayScale;
 				}
 			}
 

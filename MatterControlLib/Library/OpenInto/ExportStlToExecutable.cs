@@ -52,7 +52,9 @@ namespace MatterControlLib.Library.OpenInto
         {
             get
             {
-                if (string.IsNullOrEmpty(_pathToExe))
+                // The lookup below reads the Windows registry, which does not exist on macOS or Linux
+                if (string.IsNullOrEmpty(_pathToExe)
+                    && System.OperatingSystem.IsWindows())
                 {
                     // get data from the registry for: Computer\HKEY_CLASSES_ROOT\ Bambu.Studio.1\Shell\Open\Command
                     RegistryKey key = Registry.ClassesRoot.OpenSubKey(regExKeyName);

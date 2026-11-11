@@ -14,6 +14,7 @@
 	<ItemGroup>
 		<Compile Remove="Community.CsharpSqlite\**" />
 		<Compile Remove="Launcher\**" />
+		<Compile Remove="MatterControl.CrossPlatform\**" />
 		<Compile Remove="MatterControl.Common\**" />
 		<Compile Remove="MatterControl.MeshOperations\**" />
 		<Compile Remove="MatterControl.OpenGL\**" />
@@ -31,6 +32,7 @@
 		<Compile Remove="Tools\**" />
 		<EmbeddedResource Remove="Community.CsharpSqlite\**" />
 		<EmbeddedResource Remove="Launcher\**" />
+		<EmbeddedResource Remove="MatterControl.CrossPlatform\**" />
 		<EmbeddedResource Remove="MatterControl.Common\**" />
 		<EmbeddedResource Remove="MatterControl.MeshOperations\**" />
 		<EmbeddedResource Remove="MatterControl.OpenGL\**" />
@@ -48,6 +50,7 @@
 		<EmbeddedResource Remove="Tools\**" />
 		<None Remove="Community.CsharpSqlite\**" />
 		<None Remove="Launcher\**" />
+		<None Remove="MatterControl.CrossPlatform\**" />
 		<None Remove="MatterControl.Common\**" />
 		<None Remove="MatterControl.MeshOperations\**" />
 		<None Remove="MatterControl.OpenGL\**" />

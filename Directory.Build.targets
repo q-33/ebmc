@@ -1,0 +1,15 @@
+<Project>
+	<!--
+		Settings applied to every project under this folder, including the agg-sharp and MatterSlice
+		submodules, without having to change the submodules themselves.
+	-->
+	<ItemGroup>
+		<!--
+			agg-sharp asks for SixLabors.ImageSharp 2.1.0, which has known vulnerabilities in its image decoders.
+			2.1.13 is the latest patch release of the same Apache 2.0 licensed 2.1 line and fixes most of them.
+			The remaining advisories are only fixed in ImageSharp 4, which needs .NET 8 or later and so cannot be
+			used until the agg-sharp projects move off net6.0.
+		-->
+		<PackageReference Update="SixLabors.ImageSharp" Version="2.1.13" />
+	</ItemGroup>
+</Project>

@@ -276,7 +276,7 @@ namespace MatterHackers.MatterControl
 			};
 			textSizeApplyButton.Click += (s, e) => UiThread.RunOnIdle(() =>
 			{
-				GuiWidget.DeviceScale = textSizeSlider.Value;
+				GuiWidget.DeviceScale = textSizeSlider.Value * AppContext.DisplayScale;
 				ApplicationController.Instance.ReloadAll().ConfigureAwait(false);
 			});
 			optionalContainer.AddChild(textSizeApplyButton);
@@ -357,7 +357,8 @@ namespace MatterHackers.MatterControl
 			};
 			openCacheButton.Click += (s, e) => UiThread.RunOnIdle(() =>
 			{
-				Process.Start(ApplicationDataStorage.ApplicationUserDataPath);
+				// UseShellExecute is needed to open a folder: Explorer on Windows, Finder on macOS, the file manager on Linux
+				Process.Start(new ProcessStartInfo(ApplicationDataStorage.ApplicationUserDataPath) { UseShellExecute = true });
 			});
 
 			this.AddSettingsRow(

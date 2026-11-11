@@ -74,7 +74,9 @@ namespace MatterHackers.MatterControl.DataStorage
 			}
 		}
 
-		private static string _applicationUserDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ApplicationDataFolderName);
+		// SpecialFolderOption.Create: on macOS and Linux GetFolderPath returns an empty string for a folder that does
+		// not exist yet (a new account has no ~/.local/share), which would put the user data in the working directory.
+		private static string _applicationUserDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create), ApplicationDataFolderName);
 
         private static string _applicationLibraryDataPath => Path.Combine(_applicationUserDataPath, "Library");
         

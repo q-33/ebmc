@@ -147,7 +147,7 @@ namespace MatterHackers.MatterControl
 		public static IEnumerable<IObject3D> PrintableItems(this PrinterConfig printer, IObject3D source)
 		{
 			return source.VisibleMeshes().Where(item => item.WorldPersistable()
-				&& item.WorldPrintable()
+				&& item.IsWorldPrintableItem()
 				&& printer.InsideBuildVolume(item)
 				&& printer.InsideHotendBounds(item)
 				&& !item.GetType().GetCustomAttributes(typeof(NonPrintableAttribute), true).Any());

@@ -16,6 +16,8 @@ BSD-style license (see `LICENSE`). This edition is not produced or supported by 
 | Theme | New "East Bay Makers Club" theme using the club website palette | `StaticData/Themes/System/EBMC/` |
 | Default theme | A new user profile starts in the club theme | `MatterControlLib/ApplicationView/AppContext.cs` |
 | Product name | "MatterControl EBMC Edition", window title suffix "East Bay Makers Club", shop button hidden | `StaticData/OEMSettings/Settings.json` |
+| macOS and Linux | A second host that runs the application without WinForms | `MatterControl.CrossPlatform/`, see `MACOS.md` |
+| Slicing | Ordinary meshes are sent to the slicer again (upstream's pinned `agg-sharp` marks them not printable) | `MatterControlLib/DesignTools/PrintableExtensions.cs` |
 
 The data files are produced by `Tools/EBMC/generate_ebmc_files.py` from the stock S-232 profile
 and the stock light themes. Re-run it from the repository root after changing a value:
@@ -74,9 +76,19 @@ application font is unchanged (the website uses a monospace face).
 
 ## Building
 
-Windows only: .NET 6 SDK and Visual Studio 2022, open `MatterControl.sln`, build the
-`MatterControl` project. Clone with submodules (`git clone --recurse-submodules`).
-These changes have not been compiled or run yet.
+Clone with submodules (`git clone --recurse-submodules`).
+
+**Mac (Apple silicon or Intel) and Linux:** .NET 10 SDK, then `Tools/macOS/build-app.sh --run`
+on a Mac or `dotnet run --project MatterControl.CrossPlatform -c Release` anywhere. Details,
+and what has and has not been tested, are in `MACOS.md`.
+
+**Windows:** .NET 6 SDK and Visual Studio 2022, open `MatterControl.sln`, build the
+`MatterControl` project. The Windows application compiles with these changes but has not
+been run.
+
+The club profile, theme and product name were run on Linux through the new host: the profile
+appears under "East Bay Makers Club" in printer setup, and the default part slices with its
+settings.
 
 An existing user profile keeps its saved theme. To see the club theme on a PC that has run
 MatterControl before, pick "East Bay Makers Club" in the theme settings, or use a fresh

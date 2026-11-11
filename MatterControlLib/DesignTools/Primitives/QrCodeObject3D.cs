@@ -294,138 +294,44 @@ namespace MatterHackers.MatterControl.DesignTools
 				text = $"WIFI:S:{ssid};T:{security};P:{password};H:;;";
 			}
 
-            QRCodeGenerator qrGenerator = new QRCodeGenerator();
+			QRCodeGenerator qrGenerator = new QRCodeGenerator();
 			QRCodeData qrCodeData = qrGenerator.CreateQrCode(text, QRCodeGenerator.ECCLevel.Q);
-			QRCode qrCode = new QRCode(qrCodeData);
-            System.Drawing.Bitmap qrCodeImage = qrCode.GetGraphic(16);
 
-			var destImage = new ImageBuffer();
-			ConvertBitmapToImage(destImage, qrCodeImage);
-			return destImage;
+			return RenderQrCode(qrCodeData, 16);
 		}
 
-        public static System.Drawing.Bitmap ConvertImageToBitmap(ImageBuffer sourceImage)
-        {
-            var bitmap = new System.Drawing.Bitmap(sourceImage.Width, sourceImage.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-            var bitmapData = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, bitmap.PixelFormat);
-
-            int destIndex = 0;
-            unsafe
-            {
-                byte[] sourceBuffer = sourceImage.GetBuffer();
-                byte* pDestBuffer = (byte*)bitmapData.Scan0;
-                int scanlinePadding = bitmapData.Stride - bitmapData.Width * 4;
-                for (int y = 0; y < sourceImage.Height; y++)
-                {
-                    int sourceIndex = sourceImage.GetBufferOffsetXY(0, sourceImage.Height - 1 - y);
-                    for (int x = 0; x < sourceImage.Width; x++)
-                    {
-                        pDestBuffer[destIndex++] = sourceBuffer[sourceIndex++];
-                        pDestBuffer[destIndex++] = sourceBuffer[sourceIndex++];
-                        pDestBuffer[destIndex++] = sourceBuffer[sourceIndex++];
-                        pDestBuffer[destIndex++] = sourceBuffer[sourceIndex++];
-                    }
-
-                    destIndex += scanlinePadding;
-                }
-            }
-
-            bitmap.UnlockBits(bitmapData);
-
-            return bitmap;
-        }
-        
-		public static bool ConvertBitmapToImage(ImageBuffer destImage, System.Drawing.Bitmap bitmap)
+		/// <summary>
+		/// Draws the QR code modules straight into an ImageBuffer, black on white, including the quiet zone.
+		/// This produces the same image QRCoder's System.Drawing renderer did, without System.Drawing,
+		/// which is only supported on Windows.
+		/// </summary>
+		/// <param name="qrCodeData">The generated QR code</param>
+		/// <param name="pixelsPerModule">The width and height in pixels of each QR module</param>
+		/// <returns>A 32 bit image of the QR code</returns>
+		public static ImageBuffer RenderQrCode(QRCodeData qrCodeData, int pixelsPerModule)
 		{
-			if (bitmap != null)
+			var modules = qrCodeData.ModuleMatrix;
+			int size = modules.Count * pixelsPerModule;
+
+			var destImage = new ImageBuffer(size, size, 32, new BlenderBGRA());
+			byte[] destBuffer = destImage.GetBuffer();
+
+			for (int y = 0; y < size; y++)
 			{
-				switch (bitmap.PixelFormat)
+				// QR rows run top to bottom, ImageBuffer rows run bottom to top
+				var moduleRow = modules[y / pixelsPerModule];
+				int destIndex = destImage.GetBufferOffsetXY(0, size - 1 - y);
+				for (int x = 0; x < size; x++)
 				{
-					case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
-						{
-							destImage.Allocate(bitmap.Width, bitmap.Height, bitmap.Width * 4, 32);
-							if (destImage.GetRecieveBlender() == null)
-							{
-								destImage.SetRecieveBlender(new BlenderBGRA());
-							}
-
-                            System.Drawing.Imaging.BitmapData bitmapData = bitmap.LockBits(
-								new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, bitmap.PixelFormat);
-							int sourceIndex = 0;
-							int destIndex = 0;
-							unsafe
-							{
-								byte[] destBuffer = destImage.GetBuffer(out int offset);
-								byte* pSourceBuffer = (byte*)bitmapData.Scan0;
-								for (int y = 0; y < destImage.Height; y++)
-								{
-									destIndex = destImage.GetBufferOffsetXY(0, destImage.Height - 1 - y);
-									for (int x = 0; x < destImage.Width; x++)
-									{
-#if true
-										destBuffer[destIndex++] = pSourceBuffer[sourceIndex++];
-										destBuffer[destIndex++] = pSourceBuffer[sourceIndex++];
-										destBuffer[destIndex++] = pSourceBuffer[sourceIndex++];
-										destBuffer[destIndex++] = pSourceBuffer[sourceIndex++];
-#else
-                                            Color notPreMultiplied = new Color(pSourceBuffer[sourceIndex + 0], pSourceBuffer[sourceIndex + 1], pSourceBuffer[sourceIndex + 2], pSourceBuffer[sourceIndex + 3]);
-                                            sourceIndex += 4;
-                                            Color preMultiplied = notPreMultiplied.ToColorF().premultiply().ToColor();
-                                            destBuffer[destIndex++] = preMultiplied.blue;
-                                            destBuffer[destIndex++] = preMultiplied.green;
-                                            destBuffer[destIndex++] = preMultiplied.red;
-                                            destBuffer[destIndex++] = preMultiplied.alpha;
-#endif
-									}
-								}
-							}
-
-							bitmap.UnlockBits(bitmapData);
-
-							return true;
-						}
-
-					case System.Drawing.Imaging.PixelFormat.Format24bppRgb:
-						{
-							destImage.Allocate(bitmap.Width, bitmap.Height, bitmap.Width * 4, 32);
-							if (destImage.GetRecieveBlender() == null)
-							{
-								destImage.SetRecieveBlender(new BlenderBGRA());
-							}
-
-                            System.Drawing.Imaging.BitmapData bitmapData = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.ImageLockMode.ReadWrite, bitmap.PixelFormat);
-							int sourceIndex = 0;
-							int destIndex = 0;
-							unsafe
-							{
-								byte[] destBuffer = destImage.GetBuffer(out int offset);
-								byte* pSourceBuffer = (byte*)bitmapData.Scan0;
-								for (int y = 0; y < destImage.Height; y++)
-								{
-									sourceIndex = y * bitmapData.Stride;
-									destIndex = destImage.GetBufferOffsetXY(0, destImage.Height - 1 - y);
-									for (int x = 0; x < destImage.Width; x++)
-									{
-										destBuffer[destIndex++] = pSourceBuffer[sourceIndex++];
-										destBuffer[destIndex++] = pSourceBuffer[sourceIndex++];
-										destBuffer[destIndex++] = pSourceBuffer[sourceIndex++];
-										destBuffer[destIndex++] = 255;
-									}
-								}
-							}
-
-							bitmap.UnlockBits(bitmapData);
-							return true;
-						}
-
-					default:
-						// let this code fall through and return false
-						break;
+					byte value = moduleRow[x / pixelsPerModule] ? (byte)0 : (byte)255;
+					destBuffer[destIndex++] = value;
+					destBuffer[destIndex++] = value;
+					destBuffer[destIndex++] = value;
+					destBuffer[destIndex++] = 255;
 				}
 			}
 
-			return false;
+			return destImage;
 		}
 
 		public override Mesh Mesh

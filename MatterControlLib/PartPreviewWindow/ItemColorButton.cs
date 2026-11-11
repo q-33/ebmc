@@ -268,9 +268,18 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			// If there is a custom function to get a color, use it.
 			if (getPickedColor == null)
 			{
-                // get a color picker for all of windows
-				getPickedColor = new WindowsColorOnMouseDown().GetColor;
-            }
+				if (System.OperatingSystem.IsWindows())
+				{
+					// get a color picker for all of windows
+					getPickedColor = new WindowsColorOnMouseDown().GetColor;
+				}
+				else
+				{
+					// The screen color picker is built on user32/gdi32, there is no equivalent wired up for macOS or Linux yet
+					getPickedColor = (setColor) => { };
+					selectButton.Visible = false;
+				}
+			}
 
 			selectButton.Click += (s, e) =>
 			{

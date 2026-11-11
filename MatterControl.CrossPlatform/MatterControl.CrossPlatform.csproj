@@ -1,0 +1,81 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+		MatterControl host for macOS (Apple Silicon and Intel) and Linux.
+
+		The Windows application (MatterControl.csproj at the repository root) is built on WinForms. This project
+		starts the same MatterControlLib on a GLFW window with OpenGL instead, so it has no Windows dependencies.
+	-->
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<AssemblyName>MatterControl</AssemblyName>
+		<RootNamespace>MatterHackers.MatterControl.CrossPlatform</RootNamespace>
+		<Company>MatterHackers Inc.</Company>
+		<Product>MatterControl</Product>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Nullable>disable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+		<!-- Workstation GC keeps memory use and pauses reasonable for a desktop UI -->
+		<ServerGarbageCollection>false</ServerGarbageCollection>
+		<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+		<!-- The UI is drawn by this application itself, so warnings about Windows-only APIs do not apply here -->
+		<NoWarn>$(NoWarn);CA1416</NoWarn>
+		<!-- MatterSlice is a referenced executable project; publishing for a specific runtime finds its host files twice -->
+		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Baked in so a development build can find StaticData in the repository without copying 44 MB on every build -->
+		<AssemblyMetadata Include="MatterControl.RepositoryRoot" Value="$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/..'))" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Shared with the Windows application -->
+		<Compile Include="..\CSharpSerialPortWrapper.cs" Link="Shared\CSharpSerialPortWrapper.cs" />
+		<!-- SQLite bindings that call the operating system's own libsqlite3 -->
+		<Compile Include="..\MatterControl.Winforms\DataStorage\SQLiteUnix.cs" Link="Shared\SQLiteUnix.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\MatterControlLib\MatterControlLib.csproj" />
+		<ProjectReference Include="..\MatterControl.Common\MatterControl.Common.csproj" />
+		<ProjectReference Include="..\MatterControl.Printing\MatterControl.Printing.csproj" />
+		<ProjectReference Include="..\MatterControl.SLA\MatterControl.SLA.csproj" />
+		<ProjectReference Include="..\Submodules\agg-sharp\agg\Agg.csproj" />
+		<ProjectReference Include="..\Submodules\agg-sharp\Gui\Gui.csproj" />
+		<ProjectReference Include="..\Submodules\agg-sharp\RenderOpenGl\RenderOpenGl.csproj" />
+		<ProjectReference Include="..\Submodules\agg-sharp\VectorMath\VectorMath.csproj" />
+		<ProjectReference Include="..\Submodules\agg-sharp\DataConverters2D\DataConverters2D.csproj" />
+		<ProjectReference Include="..\Submodules\agg-sharp\glfw-net\GLFW.NET\GLFW.NETStandard.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Serial port support, including the native helper for macOS arm64 -->
+		<PackageReference Include="System.IO.Ports" Version="10.0.15" />
+		<!--
+			GLFW binaries. Only the package's files are wanted, placed by the items below, so its own copy
+			rules are switched off (ExcludeAssets) and its folder is exposed as $(PkgOpenTK_redist_glfw).
+		-->
+		<PackageReference Include="OpenTK.redist.glfw" Version="3.4.0.47" GeneratePathProperty="true" ExcludeAssets="native" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!--
+			agg-sharp also copies a libglfw.3.dylib next to the application, and that one is Intel only. A build
+			for one runtime puts every native library in that same folder, where the two would collide. Keeping
+			ours in native/<runtime>/ makes the choice explicit; Platform/NativeLibraries.cs looks there first.
+		-->
+		<Content Include="$(PkgOpenTK_redist_glfw)\runtimes\osx-arm64\native\libglfw.3.dylib" Link="native\osx-arm64\libglfw.3.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+		<Content Include="$(PkgOpenTK_redist_glfw)\runtimes\osx-x64\native\libglfw.3.dylib" Link="native\osx-x64\libglfw.3.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+		<Content Include="$(PkgOpenTK_redist_glfw)\runtimes\linux-x64\native\libglfw.so.3" Link="native\linux-x64\libglfw.so.3" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- A published copy is self contained: it carries StaticData with it -->
+		<Content Include="..\StaticData\**\*" Link="StaticData\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Never" CopyToPublishDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>

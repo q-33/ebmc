@@ -122,6 +122,16 @@ namespace MatterHackers.SerialPortCommunication.FrostedSerial
 		{
 		}
 
+		private static bool SetSerialHelperAvailable
+		{
+			get
+			{
+				string appDirectory = AppContext.BaseDirectory;
+				return File.Exists(Path.Combine(appDirectory, "libSetSerial.so"))
+					|| File.Exists(Path.Combine(appDirectory, "libSetSerial.dylib"));
+			}
+		}
+
 		public bool IsWindows
 		{
 			get
@@ -183,7 +193,11 @@ namespace MatterHackers.SerialPortCommunication.FrostedSerial
 			IFrostedSerialPort newPort = Create(serialPortName, settings);
 
 			bool isLinux = !(newPort is FrostedSerialPort) && !IsWindows;
-			bool customBaudAssignment = isLinux && baudRate > 115200;
+
+			// libSetSerial was a workaround for Mono, which refused non ANSI baud rates. The .NET System.IO.Ports
+			// implementation sets rates such as 250000 itself on Linux and macOS, so only take the workaround
+			// path when the helper library has actually been shipped next to the application.
+			bool customBaudAssignment = isLinux && baudRate > 115200 && SetSerialHelperAvailable;
 
 			// Only set serial port .BaudRate when not using Linux workaround
 			if (!customBaudAssignment)

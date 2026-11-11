@@ -122,3 +122,6 @@ MatterControl.userprefs
 # JetBrains Rider user configuration directory
 /.idea/
 /MainOutputDirectory.cs
+
+# macOS application bundle (Tools/macOS/build-app.sh)
+/dist/
