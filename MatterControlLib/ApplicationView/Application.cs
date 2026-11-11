@@ -729,6 +729,7 @@ namespace MatterHackers.MatterControl
 					
 					// If we have not cancled the show welcome message and there is a window open
 					if (UserSettings.Instance.get(UserSettingsKey.ShownWelcomeMessage) != "false"
+						&& SettingsManagement.OemSettings.Instance.ShowTourOnStartup
 						&& ApplicationController.Instance.Workspaces.Count > 0)
 					{
 						UiThread.RunOnIdle(() =>

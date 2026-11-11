@@ -73,10 +73,37 @@ namespace MatterHackers.MatterControl.SettingsManagement
 
         public bool CheckForUpdatesOnFirstRun = false;
 
+        /// <summary>
+        /// EBMC Edition: false removes the parts of the interface that exist to reach MatterHackers' own
+        /// services - the Upgrade and Store tabs, the update check, account sign-in, the Community links
+        /// and the "shop filament" button. None of them apply to a build MatterHackers does not publish.
+        /// </summary>
+        public bool ShowVendorServices = true;
+
+        /// <summary>
+        /// EBMC Edition: false stops the interface tour from opening by itself at every start.
+        /// It stays available in the main menu.
+        /// </summary>
+        public bool ShowTourOnStartup = true;
+
         public string UnregisteredProductName { get; set; } = "MatterControl";
         public string RegisteredProductName { get; set; } = "MatterControl Pro";
 
         public List<string> PrinterWhiteList { get; private set; } = new List<string>();
+
+        /// <summary>
+        /// EBMC Edition: true when OEMSettings/Settings.json lists the makes this build is for
+        /// </summary>
+        [JsonIgnore]
+        public bool HasPrinterWhiteList => PrinterWhiteList != null && PrinterWhiteList.Count > 0;
+
+        /// <summary>
+        /// Whether printer setup should offer the given make. Everything is offered when there is no whitelist.
+        /// </summary>
+        public bool IsWhiteListed(string make)
+        {
+            return !HasPrinterWhiteList || PrinterWhiteList.Contains(make);
+        }
 
         public List<ManufacturerNameMapping> ManufacturerNameMappings { get; set; }
 
@@ -290,6 +317,12 @@ namespace MatterHackers.MatterControl.SettingsManagement
             int index = 0;
             foreach (string oem in OemProfiles.Keys)
             {
+                // No reason to fetch profiles for printers this build never offers
+                if (!IsWhiteListed(oem))
+                {
+                    continue;
+                }
+
                 string cacheScope = Path.Combine("public-profiles", oem);
 
                 index++;

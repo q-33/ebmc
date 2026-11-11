@@ -1,0 +1,14 @@
+{
+  "Name": "East Bay Makers Club Dark",
+  "DefaultColorIndex": 0,
+  "AccentColors": [
+    "#FF3D12",
+    "#FFDF69",
+    "#6C9BFF",
+    "#35B98B",
+    "#D42609",
+    "#C9BFB0"
+  ],
+  "ThemeID": "EBMC-Dark",
+  "MenuThemeID": "EBMC-Dark-Menu"
+}

@@ -112,12 +112,20 @@ namespace MatterHackers.MatterControl
 				new Vector2(pulseImage.Width / 2 - logoWidth / 2, pulseImage.Height * .42),
                 new Vector2(logoWidth, bounds.Height));
 			ThemedIconButton lastButton = null;
-			buttonRow.AddChild(AddButtonText(lastButton = new ThemedIconButton(pulseImage, theme)
+			var pulseButton = AddButtonText(lastButton = new ThemedIconButton(pulseImage, theme)
             {
 				HAnchor = HAnchor.Fit,
 				VAnchor = VAnchor.Fit,
 				Margin = new BorderDouble(15)
-			}, "Setup New Pulse".Localize()));
+			}, "Setup New Pulse".Localize());
+
+			// EBMC Edition: with a printer whitelist "Setup New Printer" already leads straight to the
+			// club's printer, so the stock Pulse shortcut would only offer an empty list
+			if (!SettingsManagement.OemSettings.Instance.HasPrinterWhiteList)
+			{
+				buttonRow.AddChild(pulseButton);
+			}
+
 			lastButton.Click += (s, e) => UiThread.RunOnIdle(() =>
 			{
 				DialogWindow.Show(PrinterSetup.GetBestStartPage(PrinterSetup.StartPageOptions.ShowPulseModels));

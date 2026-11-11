@@ -75,9 +75,19 @@ namespace MatterHackers.MatterControl.Library.Widgets
 
 			UiThread.RunOnIdle(() =>
 			{
+				// EBMC Edition: when OEMSettings names specific makes, those are the only printers offered
+				bool limitedToWhiteList = OemSettings.Instance.HasPrinterWhiteList;
+
 				foreach (var oem in OemSettings.Instance.OemProfiles.OrderBy(o => o.Key))
 				{
-					if (filterToPulse && !oem.Key.Contains("Pulse"))
+					if (limitedToWhiteList)
+					{
+						if (!OemSettings.Instance.IsWhiteListed(oem.Key))
+						{
+							continue;
+						}
+					}
+					else if (filterToPulse && !oem.Key.Contains("Pulse"))
                     {
 						continue;
                     }
@@ -92,7 +102,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 						SetImage(rootNode, image);
 					};
 
-					if (filterToPulse)
+					if (filterToPulse || limitedToWhiteList)
 					{
 						rootNode.Expanded = true;
 					}

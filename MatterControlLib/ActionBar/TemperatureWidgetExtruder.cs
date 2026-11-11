@@ -395,7 +395,11 @@ namespace MatterHackers.MatterControl.ActionBar
 						ApplicationController.LaunchBrowser("https://www.matterhackers.com/store/c/3d-printer-filament");
 					});
 				};
-				materialSettingsRow.AddChild(shopButton);
+				// EBMC Edition: the button opens MatterHackers' filament store
+				if (SettingsManagement.OemSettings.Instance.ShowVendorServices)
+				{
+					materialSettingsRow.AddChild(shopButton);
+				}
 
 				presetsSelector.PerformLayout();
 			}

@@ -11,5 +11,10 @@
   ],
   "UnregisteredProductName": "MatterControl EBMC Edition",
   "RegisteredProductName": "MatterControl EBMC Edition",
-  "WindowTitleExtra": "East Bay Makers Club"
+  "WindowTitleExtra": "East Bay Makers Club",
+  "PrinterWhiteList": [
+    "East Bay Makers Club"
+  ],
+  "ShowVendorServices": false,
+  "ShowTourOnStartup": false
 }

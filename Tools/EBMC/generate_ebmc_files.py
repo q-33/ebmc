@@ -75,13 +75,61 @@ W('StaticData/Themes/System/EBMC/EBMC-Paper.json',
 W('StaticData/Themes/System/EBMC/EBMC-Paper-Menu.json',
   recolor(J('StaticData/Themes/System/Solarized/Solarized-Light-Menu.json'), PAPER, LINE, LINE_SOFT))
 W('StaticData/Themes/System/EBMC/EBMC-Paper.themeset', {
-    'Name': 'East Bay Makers Club', 'DefaultColorIndex': 0,
+    'Name': 'East Bay Makers Club Light', 'DefaultColorIndex': 0,
     'AccentColors': [BLUE, BLUE_DEEP, ORANGE, ORANGE_DEEP, GREEN, SOFT_INK],
     'ThemeID': 'EBMC-Paper', 'MenuThemeID': 'EBMC-Paper-Menu'})
+
+# ---------- club dark theme (the default): the same palette on the site's ink colours ----------
+D_BG, D_TAB, D_RAISED, D_LINE = '#1F1C19', '#151311', '#2B2723', '#3D3731'
+D_TEXT, D_MUTED = '#EDE6DA', '#9A9186'
+SKY, MINT = '#6C9BFF', '#35B98B'   # the club blue and green, lightened to stay readable on a dark ground
+def dfield(bg, border, text=D_TEXT, light=None):
+    d = {'BackgroundColor': bg, 'ForegroundColor': '#00000000', 'BorderColor': border, 'TextColor': text}
+    if light: d['LightTextColor'] = light
+    return d
+def recolor_dark(t):
+    t = copy.deepcopy(t)
+    t.update({
+        'TextColor': D_TEXT,
+        'PresetColors': {'MaterialPreset': ORANGE, 'QualityPreset': YELLOW, 'UserOverride': SKY + '96'},
+        'IsDarkTheme': True,
+        'BackgroundColor': D_BG, 'TabBarBackground': D_TAB, 'InactiveTabColor': D_RAISED,
+        'InteractionLayerOverlayColor': D_BG + 'F0', 'SplitterBackground': D_TAB,
+        'AccentMimimalOverlay': ORANGE + '50', 'PrimaryAccentColor': ORANGE,
+        'BedColor': '#625B53', 'BedBackgroundColor': '#262320', 'PrinterBedTextColor': '#161412',
+        'BorderColor': D_TEXT, 'BorderColor40': D_LINE, 'BorderColor20': D_LINE,
+        'PopupBorderColor': D_TAB, 'RowBorder': D_LINE,
+        'DisabledColor': '#5A534B', 'SplashAccentColor': D_TEXT, 'SectionBackgroundColor': D_RAISED,
+    })
+    t['EditFieldColors'] = {
+        'Focused': field(CREAM, ORANGE, light=MUTED),
+        'Hovered': dfield(D_RAISED, ORANGE, text='#FFFFFF'),
+        'Inactive': dfield('#262320', D_TAB, light=D_MUTED)}
+    t['DropList'] = {
+        'Open': dfield(D_TAB, '#00000000'), 'Focused': dfield('#00000000', '#00000000', text='#00000000'),
+        'Hovered': dfield(D_RAISED, ORANGE, text='#FFFFFF'), 'Inactive': dfield('#262320', D_TAB)}
+    if 'BedGridColors' in t: t['BedGridColors']['Line'] = '#3F3932'
+    return t
+W('StaticData/Themes/System/EBMC/EBMC-Dark.json',
+  recolor_dark(J('StaticData/Themes/System/Modern/Modern-Dark.json')))
+menu = J('StaticData/Themes/System/Modern/Modern-Dark-Menu.json')
+menu.update({'TextColor': D_TEXT, 'BackgroundColor': D_RAISED, 'PopupBorderColor': D_TAB,
+             'RowBorder': D_LINE, 'SectionBackgroundColor': D_BG, 'BedBackgroundColor': D_BG})
+W('StaticData/Themes/System/EBMC/EBMC-Dark-Menu.json', menu)
+W('StaticData/Themes/System/EBMC/EBMC-Dark.themeset', {
+    'Name': 'East Bay Makers Club Dark', 'DefaultColorIndex': 0,
+    'AccentColors': [ORANGE, YELLOW, SKY, MINT, ORANGE_DEEP, '#C9BFB0'],
+    'ThemeID': 'EBMC-Dark', 'MenuThemeID': 'EBMC-Dark-Menu'})
 
 # ---------- product settings ----------
 s = J('StaticData/OEMSettings/Settings.json')
 s.update({'ShowShopButton': False, 'UnregisteredProductName': 'MatterControl EBMC Edition',
-          'RegisteredProductName': 'MatterControl EBMC Edition', 'WindowTitleExtra': 'East Bay Makers Club'})
+          'RegisteredProductName': 'MatterControl EBMC Edition', 'WindowTitleExtra': 'East Bay Makers Club',
+          # Printer setup offers only these makes (the club's own printer)
+          'PrinterWhiteList': [MAKE],
+          # No Upgrade/Store tabs, update check, sign-in, Community links or filament shop button
+          'ShowVendorServices': False,
+          # The interface tour stays in the main menu but no longer opens at every start
+          'ShowTourOnStartup': False})
 W('StaticData/OEMSettings/Settings.json', s)
 print('ok')

@@ -130,7 +130,7 @@ namespace MatterHackers.MatterControl
 				// EBMC Edition: default to the club theme, falling back to the stock default if it is missing
 				if (ThemeProviders.TryGetValue("EBMC", out IColorTheme clubThemeProvider))
 				{
-					_themeset = clubThemeProvider.GetTheme("EBMC-Paper");
+					_themeset = clubThemeProvider.GetTheme("EBMC-Dark");
 				}
 				else
 				{

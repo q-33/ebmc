@@ -64,7 +64,8 @@ namespace MatterHackers.MatterControl.PrinterControls.PrinterConnections
 				VAnchor = VAnchor.Stretch
 			};
 
-			if (userIsLoggedIn)
+			// EBMC Edition: without MatterHackers accounts there is nothing to sign in to, so go straight to the printer list
+			if (userIsLoggedIn || !SettingsManagement.OemSettings.Instance.ShowVendorServices)
 			{
 				contentRow.AddChild(printerPanel);
 				contentRow.Padding = 0;

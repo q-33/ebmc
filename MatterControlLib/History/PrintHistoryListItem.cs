@@ -267,9 +267,13 @@ namespace MatterHackers.MatterControl.PrintHistory
 					printInfoWidget.Text = GetPrintInfo();
 				});
 
-				popupMenu.CreateSeparator();
+				// EBMC Edition: without a Pro licence this entry only shows an "Upgrade to Pro" notice
+				if (OemSettings.Instance.ShowVendorServices || ApplicationController.Instance.IsMatterControlPro())
+				{
+					popupMenu.CreateSeparator();
 
-				AddExportMenu(popupMenu, printTasks);
+					AddExportMenu(popupMenu, printTasks);
+				}
 
 				popupMenu.CreateSeparator();
 

@@ -116,7 +116,7 @@ namespace MatterHackers.MatterControl
 				});
 			};
 
-			if (Application.EnableNetworkTraffic)
+			if (Application.EnableNetworkTraffic && SettingsManagement.OemSettings.Instance.ShowVendorServices)
 			{
 				popupMenu.CreateSeparator();
 
@@ -143,27 +143,31 @@ namespace MatterHackers.MatterControl
 				indicatorIcon = StaticData.Instance.LoadIcon("x64.png", 16, 16).GrayToColor(menuTheme.TextColor);
 			}
 
-			popupMenu.CreateSubMenu("Community".Localize(), menuTheme, (modifyMenu) =>
+			// EBMC Edition: these all lead to MatterHackers' forums, support and issue tracker
+			if (SettingsManagement.OemSettings.Instance.ShowVendorServices)
 			{
-				menuItem = modifyMenu.CreateMenuItem("Forums".Localize(), linkIcon);
-				menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://forums.matterhackers.com/category/20/mattercontrol");
+				popupMenu.CreateSubMenu("Community".Localize(), menuTheme, (modifyMenu) =>
+				{
+					menuItem = modifyMenu.CreateMenuItem("Forums".Localize(), linkIcon);
+					menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://forums.matterhackers.com/category/20/mattercontrol");
 
-				menuItem = modifyMenu.CreateMenuItem("Guides and Articles".Localize(), linkIcon);
-				menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://www.matterhackers.com/topic/mattercontrol");
+					menuItem = modifyMenu.CreateMenuItem("Guides and Articles".Localize(), linkIcon);
+					menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://www.matterhackers.com/topic/mattercontrol");
 
-				menuItem = modifyMenu.CreateMenuItem("Support".Localize(), linkIcon);
-				menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://www.matterhackers.com/mattercontrol/support");
+					menuItem = modifyMenu.CreateMenuItem("Support".Localize(), linkIcon);
+					menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://www.matterhackers.com/mattercontrol/support");
 
-				menuItem = modifyMenu.CreateMenuItem("Release Notes".Localize(), linkIcon);
-				menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://www.matterhackers.com/mattercontrol/support/release-notes");
+					menuItem = modifyMenu.CreateMenuItem("Release Notes".Localize(), linkIcon);
+					menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://www.matterhackers.com/mattercontrol/support/release-notes");
 
-				modifyMenu.CreateSeparator();
+					modifyMenu.CreateSeparator();
 
-				menuItem = modifyMenu.CreateMenuItem("Report a Bug".Localize(), StaticData.Instance.LoadIcon("feedback.png", 16, 16).GrayToColor(menuTheme.TextColor));
-				menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://github.com/MatterHackers/MatterControl/issues");
-			}, StaticData.Instance.LoadIcon("feedback.png", 16, 16).GrayToColor(menuTheme.TextColor));
+					menuItem = modifyMenu.CreateMenuItem("Report a Bug".Localize(), StaticData.Instance.LoadIcon("feedback.png", 16, 16).GrayToColor(menuTheme.TextColor));
+					menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://github.com/MatterHackers/MatterControl/issues");
+				}, StaticData.Instance.LoadIcon("feedback.png", 16, 16).GrayToColor(menuTheme.TextColor));
 
-			popupMenu.CreateSeparator();
+				popupMenu.CreateSeparator();
+			}
 
 			var imageBuffer = new ImageBuffer(18, 18);
 

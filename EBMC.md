@@ -13,8 +13,10 @@ BSD-style license (see `LICENSE`). This edition is not produced or supported by 
 |---|---|---|
 | Printer profile | New make "East Bay Makers Club", model "Pulse S-232 Mosquito" | `StaticData/Profiles/East Bay Makers Club/Pulse S-232 Mosquito.printer`, `StaticData/Profiles/oemprofiles.json` |
 | Profile list | Bundled makes/models are merged into the cached or server list so the club profile always shows | `MatterControlLib/SettingsManagement/OemSettings.cs` |
-| Theme | New "East Bay Makers Club" theme using the club website palette | `StaticData/Themes/System/EBMC/` |
-| Default theme | A new user profile starts in the club theme | `MatterControlLib/ApplicationView/AppContext.cs` |
+| Theme | "East Bay Makers Club Dark" (the default) and "East Bay Makers Club Light", both from the club website palette | `StaticData/Themes/System/EBMC/` |
+| Default theme | A new user profile starts in the dark club theme | `MatterControlLib/ApplicationView/AppContext.cs` |
+| Vendor services removed | No Upgrade or Store tab, update check, account sign-in, Community links, "Shop filament" button or Pro upsell; the interface tour no longer opens at every start. Controlled by `ShowVendorServices` and `ShowTourOnStartup` in the OEM settings (set either to `true` to restore) | `StaticData/OEMSettings/Settings.json`, `MatterControlLib/PartPreviewWindow/MainViewWidget.cs`, `MatterControlLib/ApplicationView/BrandMenuButton.cs`, `MatterControlLib/ApplicationView/Application.cs` and three others |
+| Printer list | Printer setup offers only the club printer; the stock "Setup New Pulse" shortcut is hidden. Controlled by `PrinterWhiteList` in the OEM settings | `StaticData/OEMSettings/Settings.json`, `MatterControlLib/Library/Widgets/AddPrinterWidget.cs`, `MatterControlLib/DialogPages/StartupPage.cs`, `MatterControlLib/SettingsManagement/OemSettings.cs` |
 | Product name | "MatterControl EBMC Edition", window title suffix "East Bay Makers Club", shop button hidden | `StaticData/OEMSettings/Settings.json` |
 | macOS and Linux | A second host that runs the application without WinForms | `MatterControl.CrossPlatform/`, see `MACOS.md` |
 | Slicing | Ordinary meshes are sent to the slicer again (upstream's pinned `agg-sharp` marks them not printable) | `MatterControlLib/DesignTools/PrintableExtensions.cs` |
@@ -70,6 +72,11 @@ Starting point is the factory `Pulse/S-232.printer`. Changed values:
 From the CSS variables on eastbaymakersclub.com: blue `#0648D8`, deep blue `#0034A8`,
 orange `#FF3D12`, deep orange `#D42609`, green `#087F5B`, yellow `#FFDF69`, ink `#050505`,
 soft ink `#38322C`, muted `#71685E`, paper `#F4EDE3`, warm paper `#FBF6ED`, cream `#FFF7EA`.
+
+The dark theme uses warm near-black grounds built from the ink colours (`#1F1C19`, `#151311`,
+`#2B2723`), paper-tinted text (`#EDE6DA`) and the club orange as its accent. The club blue and
+green are too dark to read on that ground, so its accent choices include lightened versions
+(`#6C9BFF`, `#35B98B`); those two are not from the website.
 
 Not done: the club wordmark is not included (add it only with the club's permission), and the
 application font is unchanged (the website uses a monospace face).

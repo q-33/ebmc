@@ -223,7 +223,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			// Force common padding into top region
 			tabControl.TabBar.Padding = theme.TabbarPadding.Clone(top: theme.TabbarPadding.Top * 2, bottom: 0);
 
-			if (Application.EnableNetworkTraffic)
+			if (Application.EnableNetworkTraffic && OemSettings.Instance.ShowVendorServices)
 			{
 				// add in the update available button
 				updateAvailableButton = new LinkLabel("Update Available".Localize(), theme)
@@ -262,7 +262,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			ChromeTab tab = null;
 
 			// Upgrade tab
-			if (!ApplicationController.Instance.IsMatterControlPro())
+			if (!ApplicationController.Instance.IsMatterControlPro() && OemSettings.Instance.ShowVendorServices)
 			{
 				tab = new ChromeTab("Upgrade", "Upgrade".Localize(), tabControl, new UpgradeToProTabPage(theme), theme, hasClose: false)
 				{
@@ -289,15 +289,18 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			}
 
 			// Store tab
-			tabControl.AddTab(
-				tab = new ChromeTab("Store", "Store".Localize(), tabControl, new StoreTabPage(theme), theme, hasClose: false)
-				{
-					MinimumSize = new Vector2(0, theme.TabButtonHeight),
-					Name = "Store Tab",
-					Padding = new BorderDouble(15, 0),
-				});
+			if (OemSettings.Instance.ShowVendorServices)
+			{
+				tabControl.AddTab(
+					tab = new ChromeTab("Store", "Store".Localize(), tabControl, new StoreTabPage(theme), theme, hasClose: false)
+					{
+						MinimumSize = new Vector2(0, theme.TabButtonHeight),
+						Name = "Store Tab",
+						Padding = new BorderDouble(15, 0),
+					});
 
-			EnableReduceWidth(tab, theme);
+				EnableReduceWidth(tab, theme);
+			}
 
 			// Library tab
 			var libraryWidget = new LibraryWidget(this, theme)
