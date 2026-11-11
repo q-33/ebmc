@@ -257,7 +257,7 @@
     "solid_infill_extrusion_width": "0",
     "solid_infill_speed": "60",
     "standby_temperature_delta": "-5",
-    "start_gcode": "G28 ; home all axes\\nM109 S[temperature]\\n\\nG1 Y5 X5 Z0.8 F1800\\nG92 E0\\nG1 X100 Z0.3 E25 F900\\nG92 E0\\nG1 E-2 F2400",
+    "start_gcode": "G28 ; home all axes\\nM280 S3.0 ; deploy probe\\nG32 ; probe bed grid (firmware)\\nM280 S7.0 ; stow probe\\nM109 S[temperature]\\n\\nG1 Y5 X5 Z0.8 F1800\\nG92 E0\\nG1 X100 Z0.3 E25 F900\\nG92 E0\\nG1 E-2 F2400",
     "start_perimeters_at_concave_points": "0",
     "start_perimeters_at_non_overhang": "0",
     "support_material": "0",
@@ -306,7 +306,7 @@
     "z_homes_to_max": "1",
     "filament_cost": "0",
     "bottom_solid_layers": "1mm",
-    "print_leveling_required_to_print": "1",
+    "print_leveling_required_to_print": "0",
     "manual_probe_paper_width": "0.1",
     "recover_is_enabled": "1",
     "z_offset_after_home": "2",
@@ -368,8 +368,9 @@
     "xy_offsets_have_been_calibrated": "0",
     "filament_1_has_been_loaded": "0",
     "probe_offset": "23,0,-2",
-    "validate_leveling": "1",
+    "validate_leveling": "0",
     "retract_before_travel_avoid": "5",
+    "has_hardware_leveling": "1",
     "active_material_key": "72a66f1c-2c30-43d8-8748-2a5ab2035143"
   },
   "QualityLayers": [

@@ -34,8 +34,8 @@ Translated:(Press 'Skip' to setup connection later)
 English:{0} (Update Available)
 Translated:{0} (Update Available)
 
-English:{0} is made possible by the team at MatterHackers and other open source software
-Translated:{0} is made possible by the team at MatterHackers and other open source software
+English:Built from {0}, open-source software by MatterHackers, Inc. and contributors, used under the BSD 2-Clause licence. MatterHackers does not produce, endorse or support this edition. It includes the open-source software listed below; select an item to read its licence.
+Translated:Built from {0}, open-source software by MatterHackers, Inc. and contributors, used under the BSD 2-Clause licence. MatterHackers does not produce, endorse or support this edition. It includes the open-source software listed below; select an item to read its licence.
 
 English:{0} must be greater than 0 and less than your nozzle diameter. You may be missing a '%'.
 Translated:{0} must be greater than 0 and less than your nozzle diameter. You may be missing a '%'.
@@ -6073,8 +6073,8 @@ Translated:This is the angle that raises or stows the z probe.
 English:This is the make (often the manufacturer) of printer this profile is targeting.
 Translated:This is the make (often the manufacturer) of printer this profile is targeting.
 
-English:This is the MatterHackers sku representing this printer. If the printer is not offered on MatterHackers this can be set to a collection key.
-Translated:This is the MatterHackers sku representing this printer. If the printer is not offered on MatterHackers this can be set to a collection key.
+English:The vendor's SKU for this printer, if it has one.
+Translated:The vendor's SKU for this printer, if it has one.
 
 English:This is the model of printer this profile is targeting.
 Translated:This is the model of printer this profile is targeting.

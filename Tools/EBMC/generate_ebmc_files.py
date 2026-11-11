@@ -21,7 +21,20 @@ o.update({
     'retract_length': '2', 'retract_before_travel_avoid': '5',
     'retract_lift': '0.4', 'retract_restart_extra': '0',
     'skirts': '4', 'infill_overlap_perimeter': '20%',
+    # Levelling is done by the printer's firmware (Smoothieware grid, G32) so it works when the
+    # printer is driven by OctoPrint. Approved by the owner 2026-11-11; not yet bench-tested.
+    'print_leveling_required_to_print': '0',
+    'validate_leveling': '0',
+    'has_hardware_leveling': '1',
 })
+# Probe the bed after homing: deploy the BLTouch, run the firmware grid probe, stow it.
+_home = 'G28 ; home all axes\\n'
+assert o['start_gcode'].startswith(_home), 'stock start_gcode changed; review the levelling lines'
+o['start_gcode'] = (_home
+                    + 'M280 S3.0 ; deploy probe\\n'
+                    + 'G32 ; probe bed grid (firmware)\\n'
+                    + 'M280 S7.0 ; stow probe\\n'
+                    + o['start_gcode'][len(_home):])
 heights = {'Coarse': '0.2', 'Standard': '0.15', 'Fine': '0.1'}
 for q in p['QualityLayers']:
     q['layer_height'] = heights[q['layer_name']]
@@ -132,7 +145,9 @@ s.update({'ShowShopButton': False, 'UnregisteredProductName': 'EBMC',
           # The interface tour stays in the main menu but no longer opens at every start
           'ShowTourOnStartup': False,
           # No first-run agreement page (MatterHackers' EULA for their own builds)
-          'ShowLicenseAgreement': False})
+          'ShowLicenseAgreement': False,
+          # No MatterHackers affiliate/referral code added to links
+          'AffiliateCode': ''})
 # Drop upstream's branded sample parts from the preloaded list (no C# code reads this key;
 # Phil A Ment.stl and MH Logo.stl are also deleted from SampleParts)
 s['PreloadedLibraryFiles'] = [f for f in s.get('PreloadedLibraryFiles', []) if f not in (

@@ -141,7 +141,8 @@ namespace MatterHackers.MatterControl.Library.Widgets
         {
             var treeNode = new TreeNode(theme)
             {
-                Text = Path.GetFileName(directory).Replace("_", " ").Trim(),
+                // EBMC Edition: the "_MatterHackers" folder holds the Pulse-branded materials
+                Text = Path.GetFileName(directory) == "_MatterHackers" ? "Pulse materials".Localize() : Path.GetFileName(directory).Replace("_", " ").Trim(),
             };
 
             foreach (var subDirectory in Directory.EnumerateDirectories(directory).OrderBy(f => Path.GetFileName(f)))
@@ -193,6 +194,40 @@ namespace MatterHackers.MatterControl.Library.Widgets
 
                         this.SelectedMaterial = TreeView.SelectedNode.Tag as MaterialInfo;
                         materialInfo.CloseChildren();
+
+                        if (!SettingsManagement.OemSettings.Instance.ShowVendorServices)
+                        {
+                            // EBMC Edition: no vendor store panel (it fetches product data from MatterHackers);
+                            // show the material's name and its settings from the local file instead
+                            var scrollable = new ScrollableWidget(true);
+                            scrollable.ScrollArea.HAnchor |= HAnchor.Stretch;
+                            scrollable.ScrollArea.VAnchor = VAnchor.Fit;
+                            scrollable.AnchorAll();
+
+                            var column = new FlowLayoutWidget(FlowDirection.TopToBottom)
+                            {
+                                HAnchor = HAnchor.Stretch
+                            };
+                            scrollable.AddChild(column);
+
+                            column.AddChild(new TextWidget(SelectedMaterial.Name ?? TreeView.SelectedNode.Text, pointSize: theme.DefaultFontSize, bold: true)
+                            {
+                                TextColor = theme.TextColor,
+                                Margin = new BorderDouble(7, 0, 0, 7)
+                            });
+
+                            var materialProfile = PrinterSettings.LoadFile(SelectedMaterial.Path);
+                            var materialSettingsLayer = materialProfile.MaterialLayers[0];
+                            materialProfile.MaterialLayers.RemoveAt(0);
+                            materialProfile.MaterialLayers.Add(new PrinterSettingsLayer());
+
+                            column.AddChild(CreateSetingsList(materialProfile, materialSettingsLayer, theme));
+
+                            materialInfo.AddChild(scrollable);
+
+                            nextButtonEnabled(TreeView.SelectedNode != null);
+                            return;
+                        }
 
                         var printerDetails = new PrinterDetails(
                                 new PrinterInfo()

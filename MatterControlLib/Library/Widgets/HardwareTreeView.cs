@@ -87,7 +87,12 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			{
 				DialogWindow.Show(PrinterSetup.GetBestStartPage(PrinterSetup.StartPageOptions.ShowPulseModels));
 			});
-			mainRow.AddChild(createPulse);
+
+			// EBMC Edition: hide the Pulse shortcut (and its logo) when a printer whitelist limits setup to the club's printer
+			if (!OemSettings.Instance.HasPrinterWhiteList)
+			{
+				mainRow.AddChild(createPulse);
+			}
 
 			// add in the create printer button
 			var createPrinter = new ThemedIconButton(StaticData.Instance.LoadIcon("md-add-circle_18.png", 18, 18).GrayToColor(theme.TextColor), theme)

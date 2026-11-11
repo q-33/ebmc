@@ -322,11 +322,6 @@ namespace MatterHackers.MatterControl.PrintHistory
 				};
 			}
 
-			string TroubleShooting(string type, int issue)
-			{
-				return $"For help with {type} and other issues, please read MatterHackers [Troubleshooting Guide](https://www.matterhackers.com/articles/3d-printer-troubleshooting-guide#Issue{issue})";
-			}
-
 			menuButton.DynamicPopupContent = () =>
 			{
 				var popupMenu = new PopupMenu(ApplicationController.Instance.MenuTheme);
@@ -335,21 +330,21 @@ namespace MatterHackers.MatterControl.PrintHistory
 					theme,
 					(menu) =>
 					{
-						AddSelection(menu, "First Layer Bad Quality".Localize(), TroubleShooting("the first layer", 1));
-						AddSelection(menu, "Initial Z Height Incorrect".Localize(), TroubleShooting("initial Z height", 1));
+						AddSelection(menu, "First Layer Bad Quality".Localize());
+						AddSelection(menu, "Initial Z Height Incorrect".Localize());
 					});
 				popupMenu.CreateSubMenu("Quality".Localize(),
 					theme,
 					(menu) =>
 					{
-						AddSelection(menu, "General Quality".Localize(), TroubleShooting("general quality", 100));
+						AddSelection(menu, "General Quality".Localize());
 						AddSelection(menu, "Rough Overhangs".Localize());
 						AddSelection(menu, "Skipped Layers".Localize());
-						AddSelection(menu, "Some Parts Lifted".Localize(), TroubleShooting("lifting", 6));
-						AddSelection(menu, "Stringing / Poor retractions".Localize(), TroubleShooting("stringing", 9));
-						AddSelection(menu, "Warping".Localize(), TroubleShooting("warping", 6));
-						AddSelection(menu, "Dislodged From Bed".Localize(), TroubleShooting("adhesion", 2));
-						AddSelection(menu, "Layer Shift".Localize(), TroubleShooting("layer shifting", 8));
+						AddSelection(menu, "Some Parts Lifted".Localize());
+						AddSelection(menu, "Stringing / Poor retractions".Localize());
+						AddSelection(menu, "Warping".Localize());
+						AddSelection(menu, "Dislodged From Bed".Localize());
+						AddSelection(menu, "Layer Shift".Localize());
 					});
 				popupMenu.CreateSubMenu("Mechanical".Localize(),
 					theme,
@@ -357,7 +352,7 @@ namespace MatterHackers.MatterControl.PrintHistory
 					{
 						AddSelection(menu, "Bed Dislodged".Localize());
 						AddSelection(menu, "Bowden Tube Popped Out".Localize());
-						AddSelection(menu, "Extruder Slipping".Localize(), TroubleShooting("the extruder", 13));
+						AddSelection(menu, "Extruder Slipping".Localize());
 						AddSelection(menu, "Flooded Hot End".Localize());
 						AddSelection(menu, "Power Outage".Localize());
 					});
@@ -402,16 +397,9 @@ namespace MatterHackers.MatterControl.PrintHistory
 			return menuButton;
 		}
 
-		private static string articles = @"
-- [MatterControl Tutorials](https://www.matterhackers.com/store/l/mattercontrol/sk/MKZGTDW6#tutorials)
-- [Trick, Tips & Support Articles](https://www.matterhackers.com/topic/tips-and-tricks)
-- [MatterControl Articles](https://www.matterhackers.com/topic/mattercontrol)
-- [MatterControl Docs](https://www.matterhackers.com/mattercontrol/support)
-- [User Forum](https://forums.matterhackers.com/recent)";
-
 		public void CollectInfoPrintCanceled()
 		{
-			string markdownText = @"If you need help, here are some links that might be useful." + articles;
+			string markdownText = "";
 
 			new CollectPrintDetailsPage("Print Canceled".Localize(),
 				printer,
@@ -426,13 +414,7 @@ namespace MatterHackers.MatterControl.PrintHistory
 			// show a long running task asking about print feedback and up-selling more materials
 			// Ask about the print, offer help if needed.
 			// Let us know how your print came out.
-			string markdownText = @"**Find more at MatterHackers**
-
-Supplies and accessories:
-
-[![Filament](https://lh3.googleusercontent.com/2QmeGU_t2KKvAuXTSCYHq1EQTMHRurwreztY52jGdtRQStAEit7Yjsz_hW9l1akGjun7dVcaCGdHEHdGNIGkKykoMg=w100-h100)](https://www.matterhackers.com/store/c/3d-printer-filament) [![Adhesives](https://lh3.googleusercontent.com/LwlavuKk8UXhOuRVB8Q3hqj-AYDHUl8vg_cDanQ8weKM1M7iyMRLjvVD0QWvj6dmCGpSE1t2lKSeMDAmTpJVHLS1bQ=w100-h100)](https://www.matterhackers.com/store/c/3d-printer-adhesive) [![Accessories](https://lh3.googleusercontent.com/pizcbdPu1qn2_QLwyoB2mSr00ckkKkSNkRJ3YmYP-ydkwTpyKy1P_hb6SV2lrH9CbWyy4HViO3VPXV5Q7q-9iGm0wg=w100-h100)](https://www.matterhackers.com/store/c/printer-accessories)
-
-Support and tutorials:" + articles;
+			string markdownText = "";
 
 			new CollectPrintDetailsPage("Print Complete".Localize(),
 				printer,
@@ -536,12 +518,14 @@ Support and tutorials:" + articles;
 
 				topToBottom.AddChild(new HorizontalLine(theme.BorderColor40)
 				{
-					Margin = new BorderDouble(0, 5)
+					Margin = new BorderDouble(0, 5),
+					Visible = !string.IsNullOrEmpty(descriptionMarkdown)
 				});
 
 				topToBottom.AddChild(new MarkdownWidget(theme, false)
 				{
 					Markdown = descriptionMarkdown,
+					Visible = !string.IsNullOrEmpty(descriptionMarkdown)
 				});
 
 				var collectHistoryHidden = UserSettings.Instance.get(UserSettingsKey.CollectPrintHistoryData) == "false";

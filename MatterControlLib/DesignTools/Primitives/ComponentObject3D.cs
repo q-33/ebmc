@@ -93,7 +93,7 @@ namespace MatterHackers.MatterControl.DesignTools
         [HideFromEditor]
         public string ComponentID { get; set; } = "";
 
-        [Description("MatterHackers Internal Use")]
+        [Description("Internal use")]
         public bool ProOnly { get; set; }
 
         public override void Apply(UndoBuffer undoBuffer)

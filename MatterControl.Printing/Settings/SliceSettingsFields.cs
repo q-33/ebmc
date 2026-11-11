@@ -353,7 +353,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 					HelpText = "The Markdown that will be shown on the Trim Filament page.".Localize(),
 					DataEditType = DataEditTypes.MARKDOWN_TEXT,
 					RequiredDisplayDetail = DisplayDetailRequired.Advanced,
-					DefaultValue = "Trim the end of the filament to ensure a good load.  \n![](https://www.matterhackers.com/r/c3zLyf)  \nMake sure you trim it at a slight angle"
+					DefaultValue = "Trim the end of the filament to ensure a good load.  \nMake sure you trim it at a slight angle"
 				},
 				new SliceSettingData()
 				{
@@ -362,7 +362,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 					HelpText = "The Markdown that will be shown on the Insert Filament page.".Localize(),
 					RequiredDisplayDetail = DisplayDetailRequired.Advanced,
 					DataEditType = DataEditTypes.MARKDOWN_TEXT,
-					DefaultValue = "* Insert filament into the extruder until you feel it start to feed\\n  * Make sure the filament is all the way into the extruder\\n  * Hold the filament for several seconds until it catches\\n  * Test that it is inserted by gently pulling down, there should be some resistance  \\n* Click 'Next'  \\n![Load Filament](https://www.matterhackers.com/r/Ipj4Bb)"
+					DefaultValue = "* Insert filament into the extruder until you feel it start to feed\\n  * Make sure the filament is all the way into the extruder\\n  * Hold the filament for several seconds until it catches\\n  * Test that it is inserted by gently pulling down, there should be some resistance  \\n* Click 'Next'"
 				},
 				new SliceSettingData()
 				{
@@ -372,7 +372,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 					RequiredDisplayDetail = DisplayDetailRequired.Advanced,
 					DataEditType = DataEditTypes.MARKDOWN_TEXT,
 					Show = (settings) => settings.GetInt(SettingsKey.extruder_count) > 1,
-					DefaultValue = "* Insert filament into extruder 2 until you feel it start to feed\\n  * Make sure the filament is all the way into the extruder\\n  * Hold the filament for several seconds until it catches\\n  * Test that it is inserted by gently pulling down, there should be some resistance  \\n* Click 'Next'  \\n![Load Filament](https://www.matterhackers.com/r/Ipj4Bb)"
+					DefaultValue = "* Insert filament into extruder 2 until you feel it start to feed\\n  * Make sure the filament is all the way into the extruder\\n  * Hold the filament for several seconds until it catches\\n  * Test that it is inserted by gently pulling down, there should be some resistance  \\n* Click 'Next'"
 				},
 				new SliceSettingData()
 				{
@@ -2740,7 +2740,7 @@ To Create:
 				{
 					SlicerConfigName = SettingsKey.printer_sku,
 					PresentationName = "Printer SKU".Localize(),
-					HelpText = "This is the MatterHackers sku representing this printer. If the printer is not offered on MatterHackers this can be set to a collection key.".Localize(),
+					HelpText = "The vendor's SKU for this printer, if it has one.".Localize(),
 					DataEditType = DataEditTypes.STRING,
 					ShowAsOverride = false,
 					DefaultValue = "",

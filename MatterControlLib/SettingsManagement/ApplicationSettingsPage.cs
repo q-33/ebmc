@@ -151,32 +151,6 @@ namespace MatterHackers.MatterControl
 					StaticData.Instance.LoadIcon("notify-24x24.png", 16, 16).GrayToColor(theme.TextColor)),
 				generalPanel);
 
-			// LanguageControl
-			var languageSelector = new LanguageSelector(theme);
-			languageSelector.SelectionChanged += (s, e) =>
-			{
-				UiThread.RunOnIdle(() =>
-				{
-					string languageCode = languageSelector.SelectedValue;
-					if (languageCode != UserSettings.Instance.get(UserSettingsKey.Language))
-					{
-						UserSettings.Instance.set(UserSettingsKey.Language, languageCode);
-
-						if (languageCode == "L10N")
-						{
-#if DEBUG
-							AppContext.Platform.GenerateLocalizationValidationFile();
-#endif
-						}
-
-						ApplicationController.Instance.ResetTranslationMap();
-						ApplicationController.Instance.ReloadAll().ConfigureAwait(false);
-					}
-				});
-			};
-
-			this.AddSettingsRow(new SettingsItem("Language".Localize(), languageSelector, theme), generalPanel);
-
 			// ThumbnailRendering
 			var thumbnailsModeDropList = new MHDropDownList("", theme, maxHeight: 200 * GuiWidget.DeviceScale);
 			thumbnailsModeDropList.AddItem("Flat".Localize(), "orthographic");

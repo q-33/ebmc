@@ -560,8 +560,40 @@ namespace MatterHackers.MatterControl
 			printer.Dispose();
 		}
 
+        /// <summary>
+		/// EBMC Edition: true for web addresses served by MatterHackers (their site, store, forums, docs and online
+		/// services). With vendor services off, the app does not open or fetch these. Malformed input returns false.
+		/// </summary>
+		public static bool IsVendorUrl(string url)
+		{
+			if (string.IsNullOrWhiteSpace(url)
+				|| !Uri.TryCreate(url.Trim(), UriKind.Absolute, out Uri uri)
+				|| string.IsNullOrEmpty(uri.IdnHost))
+			{
+				return false;
+			}
+
+			// IdnHost is the ASCII (punycode) form, so look-alike Unicode spellings of a host compare as that host
+			var host = uri.IdnHost.ToLowerInvariant().TrimEnd('.');
+
+			return host == "matterhackers.com"
+				|| host.EndsWith(".matterhackers.com")
+				|| host == "mattercontrol.com"
+				|| host.EndsWith(".mattercontrol.com")
+				|| host == "mattercontrol.appspot.com"
+				|| host == "mattercontrol-test.appspot.com"
+				|| host == "mh-pls-prod.appspot.com"
+				|| host == "matterhackers.github.io";
+		}
+
         public static void LaunchBrowser(string targetUri)
 		{
+			// EBMC Edition: links to MatterHackers are not opened when vendor services are off
+			if (!OemSettings.Instance.ShowVendorServices && IsVendorUrl(targetUri))
+			{
+				return;
+			}
+
 			UiThread.RunOnIdle(() =>
 			{
                 var affiliateCode = OemSettings.Instance.AffiliateCode;
@@ -1149,8 +1181,26 @@ namespace MatterHackers.MatterControl
 
             // get markdown working correctly
 			MarkdownWidget.LaunchBrowser = ApplicationController.LaunchBrowser;
-			MarkdownWidget.RetrieveText = WebCache.RetrieveText;
-            MarkdownWidget.RetrieveImageSquenceAsync = WebCache.RetrieveImageSquenceAsync;
+			// EBMC Edition: with vendor services off, markdown never fetches text or images from MatterHackers
+			// hosts (relative links resolve against matterhackers.com); a skipped request leaves the content as it was
+			MarkdownWidget.RetrieveText = (uri, updateResult, addToAppCache, addHeaders) =>
+			{
+				if (!OemSettings.Instance.ShowVendorServices && IsVendorUrl(uri))
+				{
+					return;
+				}
+
+				WebCache.RetrieveText(uri, updateResult, addToAppCache, addHeaders);
+			};
+			MarkdownWidget.RetrieveImageSquenceAsync = (imageSequence, uri, doneLoading) =>
+			{
+				if (!OemSettings.Instance.ShowVendorServices && IsVendorUrl(uri))
+				{
+					return;
+				}
+
+				WebCache.RetrieveImageSquenceAsync(imageSequence, uri, doneLoading);
+			};
 
             Workspaces.CollectionChanged += (s, e) =>
 			{
@@ -2214,17 +2264,11 @@ namespace MatterHackers.MatterControl
 			});
 		}
 
-		public void ResetTranslationMap()
-		{
-			LoadTranslationMap();
-		}
-
 		public static void LoadTranslationMap()
 		{
-			// Select either the user supplied language name or the current thread language name
-			string twoLetterIsoLanguageName = string.IsNullOrEmpty(UserSettings.Instance.Language) ?
-				Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName.ToLower() :
-				UserSettings.Instance.Language.ToLower();
+			// EBMC Edition: the app is English-only. Any language stored by an earlier version
+			// (or the OS culture) is ignored, so a missing translation folder is never looked up
+			string twoLetterIsoLanguageName = "en";
 
 			if (twoLetterIsoLanguageName == "ja"
 				|| twoLetterIsoLanguageName == "zh")

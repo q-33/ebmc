@@ -45,11 +45,6 @@
     "Description": "Create custom supports. Turn any object on the bed into support material."
   },
   {
-    "Title": "Sign In",
-    "WidgetName": "Authentication Sign In",
-    "Description": "Click here to sign into your MatterHackers account."
-  },
-  {
     "Title": "Search EBMC",
     "WidgetName": "App Search Button",
     "Description": "Enter a query to search EBMC."

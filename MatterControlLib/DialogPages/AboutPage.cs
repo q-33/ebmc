@@ -75,7 +75,6 @@ namespace MatterHackers.MatterControl
 				HAnchor = HAnchor.Center | HAnchor.Fit
 			};
 			productTitle.AddChild(new TextWidget(ApplicationController.Instance.ProductName, textColor: theme.TextColor, pointSize: 20) { Margin = new BorderDouble(right: 3) });
-			productTitle.AddChild(new TextWidget("TM".Localize(), textColor: theme.TextColor, pointSize: 7) { VAnchor = VAnchor.Top });
 
 			altHeadingRow.AddChild(productInfo);
 			productInfo.AddChild(productTitle);
@@ -99,14 +98,14 @@ namespace MatterHackers.MatterControl
 				});
 
 			productInfo.AddChild(
-				new TextWidget("Developed By".Localize() + ": " + "MatterHackers", textColor: theme.TextColor, pointSize: theme.DefaultFontSize)
+				new TextWidget("East Bay Makers Club edition".Localize(), textColor: theme.TextColor, pointSize: theme.DefaultFontSize)
 				{
 					HAnchor = HAnchor.Center
 				});
 
 			contentRow.AddChild(
 				new WrappedTextWidget(
-					"{0} is made possible by the team at MatterHackers and other open source software".Localize().FormatWith(ApplicationController.Instance.ProductName) + ":",
+					"Built from {0}, open-source software by MatterHackers, Inc. and contributors, used under the BSD 2-Clause licence. MatterHackers does not produce, endorse or support this edition. It includes the open-source software listed below; select an item to read its licence.".Localize().FormatWith("MatterControl"),
 					pointSize: theme.DefaultFontSize,
 					textColor: theme.TextColor)
 				{
@@ -158,22 +157,12 @@ namespace MatterHackers.MatterControl
 			scrollable.AddChild(licensePanel);
 			contentRow.AddChild( scrollable);
 
+			// Not localized: the translation wrapper would replace the name "MatterControl" in this credit
 			contentRow.AddChild(
-				new TextWidget("Copyright © 2019 MatterHackers, Inc.", textColor: theme.TextColor, pointSize: theme.DefaultFontSize)
+				new TextWidget("MatterControl © 2014 MatterHackers, Inc. and contributors", textColor: theme.TextColor, pointSize: theme.DefaultFontSize)
 				{
 					HAnchor = HAnchor.Center,
 				});
-
-			var siteLink = new LinkLabel("www.matterhackers.com", theme)
-			{
-				HAnchor = HAnchor.Center,
-				TextColor = theme.TextColor
-			};
-			siteLink.Click += (s, e) => UiThread.RunOnIdle(() =>
-			{
-				ApplicationController.LaunchBrowser("http://www.matterhackers.com");
-			});
-			contentRow.AddChild(siteLink);
 		}
 
 		private class LazyLicenseText : GuiWidget
@@ -194,6 +183,12 @@ namespace MatterHackers.MatterControl
 			public override void OnLoad(EventArgs args)
 			{
 				string filePath = Path.Combine("License", $"{sourceName}.txt");
+				if (!StaticData.Instance.FileExists(filePath))
+				{
+					// Most licence files are named in lower case ("clipper.txt" for "Clipper"); case-sensitive file systems need the exact name
+					filePath = Path.Combine("License", $"{sourceName.ToLowerInvariant()}.txt");
+				}
+
 				if (StaticData.Instance.FileExists(filePath))
 				{
 					string content = StaticData.Instance.ReadAllText(filePath);

@@ -58,13 +58,16 @@ cp -R "$PUBLISH/" "$APP/Contents/MacOS/"
 # Data files belong in Resources; the application looks for StaticData there
 mv "$APP/Contents/MacOS/StaticData" "$APP/Contents/Resources/StaticData"
 
+# The licence and the credits travel with the app (the licences are also shown under About)
+cp "$REPO/LICENSE" "$REPO/NOTICE.md" "$APP/Contents/Resources/"
+
 # Libraries for other systems are dead weight inside this app
 rm -f "$APP/Contents/MacOS/glfw3.dll" "$APP/Contents/MacOS/libglfw.3.dylib"
 find "$APP/Contents/MacOS/native" -mindepth 1 -maxdepth 1 -type d ! -name "$RID" -exec rm -rf {} +
 
 VERSION="$(git -C "$REPO" describe --tags --always 2>/dev/null || echo "0")"
 
-# The application icon, scaled from the one MatterControl already uses. Optional.
+# The application icon, scaled from the club's EBMC badge (StaticData/Icons/application.png). Optional.
 ICON_KEY=""
 ICON_SOURCE="$REPO/StaticData/Icons/application.png"
 ICONSET="$DIST/MatterControl.iconset"
@@ -100,6 +103,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<!-- Draw at the display's full resolution on Retina screens -->
 	<key>NSHighResolutionCapable</key><true/>
 	<key>LSApplicationCategoryType</key><string>public.app-category.graphics-design</string>
+	<key>NSHumanReadableCopyright</key><string>East Bay Makers Club edition. Based on MatterControl, &#169; MatterHackers, Inc. and contributors. See the licences in the app.</string>
 </dict>
 </plist>
 PLIST

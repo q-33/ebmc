@@ -276,7 +276,7 @@ namespace MatterHackers.MatterControl.Library
 		{
 #if true
 			// request.Headers.Add("User-Agent", "MatterControl");
-			request.Headers.UserAgent.Add(new ProductInfoHeaderValue("MatterControl", LatestVersionRequest.VersionKey.CurrentBuildNumber));
+			request.Headers.UserAgent.Add(new ProductInfoHeaderValue("EBMC", LatestVersionRequest.VersionKey.CurrentBuildNumber));
 			var token = UserSettings.Instance.get("GitHubPat");
 			if (!string.IsNullOrEmpty(token))
 			{

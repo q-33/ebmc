@@ -12,4 +12,21 @@
 		-->
 		<PackageReference Update="SixLabors.ImageSharp" Version="2.1.13" />
 	</ItemGroup>
+	<!--
+		EBMC Edition: the club's own assemblies (the projects of this repository) name the club, not MatterHackers,
+		as the company. This file is imported after each project's own properties, so it overrides their
+		<Company>MatterHackers Inc.</Company>. Projects under Submodules/ (agg-sharp, MatterSlice and the third-party
+		code they contain) are other people's work and keep whatever they declare themselves.
+		The copyright notices and licences are unchanged (see LICENSE and NOTICE.md).
+	-->
+	<PropertyGroup>
+		<_EbmcSubmodulesDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', 'Submodules').ToUpperInvariant())</_EbmcSubmodulesDirectory>
+		<_EbmcProjectDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)').ToUpperInvariant())</_EbmcProjectDirectory>
+	</PropertyGroup>
+	<PropertyGroup Condition="!$(_EbmcProjectDirectory.StartsWith('$(_EbmcSubmodulesDirectory)'))">
+		<Company>East Bay Makers Club</Company>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(MSBuildProjectName)' == 'MatterControl.CrossPlatform'">
+		<Product>EBMC</Product>
+	</PropertyGroup>
 </Project>

@@ -68,6 +68,13 @@ namespace MatterHackers.MatterControl.Library
 					IsReadOnly = true
 				});
 
+			// EBMC Edition: the "<make> Parts" folder below is read from MatterHackers' GitHub repository;
+			// leave it out (and make no request) when vendor services are off
+			if (!SettingsManagement.OemSettings.Instance.ShowVendorServices)
+			{
+				return;
+			}
+
 			// a new container that holds custom parts for a given printer
 			var containerName = $"{printer.Settings.GetValue(SettingsKey.make)} {"Parts".Localize()}";
 			var settings = printer.Settings;

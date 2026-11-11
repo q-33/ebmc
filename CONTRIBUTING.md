@@ -1,7 +1,7 @@
 Contributing to MatterControl on Github
 =======================================
 
-Github is a place for developer discussion. If you have a question or need help using MatterControl, please either post on the [MatterControl Forum](http://forums.matterhackers.com/category/20/mattercontrol) or send an email to support@matterhackers.com. If you are unsure if the problem you are having is really a bug, then send us an email. We will be happy to investigate and file a bug report if necessary.
+Github is a place for developer discussion. If you have a question or need help using this edition, please ask the East Bay Makers Club (https://eastbaymakersclub.com). MatterHackers does not support this build, so please do not send questions about it to them.
 
 This is not the place for rants or abusive posts. We welcome constructive criticism, but if you feel the need to vent, please do it elsewhere.
 
@@ -20,7 +20,7 @@ Bug Reports
     * "This product is bad and you should feel bad"
 * Include clear step by step instructions to reproduce the issue. Remember, **the developers cannot fix the bug if we cannot get it to happen ourselves**.
 * Include a screenshot of the problem, if applicable.
-* Please attach a .zip to your issue with any applicable diagnostic files. See the wiki article on [gathering diagnostic information](http://wiki.mattercontrol.com/Send_Debugging_Information). These might include...
+* Please attach a .zip to your issue with any applicable diagnostic files. These might include...
   * Crash Logs
   * .stl files
   * .gcode files
