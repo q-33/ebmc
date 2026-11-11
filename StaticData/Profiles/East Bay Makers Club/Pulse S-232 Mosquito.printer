@@ -257,7 +257,7 @@
     "solid_infill_extrusion_width": "0",
     "solid_infill_speed": "60",
     "standby_temperature_delta": "-5",
-    "start_gcode": "G28 ; home all axes\\nM280 S3.0 ; deploy probe\\nG32 ; probe bed grid (firmware)\\nM280 S7.0 ; stow probe\\nM109 S[temperature]\\n\\nG1 Y5 X5 Z0.8 F1800\\nG92 E0\\nG1 X100 Z0.3 E25 F900\\nG92 E0\\nG1 E-2 F2400",
+    "start_gcode": "G28 ; home all axes\\nM280 S3.3 ; deploy probe\\nG32 X23 Y15 A180 B180 ; probe bed grid (firmware)\\nM280 S7.43 ; stow probe\\nM109 S[temperature]\\n\\nG1 Y5 X5 Z0.8 F1800\\nG92 E0\\nG1 X100 Z0.3 E25 F900\\nG92 E0\\nG1 E-2 F2400",
     "start_perimeters_at_concave_points": "0",
     "start_perimeters_at_non_overhang": "0",
     "support_material": "0",

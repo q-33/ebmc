@@ -97,3 +97,55 @@ Z homes to max, msd_disable true (SD card must be pulled to edit config).
 ## OctoPrint Pi (found 2026-11-11)
 OctoprintPulseXE.local, Raspberry Pi 4B 4 GB, OctoPi 1.1.0 / OctoPrint 1.11.8, a club account,
 SSH key [key path removed] (owner installed it). Printer = Smoothieboard on the USB serial port.
+
+## Bench results on the Pulse via OctoPrint (2026-11-11, cold, owner at the printer)
+Machine: bed moves on Y; gantry carries the hotend on Z; Z homes to the TOP (max).
+- [x] OctoPrint connects on the USB serial port @115200; Smoothieware edge-d82d66fNOMSD answers M115/M105/M503; no halt.
+      Bed thermistor reads normally (21.7 C).
+- [x] BLTouch: `M280 S3.3` deploys, `M280 S7.43` stows. `M280 S3.0` (firmware config value) does NOT deploy.
+      Club start G-code corrected to S3.3 / S7.43 (owner approved).
+- [x] Finger-trigger test: G30 stopped on a tap. Real G30 at bed centre: pin touched after 214.01 mm.
+- [x] Z zero set by paper test at firmware Z -4.5, stored with `M306 Z0` + `M500` (owner approved):
+      config-override now has M206 Z4.50; after G28 the firmware reports Z 214.5. Paper check at Z0 confirmed.
+      Undo: `M502`. Probe triggers about 0.5 mm above the paper-grip height.
+- [ ] Power-cycle the printer and confirm Z 214.5 after homing (config-override persists)
+- [ ] G32 grid probe (3x3 over 180x180, firmware probe offset 0,-15); then repeat the paper check with levelling on
+- [ ] Hot check: Z zero at 255 C; first-layer test print through OctoPrint
+- [ ] Firmware max hotend temp is 400 C (M143 S0); EBMC.md says keep under 300 C — propose lowering (needs owner yes)
+- [ ] OctoPrint on the Pi: printer profile set to 250x220x210, nozzle 0.3; serial log on; config backups in
+      [path on the Pi] Still default: disconnectOnErrors/sendM112OnError (kept on purpose).
+
+## Bench results, afternoon 2026-11-11 (cold, via OctoPrint, owner at the printer)
+Firmware source read at this build's commit (upstream Smoothieware d82d66f): G32 stores heights relative to its
+first point and does not move Z zero; a missed probe would travel 2 x max_z; no before/after-probe hooks.
+- [x] SD card config (owner approved; original in printer-config/original, installed copy in printer-config/proposed):
+      probe_offsets 23,0,0; initial_height 11; only_by_two_corners true; soft endstops on
+      (x 0..250, y 0..220, z_min -2.5).
+- [x] Stored with M500: M565 X23 Y0 Z0 (probe is 23 mm right of the nozzle), M670 Z6 (probe travel capped at 12 mm),
+      M206 Z4.56. Verified the cap ("ZProbe not triggered" after 12 mm with the pin stowed).
+- [x] Club start G-code: G28 / M280 S3.3 / G32 X23 Y15 A180 B180 / M280 S7.43 (owner approved; not yet committed).
+- [x] G32 grid (repeatable to 0.01): left ~0, middle ~-0.5, right ~-1.0..-1.2 mm => gantry tilted ~1.1 mm over 180 mm.
+- [x] Probe triggers 1.20 mm above the paper-grip height (same-spot test at the centre; 1.19 at the front-left).
+      The morning paper test was ~0.6 mm high (cause unknown; later two tests agree).
+- [x] With levelling on at Z0: paper GOOD at the centre (125,110); at the right (200,110) it needed Z -0.30.
+      => levelling under-corrects by ~0.3 mm at the far right; left and centre are right. Likely the carriage
+      rolls along a twisted/tilted gantry (probe-to-nozzle height changes with X). Mechanical fix needed.
+- [ ] Level the X gantry mechanically, re-run G32 (target < 0.2 mm), repeat paper checks at centre and right
+- [ ] Until then keep prints in the left/centre of the bed (X below ~150)
+- [ ] Hot check (255 C) and a small first-layer test print through Send
+- [ ] OctoPrint: PortLister 0.1.11 installed; autoconnect on; custom "Z offset (EBMC)" controls added.
+      NOTE the "Set Z zero here and save" button stores zero at the nozzle's current spot; with levelling on, the
+      right value is set from the probe at the grid reference point (see above) — reword or remove the button.
+
+## CORRECTION and final Z zero (2026-11-11, late afternoon)
+The "right side is 0.3 mm high" finding above was wrong: it compared a lighter paper feel at the centre with a
+firmer one on the right. Re-tested with the same feel: centre good at Z -0.20, right (200,110) good at Z -0.30,
+so levelling is right to ~0.1 mm across the bed. The owner's preferred paper feel is ~0.2 mm lower than the
+earlier tests, i.e. the probe triggers ~1.40 mm above that height.
+- [x] Final stored offset: M206 Z4.76 (owner approved), M500. Confirmed by paper at the centre, levelling on, cold.
+      After G28 the firmware reports Z ~214.76. Right side is ~0.1 mm high (cold).
+- [ ] Gantry is still tilted ~1.1 mm over 180 mm (levelling compensates); level it mechanically when convenient
+- [ ] No restriction needed on where parts sit; watch the first layer on the far right
+- [ ] Hot check at 255 C and a small first-layer test print through Send
+- [ ] Decide what to do with the "Set Z zero here and save" control (misleading with levelling on)
+- [ ] Commit the start G-code corrections (S3.3/S7.43, G32 X23 Y15 A180 B180) when the owner says

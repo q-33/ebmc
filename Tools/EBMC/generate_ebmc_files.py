@@ -28,12 +28,16 @@ o.update({
     'has_hardware_leveling': '1',
 })
 # Probe the bed after homing: deploy the BLTouch, run the firmware grid probe, stow it.
+# G32 X23 Y15 A180 B180: the firmware is in two-corner grid mode (probe is 23 mm right of the nozzle), so
+# the grid start (nozzle X23 Y15) and size (180 x 180) are given on the command.
+# S3.3 / S7.43 are the values that move the pin on this printer (checked 2026-11-11; S3.0 from the
+# firmware config does not deploy it).
 _home = 'G28 ; home all axes\\n'
 assert o['start_gcode'].startswith(_home), 'stock start_gcode changed; review the levelling lines'
 o['start_gcode'] = (_home
-                    + 'M280 S3.0 ; deploy probe\\n'
-                    + 'G32 ; probe bed grid (firmware)\\n'
-                    + 'M280 S7.0 ; stow probe\\n'
+                    + 'M280 S3.3 ; deploy probe\\n'
+                    + 'G32 X23 Y15 A180 B180 ; probe bed grid (firmware)\\n'
+                    + 'M280 S7.43 ; stow probe\\n'
                     + o['start_gcode'][len(_home):])
 heights = {'Coarse': '0.2', 'Standard': '0.15', 'Fine': '0.1'}
 for q in p['QualityLayers']:
