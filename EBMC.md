@@ -59,7 +59,7 @@ Starting point is the factory `Pulse/S-232.printer`. Changed values:
 | Extra length on restart | 0.5 mm | 0 |
 | Skirt loops | 2 | 4 |
 | Infill overlap | 50% | 20% |
-| NylonX nozzle / bed temperature | 255C / 55C | 255C / 60C |
+| NylonX nozzle / bed temperature | 255C / 55C | 265C / 60C |
 | Default material | none | NylonX |
 
 ### Status of these values: provisional
@@ -69,9 +69,33 @@ Starting point is the factory `Pulse/S-232.printer`. Changed values:
   with the Z Offset arrows on the print panel during the skirt.
 - Retraction (2 mm, 5 mm travel threshold) was chosen to cure stringing but the confirming
   print did not finish, because the bed thermistor circuit failed. Treat it as untested.
-- NylonX nozzle temperature is still open between 250C and 265C. 255C is the factory preset
-  and the last value a full print completed at.
+- NylonX nozzle temperature is 265C, set by the club on 2026-11-11 (the factory preset is 255C).
+  It has not yet been confirmed by a completed print at this value.
 - A layer shift on tall thin walls was still present on the last completed print.
+
+## Printing through OctoPrint
+
+The club printer is connected by USB to a Raspberry Pi 4 running OctoPrint (`http://OctoprintPulseXE.local`).
+The club profile turns on "Send jobs to OctoPrint" with that address, so the printer bar shows **Send** in
+place of Connect and Print. On each computer, open Printer Settings > General and use **Get Key** once; you
+approve the request in OctoPrint's web page. The key is kept in that computer's user settings, never in the
+printer profile.
+
+Send > Upload and Print slices the bed, uploads the G-code and starts it. The start G-code homes, deploys the
+BLTouch (`M280 S3.3`), probes nine points (`G32 X23 Y15 A180 B180`), stows the probe (`M280 S7.43`) and prints.
+Keep the bed clear while it probes. OctoPrint's Cancel can take up to 40 seconds on this firmware; use the
+power switch in an emergency.
+
+Settings that live on the printer, not in this repository (set 2026-11-11):
+
+| Where | Setting |
+|---|---|
+| SD card `config` | probe offset 23,0; two-corner grid mode; probe start height 11; software travel limits (X 0-250, Y 0-220, Z floor -2.5) |
+| Stored with `M500` | `M565 X23 Y0 Z0`, `M670 Z6` (probe travel capped at 12 mm), `M206 Z5.56` (Z offset) |
+
+The Z offset was set with the bed at 60C, the nozzle at 150C and levelling active, and confirmed by a good
+first layer. To change it, send `M206 Z<value>` then `M500` from OctoPrint's Terminal and home. The gantry is
+tilted about 1.1 mm across the bed; the firmware levelling compensates for it.
 
 ## Hardware notes for this printer
 

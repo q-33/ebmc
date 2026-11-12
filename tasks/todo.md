@@ -149,3 +149,22 @@ earlier tests, i.e. the probe triggers ~1.40 mm above that height.
 - [ ] Hot check at 255 C and a small first-layer test print through Send
 - [ ] Decide what to do with the "Set Z zero here and save" control (misleading with levelling on)
 - [ ] Commit the start G-code corrections (S3.3/S7.43, G32 X23 Y15 A180 B180) when the owner says
+
+## Hot test and re-zero (2026-11-11 evening)
+- [x] First test print through Send to the real OctoPrint (Cube_20261111-160000.gcode, 265 C / 60 C): upload, bed heat,
+      home, G32 (all nine points), purge line and skirt all ran. Owner cancelled during the skirt: nozzle too high.
+      Cancel took ~40 s (Smoothie finishes buffered moves before answering M84); heaters then went off.
+- [x] NylonX nozzle default set to 265 C (owner), generator + EBMC.md updated (not committed yet).
+- [x] Re-zero at printing conditions (bed 60 C soaked, nozzle 150 C, grid active, bed centre): owner set the height
+      0.8 mm lower than the cold calibration. Stored M206 Z5.56 (owner approved); confirmed by paper at Z0.
+      Cause of the 0.8 mm difference from the cold paper tests is not established.
+- Lesson: keep paper off the bed during G32 — a sheet under the first point made the grid fail ("Probe failed to
+  complete") and that message does not stop a print.
+- Hot grid (60 C) differs from cold by 0.1-0.2 mm in the middle; the start G-code probes after bed heat-up, so
+  prints use the hot shape.
+- PortLister reconnect failed once after a power cycle (garbled first line -> OctoPrint sent M112 and closed);
+  manual Connect worked. Not yet made more tolerant.
+- [ ] Second test print with Z offset 5.56; watch purge line and first layer
+- [ ] Commit the 265 C default when the owner says
+- [x] Second test print (Cube_20261111-172506.gcode, Z offset 5.56): owner reports the first layer looks great.
+- [x] Club profile: Send to OctoPrint on by default with http://OctoprintPulseXE.local (owner approved).

@@ -109,7 +109,7 @@
       "layer_id": "72a66f1c-2c30-43d8-8748-2a5ab2035143",
       "retract_restart_extra_time_to_apply": "0",
       "retract_restart_extra": "0",
-      "temperature": "255",
+      "temperature": "265",
       "bed_temperature": "60",
       "filament_density": "1.01",
       "filament_cost": "130",
@@ -371,6 +371,8 @@
     "validate_leveling": "0",
     "retract_before_travel_avoid": "5",
     "has_hardware_leveling": "1",
+    "octoprint_enabled": "1",
+    "octoprint_host": "http://OctoprintPulseXE.local",
     "active_material_key": "72a66f1c-2c30-43d8-8748-2a5ab2035143"
   },
   "QualityLayers": [

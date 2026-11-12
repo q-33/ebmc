@@ -26,6 +26,10 @@ o.update({
     'print_leveling_required_to_print': '0',
     'validate_leveling': '0',
     'has_hardware_leveling': '1',
+    # The club printer is driven by OctoPrint on a Raspberry Pi; jobs are uploaded with Send.
+    # The API key is not stored here: each computer gets its own with Get Key in printer settings.
+    'octoprint_enabled': '1',
+    'octoprint_host': 'http://OctoprintPulseXE.local',
 })
 # Probe the bed after homing: deploy the BLTouch, run the firmware grid probe, stow it.
 # G32 X23 Y15 A180 B180: the firmware is in two-corner grid mode (probe is 23 mm right of the nozzle), so
@@ -43,7 +47,7 @@ heights = {'Coarse': '0.2', 'Standard': '0.15', 'Fine': '0.1'}
 for q in p['QualityLayers']:
     q['layer_height'] = heights[q['layer_name']]
 nylonx = [m for m in p['MaterialLayers'] if m['layer_name'] == 'NylonX'][0]
-nylonx.update({'temperature': '255', 'bed_temperature': '60', 'min_fan_speed': '0', 'max_fan_speed': '0',
+nylonx.update({'temperature': '265', 'bed_temperature': '60', 'min_fan_speed': '0', 'max_fan_speed': '0',
                'bridge_fan_speed': '100', 'first_layer_extrusion_width': '110%',
                'retract_restart_extra': '0', 'retract_restart_extra_time_to_apply': '0'})
 o['active_material_key'] = nylonx['layer_id']
