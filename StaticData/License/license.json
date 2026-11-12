@@ -26,5 +26,9 @@
   {
     "Name": "MatterControl",
     "Url": "https://github.com/MatterHackers/MatterControl"
+  },
+  {
+    "Name": "Lucide",
+    "Url": "https://lucide.dev"
   }
 ]

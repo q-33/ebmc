@@ -639,7 +639,7 @@ namespace MatterHackers.MatterControl
 					};
 					array.AddSelectionAsChildren(sceneContext.Scene, sceneContext.Scene.SelectedItem);
 				},
-				Icon = (theme) => StaticData.Instance.LoadIcon("array_advanced.png", 16, 16).SetPreMultiply(),
+				Icon = (theme) => StaticData.Instance.LoadIcon("array_advanced.png", 16, 16).GrayToColor(theme.TextColor).SetPreMultiply(),
 				HelpTextGetter = () => "A single part must be selected".Localize().Stars(),
 				IsEnabled = (sceneContext) => sceneContext.Scene.SelectedItem != null && !(sceneContext.Scene.SelectedItem is SelectionGroupObject3D),
 			};
@@ -959,7 +959,7 @@ namespace MatterHackers.MatterControl
 				Action = (sceneContext) => sceneContext.DuplicateItemAddToScene(5),
 				HelpTextGetter = () => "At least 1 part must be selected".Localize().Stars(),
 				IsEnabled = (sceneContext) => sceneContext.Scene.SelectedItem != null,
-				Icon = (theme) => StaticData.Instance.LoadIcon("duplicate.png", 16, 16).SetPreMultiply(),
+				Icon = (theme) => StaticData.Instance.LoadIcon("duplicate.png", 16, 16).GrayToColor(theme.TextColor).SetPreMultiply(),
 			};
 		}
 
@@ -1021,7 +1021,7 @@ namespace MatterHackers.MatterControl
 					&& scene.SelectedItem != null
 					&& scene.SelectedItem is SelectionGroupObject3D
 					&& scene.SelectedItem.Children.Count > 1,
-				Icon = (theme) => StaticData.Instance.LoadIcon("group.png", 16, 16).SetPreMultiply(),
+				Icon = (theme) => StaticData.Instance.LoadIcon("group.png", 16, 16).GrayToColor(theme.TextColor).SetPreMultiply(),
 				UiHint = "G Key".Localize(),
 			};
 		}
@@ -1060,7 +1060,7 @@ namespace MatterHackers.MatterControl
 						new IntersectionObject3D_2().WrapSelectedItemAndSelect(sceneContext.Scene);
 					}
 				},
-				Icon = (theme) => StaticData.Instance.LoadIcon("intersect.png", 16, 16),
+				Icon = (theme) => StaticData.Instance.LoadIcon("intersect.png", 16, 16).GrayToColor(theme.TextColor),
 				HelpTextGetter = () => "At least 2 parts must be selected".Localize().Stars(),
 				IsEnabled = (sceneContext) => BooleanCandidate(sceneContext.Scene.SelectedItem, true),
 			};
@@ -1162,7 +1162,7 @@ namespace MatterHackers.MatterControl
 					};
 					array.AddSelectionAsChildren(sceneContext.Scene, sceneContext.Scene.SelectedItem);
 				},
-				Icon = (theme) => StaticData.Instance.LoadIcon("array_linear.png", 16, 16).SetPreMultiply(),
+				Icon = (theme) => StaticData.Instance.LoadIcon("array_linear.png", 16, 16).GrayToColor(theme.TextColor).SetPreMultiply(),
 				HelpTextGetter = () => "A single part must be selected".Localize().Stars(),
 				IsEnabled = (sceneContext) => sceneContext.Scene.SelectedItem != null && !(sceneContext.Scene.SelectedItem is SelectionGroupObject3D),
 			};
@@ -1233,7 +1233,7 @@ namespace MatterHackers.MatterControl
 					};
 					array.AddSelectionAsChildren(sceneContext.Scene, sceneContext.Scene.SelectedItem);
 				},
-				Icon = (theme) => StaticData.Instance.LoadIcon("array_radial.png", 16, 16).SetPreMultiply(),
+				Icon = (theme) => StaticData.Instance.LoadIcon("array_radial.png", 16, 16).GrayToColor(theme.TextColor).SetPreMultiply(),
 				HelpTextGetter = () => "A single part must be selected".Localize().Stars(),
 				IsEnabled = (sceneContext) => sceneContext.Scene.SelectedItem != null && !(sceneContext.Scene.SelectedItem is SelectionGroupObject3D),
 			};
@@ -1321,7 +1321,7 @@ namespace MatterHackers.MatterControl
 				ResultType = typeof(SubtractAndReplaceObject3D_2),
 				TitleGetter = () => "Subtract & Replace".Localize(),
 				Action = (sceneContext) => new SubtractAndReplaceObject3D_2().WrapSelectedItemAndSelect(sceneContext.Scene),
-				Icon = (theme) => StaticData.Instance.LoadIcon("subtract_and_replace.png", 16, 16).SetPreMultiply(),
+				Icon = (theme) => StaticData.Instance.LoadIcon("subtract_and_replace.png", 16, 16).GrayToColor(theme.TextColor).SetPreMultiply(),
 				HelpTextGetter = () => "At least 2 parts must be selected".Localize().Stars(),
 				IsEnabled = (sceneContext) => BooleanCandidate(sceneContext.Scene.SelectedItem, false),
 			};
@@ -1345,7 +1345,7 @@ namespace MatterHackers.MatterControl
 						subtractItem.WrapSelectedItemAndSelect(sceneContext.Scene);
 					}
 				},
-				Icon = (theme) => StaticData.Instance.LoadIcon("subtract.png", 16, 16).SetPreMultiply(),
+				Icon = (theme) => StaticData.Instance.LoadIcon("subtract.png", 16, 16).GrayToColor(theme.TextColor).SetPreMultiply(),
 				HelpTextGetter = () => "At least 2 parts must be selected".Localize().Stars(),
 				IsEnabled = (sceneContext) => BooleanCandidate(sceneContext.Scene.SelectedItem, true),
 			};

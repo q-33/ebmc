@@ -168,3 +168,50 @@ earlier tests, i.e. the probe triggers ~1.40 mm above that height.
 - [ ] Commit the 265 C default when the owner says
 - [x] Second test print (Cube_20261111-172506.gcode, Z offset 5.56): owner reports the first layer looks great.
 - [x] Club profile: Send to OctoPrint on by default with http://OctoprintPulseXE.local (owner approved).
+
+# WHERE WE LEFT OFF (2026-11-11, end of day) — read this first next session
+Branch macos-arm64, 5 commits ahead of origin (not pushed): d61e2c877 rebrand, 150a56bd1 MatterHackers removal +
+English-only + OctoPrint client + levelling, 4e5f23017 Send + off-bed warning + tabs, 30107202e probe/grid
+G-code, e65a7c71d NylonX 265 C + Send on by default.
+
+Working on the printer (all confirmed today):
+- Slice in the app -> Send > Upload and Print -> OctoPrint on the Pi -> bed heat, home, 9-point probe, print.
+- First completed print through this chain: Cube_20261111-172506.gcode, NylonX 265/60, 45 min, owner: "looks great".
+- Z offset M206 Z5.56 (set hot), probe offset X23, probe cap M670 Z6, soft endstops; see EBMC.md
+  "Printing through OctoPrint" and the bench sections above.
+
+UNCOMMITTED when we stopped — icon refresh (UX step 2):
+- 49 icons replaced (Lucide 1.72.0 + custom), Tools/EBMC/build_icons.py, Tools/EBMC/icons/, Lucide licence entry,
+  8 tint edits in SceneOperations.cs, NOTICE.md/EBMC.md lines. Reviewed: no must-fix. A second pass LANDED after
+  the owner signed off for the day (build 0 errors, 229 tests; 34 Lucide + 14 custom glyphs; not yet seen in
+  the app, not independently re-reviewed) to (a) take "hollow" from Lucide instead of a mislabelled custom copy, (b) harden the script
+  (target path check, render-then-write), (c) redraw look-alike glyphs (reduce, the three arrays, lay flat,
+  supports, hotend), (d) fix NOTICE wording. NEXT: check that pass landed (git status, contact sheet v2 in the
+  session scratchpad if it still exists), rebuild, look at the toolbar in the app, then ask the owner to commit.
+
+Open items, roughly in priority order:
+1. Commit the icon refresh (after the check above). Push the branch only when the owner says.
+2. UX design list, next areas: floating view-control cluster (now mixes old/new icons), printer action row
+   buttons, left shapes rail, Library tiles, right-hand panel tabs. Designer mockup direction A "Club label".
+3. UX behaviour list: PrusaSlicer mouse/keys option, G-code preview coloured by feature + time legend, hover
+   highlight, place-on-face, tighter arrange, bed axes. Earlier checklist bugs: clipped layer-view side panel,
+   file dialog opens without keyboard focus.
+4. Printer: level the X gantry mechanically (1.1 mm tilt, levelling compensates); firmware max hotend temp is
+   400 C vs 300 C thermistor limit; PortLister reconnect failed once after a power cycle (manual Connect works);
+   OctoPrint Cancel takes ~40 s on Smoothie.
+5. App follow-ups: third-party notices for all shipped libraries; Variable Sheet model assets not unpacked on a
+   clean install; stock-theme contrast for the new tabs; Send: Stop during slicing waits for the slice.
+6. PrusaSlicer club config bundle for the Prusa printers (needs the club's printer list; the network shows a
+   "Prusa MK3.5S" and a "Prusa XL").
+7. MACOS.md still says running on a Mac is "Not yet tried" — update with today's results.
+
+Access for next time (nothing secret is stored in this repo):
+- OctoPrint: http://OctoprintPulseXE.local, a club account. SSH key on the owner's Mac:
+  [key path removed] API key for Claude's use: [path removed] (application key; revoke in OctoPrint > Settings > Application Keys). OctoPrint config backups on the Pi:
+  [path on the Pi] Serial log is ON ([path on the Pi]).
+- Printer SD card backups: printer-config/ in the repo folder (untracked on purpose).
+- Mock OctoPrint for tests: python3 Tools/EBMC/octoprint_mock.py --port 5050 --key testkey
+
+Design reference kept in the repo folder (untracked): tasks/design/ebmc-ux-mockups.html (designer's three
+directions; A was chosen) and the icon before/after sheets (icons-contact-sheet-3x.png = first pass,
+icons-contact-sheet-v2-3x.png = redrawn glyphs). The session scratchpad they came from may be gone next time.

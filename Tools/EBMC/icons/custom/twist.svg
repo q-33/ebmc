@@ -1,0 +1,5 @@
+<!-- EBMC custom icon "twist": twist: the two edges of a bar wound around each other like a helix. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7 3c0 4.5 10 4.5 10 9s-10 4.5-10 9" />
+  <path d="M17 3c0 4.5-10 4.5-10 9s10 4.5 10 9" />
+</svg>

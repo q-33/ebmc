@@ -1,0 +1,7 @@
+<!-- EBMC custom icon "lay-flat": lay flat: a tilted part with an arrow showing it settling flat onto the build plane. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M8.35 3.85 16.15 8.35 11.65 16.15 3.85 11.65z" />
+  <path d="M3 20.5h18" />
+  <path d="M19 4.5v7" />
+  <path d="m16.5 9 2.5 2.5 2.5-2.5" />
+</svg>

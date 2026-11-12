@@ -1,0 +1,6 @@
+<!-- EBMC custom icon "plane-cut": plane cut: a block split in two by a cutting plane. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M5 8.5V5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3.5" />
+  <path d="M5 15.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5" />
+  <path d="M2 12h20" />
+</svg>

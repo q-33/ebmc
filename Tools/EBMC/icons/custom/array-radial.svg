@@ -1,0 +1,9 @@
+<!-- EBMC custom icon "array-radial": radial array: three copies of a part spaced around a circle. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="10.00" y="2.50" width="4" height="4" rx="1" />
+  <rect x="16.50" y="13.75" width="4" height="4" rx="1" />
+  <rect x="3.50" y="13.75" width="4" height="4" rx="1" />
+  <path d="M16.41 5.93A7.5 7.5 0 0 1 19.46 11.22" />
+  <path d="M15.05 18.85A7.5 7.5 0 0 1 8.95 18.85" />
+  <path d="M4.54 11.22A7.5 7.5 0 0 1 7.59 5.93" />
+</svg>

@@ -1,0 +1,259 @@
+{
+  "_about": "Icon refresh map read by Tools/EBMC/build_icons.py. Keys are paths under StaticData/Icons and must name existing .png files there. source is lucide:<name> (Tools/EBMC/icons/lucide/<name>.svg, 34 vendored files) or custom:<name> (Tools/EBMC/icons/custom/<name>.svg, 14 EBMC drawings). size is the output PNG edge in pixels: 64 for icons the code loads at 16x16, 56 for 14x14 (4x the logical size). At device scale 1 the app's loader halves these exactly (64->32->16). At device scale 2 it first resamples the source up by 2 (64->128, bilinear) and then halves it twice to 32 px, so the result is close to, but slightly softer than, an exact 2x box reduction. previously_untinted marks icons whose code did not tint them before the refresh (used only by the preview sheet).",
+  "lucide_version": "1.72.0",
+  "icons": {
+    "icon_search_24x24.png": {
+      "source": "lucide:search",
+      "size": 64,
+      "notes": "Top-bar search; also Library, slice-settings and property-editor search buttons"
+    },
+    "help_page.png": {
+      "source": "lucide:circle-help",
+      "size": 64,
+      "notes": "Brand menu Help; also the help button made in ApplicationController"
+    },
+    "tour.png": {
+      "source": "lucide:signpost",
+      "size": 64,
+      "notes": "Brand menu Interface Tour"
+    },
+    "update.png": {
+      "source": "lucide:refresh-cw",
+      "size": 64,
+      "notes": "Shared: brand menu Check For Update and the Rebuild scene operation"
+    },
+    "fa-cog_16.png": {
+      "source": "lucide:settings",
+      "size": 64,
+      "notes": "Brand menu Settings; also configure buttons in Application Settings and the COM port field"
+    },
+    "feedback.png": {
+      "source": "lucide:message-square-text",
+      "size": 64,
+      "notes": "Brand menu Community submenu and Report a Bug"
+    },
+    "fa-link_16.png": {
+      "source": "lucide:external-link",
+      "size": 64,
+      "notes": "Brand menu Community links; also About page links and the open-cache button"
+    },
+    "fa-folder-open_16.png": {
+      "source": "lucide:folder-open",
+      "size": 64,
+      "notes": "Shared: 3D toolbar Add to Bed, Add System File to Bed, brand menu Open System File, Clone Settings open button. folder-open instead of the proposed folder-plus because three of the four uses mean open"
+    },
+    "connect.png": {
+      "source": "lucide:plug",
+      "size": 56,
+      "notes": "Printer bar Connect, Cancel Connect and Disconnect all load this one file; loaded at 14x14 so 56 px (4x) halves exactly"
+    },
+    "e_stop.png": {
+      "source": "lucide:octagon-x",
+      "size": 56,
+      "notes": "Printer bar Reset (reboots the firmware); loaded at 14x14"
+    },
+    "ViewTransformControls/model.png": {
+      "source": "lucide:box",
+      "size": 64,
+      "notes": "Printer bar view mode: model"
+    },
+    "ViewTransformControls/gcode_3d.png": {
+      "source": "lucide:layers",
+      "size": 64,
+      "notes": "Printer bar view mode: 3D layers"
+    },
+    "ViewTransformControls/gcode_2d.png": {
+      "source": "custom:layer-2d",
+      "size": 64,
+      "notes": "Printer bar view mode: 2D layer"
+    },
+    "hotend.png": {
+      "source": "custom:hotend",
+      "size": 56,
+      "notes": "Hotend temperature widget; loaded at 14x14"
+    },
+    "bed.png": {
+      "source": "custom:heated-bed",
+      "size": 64,
+      "notes": "Shared: bed temperature widget, 3D toolbar Bed menu, and the bed toggle in the floating view controls"
+    },
+    "cube_export.png": {
+      "source": "lucide:share",
+      "size": 64,
+      "notes": "Export items: print popup, printer options, 3D toolbar save menu, library and app menus"
+    },
+    "save_grey_16x.png": {
+      "source": "lucide:save",
+      "size": 64,
+      "notes": "3D toolbar Save"
+    },
+    "undo.png": {
+      "source": "lucide:undo-2",
+      "size": 64,
+      "notes": "3D toolbar Undo"
+    },
+    "redo.png": {
+      "source": "lucide:redo-2",
+      "size": 64,
+      "notes": "3D toolbar Redo"
+    },
+    "arrange_all.png": {
+      "source": "lucide:layout-grid",
+      "size": 64,
+      "notes": "Arrange All Parts (toolbar and app menu)"
+    },
+    "lay_flat.png": {
+      "source": "custom:lay-flat",
+      "size": 64,
+      "notes": "Lay Flat"
+    },
+    "group.png": {
+      "source": "lucide:group",
+      "size": 64,
+      "notes": "Group; also the tree icon for groups and selections. Was untinted",
+      "previously_untinted": true
+    },
+    "ungroup.png": {
+      "source": "lucide:ungroup",
+      "size": 64,
+      "notes": "Ungroup"
+    },
+    "duplicate.png": {
+      "source": "lucide:copy",
+      "size": 64,
+      "notes": "Duplicate. Was untinted",
+      "previously_untinted": true
+    },
+    "remove.png": {
+      "source": "lucide:trash-2",
+      "size": 64,
+      "notes": "Remove; also library Remove, Clear Cache and inline list remove buttons"
+    },
+    "ViewTransformControls/translate.png": {
+      "source": "lucide:move-3d",
+      "size": 64,
+      "notes": "Translate operation; also the pan button in the floating view controls"
+    },
+    "ViewTransformControls/rotate.png": {
+      "source": "lucide:rotate-3d",
+      "size": 64,
+      "notes": "Rotate operation; also the rotate button in the floating view controls"
+    },
+    "scale_32x32.png": {
+      "source": "lucide:scale-3d",
+      "size": 64,
+      "notes": "Scale; also Edit Component"
+    },
+    "mirror_32x32.png": {
+      "source": "lucide:flip-vertical-2",
+      "size": 64,
+      "notes": "Mirror. flip-vertical-2 instead of the proposed flip-horizontal-2: in this Lucide release flip-horizontal-2 mirrors top-to-bottom, flip-vertical-2 is the left-right mirror"
+    },
+    "align_left_dark.png": {
+      "source": "lucide:align-start-vertical",
+      "size": 64,
+      "notes": "Align; also the legacy Align object tree icon"
+    },
+    "curve.png": {
+      "source": "custom:curve",
+      "size": 64,
+      "notes": "Curve"
+    },
+    "pinch.png": {
+      "source": "lucide:lens-concave",
+      "size": 64,
+      "notes": "Pinch (Lucide lens-concave; v1 used an EBMC drawing that closely matched it)"
+    },
+    "radial-pinch.png": {
+      "source": "custom:radial-pinch",
+      "size": 64,
+      "notes": "Radial Pinch"
+    },
+    "twist.png": {
+      "source": "custom:twist",
+      "size": 64,
+      "notes": "Twist"
+    },
+    "plane_cut.png": {
+      "source": "custom:plane-cut",
+      "size": 64,
+      "notes": "Plane Cut; also Find Slice (debug builds)"
+    },
+    "hollow.png": {
+      "source": "lucide:square-square",
+      "size": 64,
+      "notes": "Hollow Out (Lucide square-square; v1 used an EBMC drawing that turned out to match it)"
+    },
+    "image_converter.png": {
+      "source": "lucide:image",
+      "size": 64,
+      "notes": "Image Converter; also the image object tree icon"
+    },
+    "image_to_path.png": {
+      "source": "custom:image-to-path",
+      "size": 64,
+      "notes": "Image to Path"
+    },
+    "combine.png": {
+      "source": "lucide:squares-unite",
+      "size": 64,
+      "notes": "Combine"
+    },
+    "subtract.png": {
+      "source": "lucide:squares-subtract",
+      "size": 64,
+      "notes": "Subtract. Was untinted",
+      "previously_untinted": true
+    },
+    "intersect.png": {
+      "source": "lucide:squares-intersect",
+      "size": 64,
+      "notes": "Intersect. Was untinted",
+      "previously_untinted": true
+    },
+    "subtract_and_replace.png": {
+      "source": "lucide:squares-exclude",
+      "size": 64,
+      "notes": "Subtract & Replace. Was untinted",
+      "previously_untinted": true
+    },
+    "array_linear.png": {
+      "source": "custom:array-linear",
+      "size": 64,
+      "notes": "Linear Array. Was untinted",
+      "previously_untinted": true
+    },
+    "array_radial.png": {
+      "source": "custom:array-radial",
+      "size": 64,
+      "notes": "Radial Array. Was untinted",
+      "previously_untinted": true
+    },
+    "array_advanced.png": {
+      "source": "custom:array-advanced",
+      "size": 64,
+      "notes": "Advanced Array. Was untinted",
+      "previously_untinted": true
+    },
+    "reduce.png": {
+      "source": "custom:reduce",
+      "size": 64,
+      "notes": "Reduce"
+    },
+    "repair.png": {
+      "source": "lucide:wrench",
+      "size": 64,
+      "notes": "Repair"
+    },
+    "support.png": {
+      "source": "custom:supports",
+      "size": 64,
+      "notes": "Convert to Support"
+    },
+    "edit_support.png": {
+      "source": "custom:supports",
+      "size": 64,
+      "notes": "3D toolbar support generation button"
+    }
+  }
+}

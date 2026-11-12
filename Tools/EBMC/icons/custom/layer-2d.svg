@@ -1,0 +1,5 @@
+<!-- EBMC custom icon "layer-2d": one printed layer seen from above: a plate outline with a serpentine toolpath. Drawn for EBMC (East Bay Makers Club) on Lucide's 24-unit grid; the frame and line spacing match Lucide's square-menu, the serpentine toolpath joining the lines is EBMC's addition. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="3" width="18" height="18" rx="2" />
+  <path d="M7 8h10v4H7v4h10" />
+</svg>
