@@ -125,3 +125,7 @@ MatterControl.userprefs
 
 # macOS application bundle (Tools/macOS/build-app.sh)
 /dist/
+
+# EBMC: local-only files (printer SD-card config, Finder metadata)
+printer-config/
+.DS_Store

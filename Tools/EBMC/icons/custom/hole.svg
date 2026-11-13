@@ -1,0 +1,4 @@
+<!-- EBMC custom icon "hole": hole: the outline of Lucide's box drawn as dashes (separate segments, since the icon build refuses stroke-dasharray), the usual sign for a hole. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 7L5.75 5.47M9.25 3.53L12 2M12 2L14.75 3.53M18.25 5.47L21 7M21 7L21 10M21 14L21 17M21 17L18.25 18.53M14.75 20.47L12 22M12 22L9.25 20.47M5.75 18.53L3 17M3 17L3 14M3 10L3 7M3 7L5.75 8.53M9.25 10.47L12 12M12 12L14.75 10.47M18.25 8.53L21 7M12 12L12 15M12 19L12 22" />
+</svg>

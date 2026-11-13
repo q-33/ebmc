@@ -153,6 +153,14 @@ namespace MatterHackers.MatterControl
 			mergeButton.Name = "Merge Profile";
 			mergeButton.Click += (s, e) => UiThread.RunOnIdle(() =>
 			{
+				// EBMC Edition: importing presets needs a club maintainer (the page is only reached from the printer
+				// menu, which is disabled while locked; this is the backstop if the lock changes while it is open)
+				if (!Maintainer.CanManagePrinter)
+				{
+					Maintainer.NotifyLocked();
+					return;
+				}
+
 				bool copyName = false;
 				PrinterSettingsLayer sourceLayer = null;
 				bool destIsMaterial = true;

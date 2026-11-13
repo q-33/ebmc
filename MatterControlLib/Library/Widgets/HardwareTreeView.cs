@@ -85,6 +85,12 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			};
 			createPulse.Click += (s, e) => UiThread.RunOnIdle(() =>
 			{
+				if (!Maintainer.CanAddPrinter)
+				{
+					Maintainer.NotifyLocked();
+					return;
+				}
+
 				DialogWindow.Show(PrinterSetup.GetBestStartPage(PrinterSetup.StartPageOptions.ShowPulseModels));
 			});
 
@@ -106,6 +112,12 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			};
 			createPrinter.Click += (s, e) => UiThread.RunOnIdle(() =>
 			{
+				if (!Maintainer.CanAddPrinter)
+				{
+					Maintainer.NotifyLocked();
+					return;
+				}
+
 				DialogWindow.Show(PrinterSetup.GetBestStartPage(PrinterSetup.StartPageOptions.ShowMakeModel));
 			});
 			mainRow.AddChild(createPrinter);
@@ -122,9 +134,36 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			};
 			importPrinter.Click += (s, e) => UiThread.RunOnIdle(() =>
 			{
+				if (!Maintainer.CanAddPrinter)
+				{
+					Maintainer.NotifyLocked();
+					return;
+				}
+
 				DialogWindow.Show(new CloneSettingsPage());
 			});
 			mainRow.AddChild(importPrinter);
+
+			// EBMC Edition: adding or importing a printer needs a club maintainer once a printer exists. Updated again
+			// whenever the printer list changes (the first printer on a fresh install turns them off).
+			var addButtons = new (GuiWidget button, string toolTip)[]
+			{
+				(createPulse, createPulse.ToolTipText),
+				(createPrinter, createPrinter.ToolTipText),
+				(importPrinter, importPrinter.ToolTipText),
+			};
+
+			void UpdateAddButtons()
+			{
+				bool canAdd = Maintainer.CanAddPrinter;
+				foreach (var (button, toolTip) in addButtons)
+				{
+					button.Enabled = canAdd;
+					button.ToolTipText = canAdd ? toolTip : Maintainer.LockedText;
+				}
+			}
+
+			UpdateAddButtons();
 
 			rootColumn.AddChild(printersNode);
 
@@ -138,6 +177,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			ProfileManager.ProfilesListChanged.RegisterEvent((s, e) =>
 			{
 				HardwareTreeView.CreatePrinterProfilesTree(printersNode, theme);
+				UpdateAddButtons();
 				this.Invalidate();
 			}, ref unregisterEvents);
 		}

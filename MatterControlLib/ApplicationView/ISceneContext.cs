@@ -66,6 +66,11 @@ namespace MatterHackers.MatterControl
 
 		InsertionGroupObject3D AddToPlate(IEnumerable<ILibraryItem> itemsToAdd, Vector2 initialPosition, bool moveToOpenPosition, bool addUndoCheckPoint = true);
 
+		/// <summary>
+		/// EBMC Edition: adds items and lets the caller place each loaded item; layoutParts gets the item and the bed's other items.
+		/// </summary>
+		InsertionGroupObject3D AddToPlate(IEnumerable<ILibraryItem> itemsToAdd, Vector2 initialPosition, Action<IObject3D, IEnumerable<IObject3D>> layoutParts, bool addUndoCheckPoint = true);
+
 		List<BoolOption> GetBaseViewOptions();
 
 		void AddToPlate(string[] filesToLoadIncludingZips, bool addUndoCheckPoint = true);

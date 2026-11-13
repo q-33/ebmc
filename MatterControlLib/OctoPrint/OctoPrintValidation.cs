@@ -18,12 +18,17 @@ namespace MatterHackers.MatterControl.OctoPrint
 
 		public const string StillConnectedOverUsb = "OctoPrintStillConnectedOverUsb";
 
+		public const string ForeignGCode = "OctoPrintForeignGCode";
+
+		public const string CommandParts = "OctoPrintCommandParts";
+
 		/// <summary>
 		/// The validation list for the Send menu and the Print actions when the printer sends to OctoPrint:
 		/// - drops the USB-connection checks ("Printer Disconnected" and the emulator warning on the serial port);
 		/// - adds "Empty Bed", which the shared validator only reports while a USB connection is open;
 		/// - adds an error when G-code can't be produced (GCodeExport is disabled, for example because printer setup
 		///   is required), so the reason is visible rather than only a tooltip;
+		/// - adds an error for a G-code file from elsewhere while the maintainer lock is on (EBMC Edition);
 		/// - adds a warning, with a Disconnect action, when a USB connection is still open.
 		/// Model and settings errors are kept and still block.
 		/// </summary>
@@ -47,6 +52,28 @@ namespace MatterHackers.MatterControl.OctoPrint
 				});
 			}
 
+			// EBMC Edition: while the maintainer lock is on, a G-code file from elsewhere is not sent
+			if (Maintainer.RefuseGCodeSource(printer.Bed.EditContext.IsGGCodeSource))
+			{
+				errors.Add(new ValidationError(ForeignGCode)
+				{
+					Error = MaintainerMessages.ForeignGCodeTitle(s => s.Localize()),
+					Details = Maintainer.ForeignGCodeText,
+					ErrorLevel = ValidationErrorLevel.Error,
+				});
+			}
+
+			// ... nor a plate whose parts change temperatures or send commands
+			if (Maintainer.RefuseCommandParts(printer))
+			{
+				errors.Add(new ValidationError(CommandParts)
+				{
+					Error = MaintainerMessages.CommandPartsTitle(s => s.Localize()),
+					Details = Maintainer.CommandPartsText,
+					ErrorLevel = ValidationErrorLevel.Error,
+				});
+			}
+
 			var exporter = new GCodeExport();
 			exporter.Initialize(printer);
 			if (!exporter.Enabled)
@@ -57,7 +84,9 @@ namespace MatterHackers.MatterControl.OctoPrint
 					Error = "G-Code Can't Be Produced".Localize(),
 					Details = string.IsNullOrWhiteSpace(reason)
 						? "G-code can't be produced for this printer right now.".Localize()
-						: "{0}. Open Printer Options > Update Settings to take the latest printer settings, or run printer setup while connected over USB.".Localize().FormatWith(reason.TrimEnd('.')),
+						: (Maintainer.CanManagePrinter
+							? "{0}. Open Printer Options > Update Settings to take the latest printer settings, or run printer setup while connected over USB.".Localize()
+							: "{0}. Ask a club maintainer to update the printer settings or run printer setup.".Localize()).FormatWith(reason.TrimEnd('.')),
 					ErrorLevel = ValidationErrorLevel.Error,
 				});
 			}

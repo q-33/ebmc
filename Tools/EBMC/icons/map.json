@@ -1,5 +1,5 @@
 {
-  "_about": "Icon refresh map read by Tools/EBMC/build_icons.py. Keys are paths under StaticData/Icons and must name existing .png files there. source is lucide:<name> (Tools/EBMC/icons/lucide/<name>.svg, 34 vendored files) or custom:<name> (Tools/EBMC/icons/custom/<name>.svg, 14 EBMC drawings). size is the output PNG edge in pixels: 64 for icons the code loads at 16x16, 56 for 14x14 (4x the logical size). At device scale 1 the app's loader halves these exactly (64->32->16). At device scale 2 it first resamples the source up by 2 (64->128, bilinear) and then halves it twice to 32 px, so the result is close to, but slightly softer than, an exact 2x box reduction. previously_untinted marks icons whose code did not tint them before the refresh (used only by the preview sheet).",
+  "_about": "Icon refresh map read by Tools/EBMC/build_icons.py. Keys are paths under StaticData/Icons and must name existing .png files there, except directly inside Shapes/ (the shapes palette's own glyphs), where build_icons.py creates them. source is lucide:<name> (Tools/EBMC/icons/lucide/<name>.svg, 46 vendored files) or custom:<name> (Tools/EBMC/icons/custom/<name>.svg, 22 EBMC drawings). size is the output PNG edge in pixels: 64 for icons the code loads at 16x16, 56 for 14x14 (4x the logical size). At device scale 1 the app's loader halves these exactly (64->32->16). At device scale 2 it first resamples the source up by 2 (64->128, bilinear) and then halves it twice to 32 px, so the result is close to, but slightly softer than, an exact 2x box reduction. previously_untinted marks icons whose code did not tint them before the refresh (used only by the preview sheet). Shapes/ glyphs are 80 px masters for 20 px palette buttons; the palette loads them with its own loader, which box-halves straight to the device size, so 1x and 2x are both exact.",
   "lucide_version": "1.72.0",
   "icons": {
     "icon_search_24x24.png": {
@@ -254,6 +254,186 @@
       "source": "custom:supports",
       "size": 64,
       "notes": "3D toolbar support generation button"
+    },
+    "Shapes/cube.png": {
+      "source": "lucide:box",
+      "size": 80,
+      "notes": "Shapes palette: Cube; also Calibration - Box and the Solid button of the Solid/Hole switch"
+    },
+    "Shapes/pyramid.png": {
+      "source": "lucide:pyramid",
+      "size": 80,
+      "notes": "Shapes palette: Pyramid"
+    },
+    "Shapes/wedge.png": {
+      "source": "custom:wedge",
+      "size": 80,
+      "notes": "Shapes palette: Wedge"
+    },
+    "Shapes/half-wedge.png": {
+      "source": "custom:half-wedge",
+      "size": 80,
+      "notes": "Shapes palette: Half Wedge"
+    },
+    "Shapes/cylinder.png": {
+      "source": "lucide:cylinder",
+      "size": 80,
+      "notes": "Shapes palette: Cylinder; also Calibration - Circle"
+    },
+    "Shapes/cone.png": {
+      "source": "lucide:cone",
+      "size": 80,
+      "notes": "Shapes palette: Cone"
+    },
+    "Shapes/half-cylinder.png": {
+      "source": "custom:half-cylinder",
+      "size": 80,
+      "notes": "Shapes palette: Half Cylinder"
+    },
+    "Shapes/sphere.png": {
+      "source": "custom:sphere",
+      "size": 80,
+      "notes": "Shapes palette: Sphere"
+    },
+    "Shapes/half-sphere.png": {
+      "source": "custom:half-sphere",
+      "size": 80,
+      "notes": "Shapes palette: Half Sphere"
+    },
+    "Shapes/torus.png": {
+      "source": "lucide:torus",
+      "size": 80,
+      "notes": "Shapes palette: Torus"
+    },
+    "Shapes/ring.png": {
+      "source": "custom:ring",
+      "size": 80,
+      "notes": "Shapes palette: Ring"
+    },
+    "Shapes/text.png": {
+      "source": "lucide:type",
+      "size": 80,
+      "notes": "Shapes palette: Text"
+    },
+    "Shapes/image.png": {
+      "source": "lucide:image",
+      "size": 80,
+      "notes": "Shapes palette: Image Converter"
+    },
+    "Shapes/qr-code.png": {
+      "source": "lucide:qr-code",
+      "size": 80,
+      "notes": "Shapes palette: QR Code"
+    },
+    "Shapes/measure.png": {
+      "source": "lucide:ruler",
+      "size": 80,
+      "notes": "Shapes palette: Measure Tool"
+    },
+    "Shapes/description.png": {
+      "source": "lucide:sticky-note",
+      "size": 80,
+      "notes": "Shapes palette: Description (note)"
+    },
+    "Shapes/variable-sheet.png": {
+      "source": "lucide:variable",
+      "size": 80,
+      "notes": "Shapes palette: Variable Sheet"
+    },
+    "Shapes/add-model.png": {
+      "source": "lucide:folder-open",
+      "size": 80,
+      "notes": "Shapes palette: Add model (open a file), printer tabs"
+    },
+    "Shapes/xy-calibration.png": {
+      "source": "custom:xy-calibration",
+      "size": 80,
+      "notes": "Shapes palette: Calibration family button and the XY Calibration part"
+    },
+    "Shapes/retraction-cubes.png": {
+      "source": "lucide:boxes",
+      "size": 80,
+      "notes": "Shapes palette: Retraction Cubes calibration part"
+    },
+    "Shapes/arrange.png": {
+      "source": "lucide:layout-grid",
+      "size": 80,
+      "notes": "Shapes palette: Arrange All Parts (same source as arrange_all.png)"
+    },
+    "Shapes/lay-flat.png": {
+      "source": "custom:lay-flat",
+      "size": 80,
+      "notes": "Shapes palette: Lay Flat (same source as lay_flat.png)"
+    },
+    "Shapes/supports.png": {
+      "source": "custom:supports",
+      "size": 80,
+      "notes": "Shapes palette: Generate Support (same source as edit_support.png)"
+    },
+    "Shapes/combine.png": {
+      "source": "lucide:squares-unite",
+      "size": 80,
+      "notes": "Shapes palette: Combine (same source as combine.png)"
+    },
+    "Shapes/subtract.png": {
+      "source": "lucide:squares-subtract",
+      "size": 80,
+      "notes": "Shapes palette: Subtract (same source as subtract.png)"
+    },
+    "Shapes/intersect.png": {
+      "source": "lucide:squares-intersect",
+      "size": 80,
+      "notes": "Shapes palette: Intersect (same source as intersect.png)"
+    },
+    "Shapes/subtract-replace.png": {
+      "source": "lucide:squares-exclude",
+      "size": 80,
+      "notes": "Shapes palette: Subtract & Replace (same source as subtract_and_replace.png)"
+    },
+    "Shapes/align.png": {
+      "source": "lucide:align-start-vertical",
+      "size": 80,
+      "notes": "Shapes palette: Align (same source as align_left_dark.png)"
+    },
+    "Shapes/mirror.png": {
+      "source": "lucide:flip-vertical-2",
+      "size": 80,
+      "notes": "Shapes palette: Mirror (same source as mirror_32x32.png)"
+    },
+    "Shapes/array-linear.png": {
+      "source": "custom:array-linear",
+      "size": 80,
+      "notes": "Shapes palette: Linear Array (same source as array_linear.png)"
+    },
+    "Shapes/array-radial.png": {
+      "source": "custom:array-radial",
+      "size": 80,
+      "notes": "Shapes palette: Radial Array (same source as array_radial.png)"
+    },
+    "Shapes/array-advanced.png": {
+      "source": "custom:array-advanced",
+      "size": 80,
+      "notes": "Shapes palette: Advanced Array (same source as array_advanced.png)"
+    },
+    "Shapes/plane-cut.png": {
+      "source": "custom:plane-cut",
+      "size": 80,
+      "notes": "Shapes palette: Plane Cut (same source as plane_cut.png)"
+    },
+    "Shapes/labels-show.png": {
+      "source": "lucide:panel-left-open",
+      "size": 80,
+      "notes": "Shapes palette: Show labels toggle (palette compact)"
+    },
+    "Shapes/labels-hide.png": {
+      "source": "lucide:panel-left-close",
+      "size": 80,
+      "notes": "Shapes palette: Hide labels toggle (palette expanded)"
+    },
+    "Shapes/hole.png": {
+      "source": "custom:hole",
+      "size": 80,
+      "notes": "Shapes palette: Hole button of the Solid/Hole switch"
     }
   }
 }

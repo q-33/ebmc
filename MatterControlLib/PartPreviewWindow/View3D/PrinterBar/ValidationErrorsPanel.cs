@@ -110,8 +110,18 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 					row.AddChild(button);
 
-					row.ActionWidget = button;
-					row.FullRowSelect = true;
+					// EBMC Edition: a disabled fix (for example one the maintainer lock turned off) is not run by a
+					// click on the row
+					if (button.Enabled)
+					{
+						row.ActionWidget = button;
+						row.FullRowSelect = true;
+					}
+					else if (action.IsBlockedByLock?.Invoke() == true)
+					{
+						// only when the lock is the reason the fix is unavailable
+						button.ToolTipText = Maintainer.LockedText;
+					}
 				}
 				else
 				{

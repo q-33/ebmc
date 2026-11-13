@@ -43,9 +43,20 @@ namespace MatterHackers.MatterControl
 			var inlineNameEdit = new InlineStringEdit(printer.PrinterName, theme, "Printer Name", boldFont: true);
 			inlineNameEdit.ValueChanged += (s, e) =>
 			{
-				printer.Settings.SetValue(SettingsKey.printer_name, inlineNameEdit.Text);
+				// EBMC Edition: this write bypasses SettingsContext, so check the maintainer lock here
+				if (Maintainer.CanEdit(printer.Settings, SettingsKey.printer_name))
+				{
+					printer.Settings.SetValue(SettingsKey.printer_name, inlineNameEdit.Text);
+				}
 			};
 			this.AddChild(inlineNameEdit);
+
+			// EBMC Edition: the name stays readable, but renaming the printer needs a club maintainer
+			if (!Maintainer.CanEdit(printer.Settings, SettingsKey.printer_name))
+			{
+				inlineNameEdit.Enabled = false;
+				inlineNameEdit.ToolTipText = Maintainer.LockedText;
+			}
 
 			void Printer_SettingChanged(object s, StringEventArgs stringEvent)
 			{

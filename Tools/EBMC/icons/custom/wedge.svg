@@ -1,0 +1,5 @@
+<!-- EBMC custom icon "wedge": wedge: a right-angled triangular prism, front face and sloped top drawn in the same view as Lucide's box (front triangle, sloped top). Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 17V7l9 15z" />
+  <path d="M3 7l9-5 9 15-9 5" />
+</svg>

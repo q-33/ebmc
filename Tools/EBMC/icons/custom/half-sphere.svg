@@ -1,0 +1,5 @@
+<!-- EBMC custom icon "half-sphere": half sphere: a dome standing on its elliptical base. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 16a9 9 0 0 1 18 0" />
+  <ellipse cx="12" cy="16" rx="9" ry="3" />
+</svg>

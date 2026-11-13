@@ -61,19 +61,69 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 			return Printer.Settings.GetValue(slicerConfigName, layerCascade);
 		}
 
-		public void SetValue(string slicerConfigName, string settingsValue)
+		/// <summary>
+		/// Stores the value. Returns false when the maintainer lock refused it (EBMC Edition), so the caller can show the
+		/// stored value again.
+		/// </summary>
+		public bool SetValue(string slicerConfigName, string settingsValue)
 		{
+			if (!MayWrite(slicerConfigName))
+			{
+				return false;
+			}
+
 			Printer.Settings.SetValue(slicerConfigName, settingsValue, persistenceLayer);
+			return true;
 		}
 
 		public void SetComPort(string settingsValue)
 		{
+			if (!MayWrite(SettingsKey.com_port))
+			{
+				return;
+			}
+
 			Printer.Settings.Helpers.SetComPort(settingsValue, persistenceLayer);
 		}
 
 		public void ClearValue(string slicerConfigName)
 		{
+			if (!MayWrite(slicerConfigName))
+			{
+				return;
+			}
+
 			Printer.Settings.ClearValue(slicerConfigName, persistenceLayer);
+		}
+
+		/// <summary>
+		/// EBMC Edition: the maintainer lock. Edits made through the settings views are refused for printer and material
+		/// settings while locked, with one short notice.
+		/// </summary>
+		private bool MayWrite(string slicerConfigName)
+		{
+			if (Maintainer.CanEdit(Printer.Settings, slicerConfigName))
+			{
+				return true;
+			}
+
+			Maintainer.NotifyLocked();
+			return false;
+		}
+
+		/// <summary>
+		/// EBMC Edition: whether every one of <paramref name="slicerConfigNames"/> may be written now; when not, shows the
+		/// "Locked" notice once. Lets a change that also writes linked settings be refused before anything is written.
+		/// </summary>
+		public bool CanWriteAll(IEnumerable<string> slicerConfigNames)
+		{
+			if (slicerConfigNames.All(name => Maintainer.CanEdit(Printer.Settings, name)))
+			{
+				return true;
+			}
+
+			Maintainer.NotifyLocked();
+			return false;
 		}
 
 		public bool ContainsKey(string slicerConfigName)

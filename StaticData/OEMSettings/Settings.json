@@ -13,5 +13,12 @@
   ],
   "ShowVendorServices": false,
   "ShowTourOnStartup": false,
-  "ShowLicenseAgreement": false
+  "ShowLicenseAgreement": false,
+  "RequireMaintainerForPrinterSettings": true,
+  "ShowShapesRailOnPrinterTabs": true,
+  "TrimPrinterTabToolbar": true,
+  "ShapesPaletteStyle": "palette",
+  "ConfirmBedBeforeRemotePrint": true,
+  "QrCodeDefaultText": "https://eastbaymakersclub.com",
+  "LockedThemeSet": "EBMC-Dark"
 }

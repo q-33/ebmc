@@ -1,0 +1,10 @@
+<!-- EBMC custom icon "xy-calibration": XY calibration: X and Y axes with tick marks, as on the calibration part's scales. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4 4v16h16" />
+  <path d="M8 20v-3" />
+  <path d="M12 20v-3" />
+  <path d="M16 20v-3" />
+  <path d="M4 8h3" />
+  <path d="M4 12h3" />
+  <path d="M4 16h3" />
+</svg>

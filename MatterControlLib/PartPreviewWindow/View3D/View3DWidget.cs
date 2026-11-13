@@ -1018,6 +1018,41 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 		private static void CopyPlateToPrinter(ISceneContext sceneContext, PrinterConfig printer)
 		{
+			// EBMC Edition: the printer's bed is cleared to make room for this design, so ask first when it holds
+			// parts (or a G-code file)
+			UiThread.RunOnIdle(() =>
+			{
+				bool holdsGCodeFile = printer.Bed.EditContext?.IsGGCodeSource == true;
+				if (printer.Bed.Scene.Children.Any()
+					|| holdsGCodeFile)
+				{
+					StyledMessageBox.ShowMessageBox(
+						(replace) =>
+						{
+							if (replace)
+							{
+								ReplacePrinterPlate(sceneContext, printer);
+							}
+						},
+						holdsGCodeFile
+							? "The printer's bed already has a file on it. Replace it with this design?".Localize()
+							: "The printer's bed already has parts on it. Replace them with this design?".Localize(),
+						holdsGCodeFile
+							? "Replace the File on the Bed?".Localize()
+							: "Replace the Parts on the Bed?".Localize(),
+						StyledMessageBox.MessageType.YES_NO,
+						"Replace".Localize(),
+						"Cancel".Localize());
+				}
+				else
+				{
+					ReplacePrinterPlate(sceneContext, printer);
+				}
+			});
+		}
+
+		private static void ReplacePrinterPlate(ISceneContext sceneContext, PrinterConfig printer)
+		{
 			Task.Run(async () =>
 			{
 				var scene = sceneContext.Scene;
@@ -1176,6 +1211,20 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		/// <param name="screenSpaceMousePosition">The screen space mouse position.</param>
 		public void ExternalDragOver(Vector2 screenSpaceMousePosition, GuiWidget sourceWidget)
 		{
+			// Project from ListViewItem to ILibraryItem
+			ExternalDragOver(
+				screenSpaceMousePosition,
+				() => sourceWidget is LibraryListView listView
+					? listView.SelectedItems.Select(l => l.Model)
+					: Enumerable.Empty<ILibraryItem>());
+		}
+
+		/// <summary>
+		/// EBMC Edition: the same drag for a source that is not a library list (the shapes palette): itemsToDrag gives the
+		/// items to place when the drag starts over the bed.
+		/// </summary>
+		public void ExternalDragOver(Vector2 screenSpaceMousePosition, Func<IEnumerable<ILibraryItem>> itemsToDrag)
+		{
 			if (this.HasBeenClosed)
 			{
 				return;
@@ -1198,20 +1247,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 						this.Printer.ViewState.ViewMode = PartViewMode.Model;
 					}
 
-					IEnumerable<ILibraryItem> selectedItems;
-
-					if (sourceWidget is LibraryListView listView)
-					{
-						// Project from ListViewItem to ILibraryItem
-						selectedItems = listView.SelectedItems.Select(l => l.Model);
-					}
-					else // Project from ListViewItem to ILibraryItem
-					{
-						selectedItems = Enumerable.Empty<ILibraryItem>();
-					}
-
-					// Otherwise begin an externally started DragDropOperation hard-coded to use LibraryView->SelectedItems
-					this.StartDragDrop(selectedItems, screenSpaceMousePosition);
+					// Otherwise begin an externally started DragDropOperation with the source's items
+					this.StartDragDrop(itemsToDrag(), screenSpaceMousePosition);
 				}
 			}
 		}

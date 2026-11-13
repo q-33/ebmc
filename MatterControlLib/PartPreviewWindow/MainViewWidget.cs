@@ -430,7 +430,11 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			var panelBackgroundColor = theme.MinimalShade.WithAlpha(10);
 
-			statusBar.AddChild(this.CreateThemeStatusPanel(theme, panelBackgroundColor));
+			// EBMC Edition: no theme switcher when the build locks its theme
+			if (!OemSettings.Instance.IsThemeLocked)
+			{
+				statusBar.AddChild(this.CreateThemeStatusPanel(theme, panelBackgroundColor));
+			}
 
 			statusBar.AddChild(this.CreateNetworkStatusPanel(theme));
 
@@ -854,6 +858,15 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			var popupMenu = new PopupMenu(menuTheme);
 			
 			var renameMenuItem = popupMenu.CreateMenuItem("Rename".Localize());
+
+			// EBMC Edition: renaming a printer (not a design) needs a club maintainer
+			if (workspace == null
+				&& printer != null
+				&& !Maintainer.CanEdit(printer.Settings, SettingsKey.printer_name))
+			{
+				renameMenuItem.Enabled = false;
+				renameMenuItem.ToolTipText = Maintainer.LockedText;
+			}
 			renameMenuItem.Click += (s, e) =>
 			{
 				if (workspace != null)

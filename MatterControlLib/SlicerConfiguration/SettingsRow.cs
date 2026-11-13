@@ -195,7 +195,12 @@ namespace MatterHackers.MatterControl.CustomWidgets
 			if (ActionWidget != null
 				&& mouseEvent.Button == MouseButtons.Left)
 			{
-				ActionWidget.InvokeClick();
+				// EBMC Edition: InvokeClick ignores Enabled, so a disabled action (for example one the maintainer lock
+				// turned off) must not run from a click on its row
+				if (ActionWidget.Enabled)
+				{
+					ActionWidget.InvokeClick();
+				}
 
 				return;
 			}

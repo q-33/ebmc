@@ -96,7 +96,10 @@ namespace MatterHackers.MatterControl.DesignTools
 		[EnumDisplay(Mode = EnumDisplayAttribute.PresentationMode.Buttons)]
 		public SecurityTypes Security { get; set; } = SecurityTypes.WPA;
 
-        public StringOrExpression Text { get; set; } = "https://www.matterhackers.com";
+        // EBMC Edition: the OEM settings can choose the default text (stock: MatterHackers' site)
+        public StringOrExpression Text { get; set; } = string.IsNullOrEmpty(SettingsManagement.OemSettings.Instance.QrCodeDefaultText)
+            ? "https://www.matterhackers.com"
+            : SettingsManagement.OemSettings.Instance.QrCodeDefaultText;
 
         [DisplayName("")]
 		[JsonIgnore]

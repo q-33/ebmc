@@ -312,7 +312,10 @@ namespace MatterHackers.MatterControl.ActionBar
 
 			valueField.ActuallNumberEdit.EditComplete += (s, e) =>
 			{
-				if (printer.Connection.GetTargetHotendTemperature(hotendIndex) > 0)
+				// EBMC Edition: this write bypasses SettingsContext, so check the maintainer lock here (the field is
+				// disabled while locked)
+				if (printer.Connection.GetTargetHotendTemperature(hotendIndex) > 0
+					&& Maintainer.CanEdit(printer.Settings, TemperatureKey))
 				{
 					printer.Settings.SetValue(TemperatureKey, valueField.Value.ToString());
 				}

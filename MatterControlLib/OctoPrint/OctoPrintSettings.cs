@@ -34,7 +34,9 @@ namespace MatterHackers.MatterControl.OctoPrint
 			string host = printer?.Settings?.GetValue(SettingsKey.octoprint_host);
 			if (string.IsNullOrWhiteSpace(host))
 			{
-				error = "Enter the OctoPrint address in the printer settings (Printer > General > OctoPrint Address).".Localize();
+				error = Maintainer.CanManagePrinter
+					? "Enter the OctoPrint address in the printer settings (Printer > General > OctoPrint Address).".Localize()
+					: "Ask a club maintainer to enter the OctoPrint address in the printer settings.".Localize();
 				return false;
 			}
 
@@ -98,7 +100,9 @@ namespace MatterHackers.MatterControl.OctoPrint
 			baseUri = null;
 			if (!Enabled(printer))
 			{
-				error = "Turn on \"Send jobs to OctoPrint\" in the printer settings (Printer > General).".Localize();
+				error = Maintainer.CanManagePrinter
+					? "Turn on \"Send jobs to OctoPrint\" in the printer settings (Printer > General).".Localize()
+					: "Ask a club maintainer to turn on \"Send jobs to OctoPrint\" in the printer settings.".Localize();
 				return null;
 			}
 
@@ -110,7 +114,9 @@ namespace MatterHackers.MatterControl.OctoPrint
 			string apiKey = GetApiKey(baseUri);
 			if (apiKey == null)
 			{
-				error = "There is no OctoPrint API key on this computer for {0}. Add one in the printer settings (Printer > General > OctoPrint API Key).".Localize().FormatWith(baseUri.Authority);
+				error = (Maintainer.CanManagePrinter
+					? "There is no OctoPrint API key on this computer for {0}. Add one in the printer settings (Printer > General > OctoPrint API Key).".Localize()
+					: "There is no OctoPrint API key on this computer for {0}. Ask a club maintainer to add one.".Localize()).FormatWith(baseUri.Authority);
 				return null;
 			}
 
@@ -121,7 +127,9 @@ namespace MatterHackers.MatterControl.OctoPrint
 			catch (ArgumentException)
 			{
 				// The client's message never contains the key
-				error = "The stored OctoPrint API key contains characters that are not allowed. Paste the key again in the printer settings.".Localize();
+				error = Maintainer.CanManagePrinter
+					? "The stored OctoPrint API key contains characters that are not allowed. Paste the key again in the printer settings.".Localize()
+					: "The stored OctoPrint API key contains characters that are not allowed. Ask a club maintainer to enter the key again.".Localize();
 				return null;
 			}
 		}

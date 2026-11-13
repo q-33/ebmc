@@ -119,16 +119,19 @@ namespace MatterHackers.MatterControl.Library
                     "Dual Contouring".Localize(),
                     async () => await DualContouringObject3D.Create())
                     { DateCreated = new DateTime(index++) },
+#endif
+                // EBMC Edition: QR Code, DEBUG-only upstream, is kept in release builds that use the shapes palette
+                // (removed below otherwise)
                 new GeneratorItem(
                     "QR Code".Localize(),
                     async () => await QrCodeObject3D.Create())
                     { DateCreated = new DateTime(index++) },
-#endif
 				new GeneratorItem(
                     "Image Converter".Localize(),
                     () =>
                     {
-						// Construct an image
+						// Construct an image (EBMC Edition: Images/mh-logo.png holds the club badge, written by
+						// Tools/EBMC/generate_brand_assets.py)
 						var imageObject = new ImageObject3D()
                         {
                             AssetPath = StaticData.Instance.ToAssetPath(Path.Combine("Images", "mh-logo.png"))
@@ -164,6 +167,13 @@ namespace MatterHackers.MatterControl.Library
                     async () => await SheetObject3D.Create())
                     { DateCreated = new DateTime(index++) },
             };
+
+#if !DEBUG
+            if (!SettingsManagement.OemSettings.Instance.UseShapesPalette)
+            {
+                libraryItems.RemoveAll(item => item.Name == "QR Code".Localize());
+            }
+#endif
 
             string title = "Primitive Shapes".Localize();
 

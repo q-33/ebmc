@@ -39,6 +39,7 @@ using MatterHackers.Agg.Platform;
 using MatterHackers.Agg.UI;
 using MatterHackers.DataConverters3D;
 using MatterHackers.MatterControl.PartPreviewWindow;
+using MatterHackers.MatterControl.SettingsManagement;
 using MatterHackers.MatterControl.SlicerConfiguration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -107,10 +108,28 @@ namespace MatterHackers.MatterControl
 				}
 			}
 
+			// EBMC Edition: a build with a locked theme always starts with it (default accent colour), whatever theme the
+			// user stored; the stored file is left as it is. Stock loading below if the themeset is missing.
+			string lockedProvider = ThemeLock.ProviderFor(
+				OemSettings.Instance.LockedThemeSet,
+				ThemeProviders.Values.Select(p => (p.Name, p.ThemeNames)));
+			if (lockedProvider != null)
+			{
+				try
+				{
+					_themeset = ThemeProviders[lockedProvider].GetTheme(OemSettings.Instance.LockedThemeSet);
+				}
+				catch
+				{
+					_themeset = null;
+				}
+			}
+
 			// Load theme
 			try
 			{
-				if (File.Exists(ProfileManager.Instance.ProfileThemeSetPath))
+				if (_themeset == null
+					&& File.Exists(ProfileManager.Instance.ProfileThemeSetPath))
 				{
 					_themeset = JsonConvert.DeserializeObject<ThemeSet>(File.ReadAllText(ProfileManager.Instance.ProfileThemeSetPath));
 					ThemeSet.Theme.EnsureDefaults();
@@ -200,6 +219,12 @@ namespace MatterHackers.MatterControl
 
 		public static void SetTheme(ThemeSet themeSet)
 		{
+			// EBMC Edition: no theme changes when the build locks its theme (the pickers are not shown then)
+			if (OemSettings.Instance.IsThemeLocked)
+			{
+				return;
+			}
+
 			_themeset = themeSet;
 
 			File.WriteAllText(

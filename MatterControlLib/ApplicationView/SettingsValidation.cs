@@ -92,6 +92,8 @@ namespace MatterHackers.MatterControl
 						FixAction = new NamedAction()
 						{
 							Title = "Update Settings...".Localize(),
+							IsEnabled = () => Maintainer.CanManagePrinter,
+							IsBlockedByLock = () => !Maintainer.CanManagePrinter,
 							Action = () =>
 							{
 								DialogWindow.Show(new UpdateSettingsPage(printer));
@@ -278,7 +280,8 @@ namespace MatterHackers.MatterControl
 											DialogWindow.Show(new PrintLevelingWizard(printer));
 										});
 									},
-									IsEnabled = () => printer.Connection.IsConnected
+									IsEnabled = () => printer.Connection.IsConnected && Maintainer.CanManagePrinter,
+									IsBlockedByLock = () => printer.Connection.IsConnected && !Maintainer.CanManagePrinter
 								}
 							});
 					}
@@ -331,7 +334,8 @@ namespace MatterHackers.MatterControl
 												DialogWindow.Show(new PrintLevelingWizard(printer));
 											});
 										},
-										IsEnabled = () => printer.Connection.IsConnected
+										IsEnabled = () => printer.Connection.IsConnected && Maintainer.CanManagePrinter,
+										IsBlockedByLock = () => printer.Connection.IsConnected && !Maintainer.CanManagePrinter
 									}
 								});
 						}
@@ -462,7 +466,8 @@ namespace MatterHackers.MatterControl
 							FixAction = new NamedAction()
 							{
 								Title = "Switch".Localize(),
-								IsEnabled = () => !printer.Connection.Printing && !printer.Connection.Paused,
+								IsEnabled = () => !printer.Connection.Printing && !printer.Connection.Paused && Maintainer.CanManagePrinter,
+								IsBlockedByLock = () => !printer.Connection.Printing && !printer.Connection.Paused && !Maintainer.CanManagePrinter,
 								Action = () => UiThread.RunOnIdle(() =>
 								{
 									// make sure we are not connected or we can't change the port
@@ -706,6 +711,8 @@ namespace MatterHackers.MatterControl
 					{
 						ID = "SetupPrinter",
 						Title = "Setup".Localize() + "...",
+						IsEnabled = () => Maintainer.CanManagePrinter,
+						IsBlockedByLock = () => !Maintainer.CanManagePrinter,
 						Action = () =>
 						{
 							UiThread.RunOnIdle(() =>

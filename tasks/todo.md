@@ -89,7 +89,7 @@ Z homes to max, msd_disable true (SD card must be pulled to edit config).
       part-based timestamped names; verified against Tools/EBMC/octoprint_mock.py. Not yet tried against the real Pi.
 - [x] Off-bed parts: warning/error, khaki colour in the 3D view, Arrange fix, export/send blocked when nothing is inside
 - [x] UX step 1: "Club label" top bar and tabs (designer mockups in the session scratchpad; direction A chosen)
-- [ ] UX step 2: icon refresh (needs owner yes to download the Lucide icon set + an SVG rasteriser)
+- [x] UX step 2: icon refresh (Lucide 1.72.0 + custom glyphs; committed d31e34dda)
 - [ ] Tabs follow-ups: faint labels/hairline in stock Solarized-Light and Classic-Dark themes; stale private test helper
       CloseAllPrinterTabs (Tests/MatterControl.AutomationTests/SliceSettingsTests.cs:774); unit tests for ClubTabStyle geometry
 - [ ] Send follow-ups: Stop during slicing waits for the slice; key shown in clear while pasting; no print-history record
@@ -170,7 +170,7 @@ earlier tests, i.e. the probe triggers ~1.40 mm above that height.
 - [x] Club profile: Send to OctoPrint on by default with http://OctoprintPulseXE.local (owner approved).
 
 # WHERE WE LEFT OFF (2026-11-11, end of day) — read this first next session
-Branch macos-arm64, 5 commits ahead of origin (not pushed): d61e2c877 rebrand, 150a56bd1 MatterHackers removal +
+Branch macos-arm64, 6 commits ahead of origin (not pushed): d61e2c877 rebrand, 150a56bd1 MatterHackers removal +
 English-only + OctoPrint client + levelling, 4e5f23017 Send + off-bed warning + tabs, 30107202e probe/grid
 G-code, e65a7c71d NylonX 265 C + Send on by default.
 
@@ -180,17 +180,68 @@ Working on the printer (all confirmed today):
 - Z offset M206 Z5.56 (set hot), probe offset X23, probe cap M670 Z6, soft endstops; see EBMC.md
   "Printing through OctoPrint" and the bench sections above.
 
-UNCOMMITTED when we stopped — icon refresh (UX step 2):
-- 49 icons replaced (Lucide 1.72.0 + custom), Tools/EBMC/build_icons.py, Tools/EBMC/icons/, Lucide licence entry,
-  8 tint edits in SceneOperations.cs, NOTICE.md/EBMC.md lines. Reviewed: no must-fix. A second pass LANDED after
-  the owner signed off for the day (build 0 errors, 229 tests; 34 Lucide + 14 custom glyphs; not yet seen in
-  the app, not independently re-reviewed) to (a) take "hollow" from Lucide instead of a mislabelled custom copy, (b) harden the script
-  (target path check, render-then-write), (c) redraw look-alike glyphs (reduce, the three arrays, lay flat,
-  supports, hotend), (d) fix NOTICE wording. NEXT: check that pass landed (git status, contact sheet v2 in the
-  session scratchpad if it still exists), rebuild, look at the toolbar in the app, then ask the owner to commit.
+Icon refresh (UX step 2) is committed as d31e34dda: 34 Lucide 1.72.0 + 14 custom glyphs, built by
+Tools/EBMC/build_icons.py from Tools/EBMC/icons/map.json. Seen in the running app before the commit.
+
+CHANGED 2026-11-11 — no Beginner screen in this app. Owner: the Pulse XE "will only be for advanced users
+needing nylon or advanced materials". Beginners (kids/adults with a downloaded model) use stock PrusaSlicer
+on the club's Prusa printers. Owner chose "PrusaSlicer for beginners". So:
+- This app: keep only the maintainer lock on printer and material settings (ordinary members cannot change
+  them; material fixed to what the profile says is loaded). Design under way, plan to be shown to the owner.
+- Beginners: a club PrusaSlicer settings bundle (Simple mode, club presets, printers set up to send).
+  Research under way. Needs from the owner: Prusa printer list, nozzles, materials, PrusaLink vs OctoPrint.
+
+MAINTAINER LOCK — plan approved by owner 2026-11-11 ("go, PIN, speeds editable, hide Controls and Terminal"):
+- [ ] L1 rule + PIN + switch: SettingsLock / MaintainerPin / MaintainerMessages (pure, unit-tested), Maintainer
+      service, PIN page, OEM flag RequireMaintainerForPrinterSettings via the generator, Settings row. No gates.
+- [ ] L1 independent review
+- [ ] L2 gates: settings writes (SettingsContext), greyed rows + row menus, material dropdown + preset editing,
+      Printer Options items, Controls/Terminal hidden, Printers tab delete/add, rename, import, Part Settings
+      material overrides ignored, OctoPrint key buttons. Checked in the app locked and unlocked.
+- [ ] L2 independent review
+- [ ] L3 wording, EBMC.md section ("a guard, not security"), real setup on a club Mac
+Decisions: per-computer PIN (hashed in user settings, session-only unlock, app starts locked); speeds stay
+per-print/editable; quality presets selectable by all, edited by maintainers only; adding a printer allowed
+only when none exists.
+
+TWO INTERFACES — owner 2026-11-11: "one for simply interacting with the printer but also one where I could
+start building out my own CAD features" (open-source, feature-rich, a Fusion 360 alternative).
+- Print interface = printer tabs: no shapes rail, toolbar trimmed to printing tools, maintainer lock.
+- Design interface = design tabs ("+"): keeps the rail and every modelling tool; CAD features go here.
+- [ ] Shapes rail off printer tabs (OEM switch ShowShapesRailOnPrinterTabs), kept on design tabs
+- [ ] Printer-tab toolbar trimmed (OEM switch TrimPrinterTabToolbar); owner said "trim the toolbar"
+- [ ] CAD design study (kernel, sketch solver, .NET interop, roadmap, build-vs-adopt) — read-only research,
+      started in parallel. No CAD code until the owner has seen the study. Note: today's modelling is
+      mesh-based; Fusion-style CAD needs a solid-modelling kernel + constraint solver.
+Review fixes folded into L2: SetPin refused while locked + Change PIN asks for the current PIN; material rule
+uses the ACTIVE material preset only; tests against the real club profile.
+
+STATE 2026-11-12 (evening):
+- Owner: "Right now, the PulseXE and app is for me only" (testing, observing the club); later members who want
+  nylon / exotic materials. A print sent from the app through OctoPrint worked today.
+- OctoPrint fixes today: ModemManager disabled on the Pi (it probed the printer port and garbled the first
+  line), "send M112 on error" off (it halted Smoothie after any error), Preheat (EBMC) buttons + temperature
+  presets PLA 210/55, PETG 240/75, NylonX 265/60, NylonG 265/60. Backups in [path on the Pi]
+- Printer: one halt mid-start at 15:32, "MINTEMP or MAXTEMP triggered on B" (bed sensor) as the bed moved to
+  Y5; suspected bed thermistor wiring; owner says the printer "is now fixed" — ask what was done; wiggle test
+  not run.
+- UNCOMMITTED, built, 334 tests, NOT yet seen running since the fix round and not re-reviewed: maintainer lock
+  (L1+L2+fixes), shapes rail switch, printer-tab toolbar + right-click trim.
+- IN PROGRESS: shapes-and-tools palette, direction A of tasks/design/shapes-rail-mockups.html (owner chose "A").
+- NEXT, owner said "Start with group 1" (safety): (1) refuse G-code not made for this printer / maintainer-only,
+  (2) bed-clear + material confirmation before every remote start incl. Ctrl+P, (3) confirm before a design
+  tab's Print replaces the printer bed. Starts when the palette build is finished (same files, one build).
+- Walk-in/code analysis delivered 2026-11-12 (three reviews). Groups 2-5 not started: first-ten-minutes fixes,
+  Club Starters (+ the Release "UserHasPermission => false" persistence blocker to confirm), shared-computer
+  reset, engineering (CI, Mac tests, signing, profile updates, mXparser licence, dead-code deletion,
+  .gitignore printer-config/ and .DS_Store — owner not yet answered).
+- CAD study delivered 2026-11-11 (OCCT + libslvs + own C shim; Stage 0 spike is the go/no-go). Not saved to a
+  file; owner has not said whether to run the spike.
+- PrusaSlicer bundle research delivered 2026-11-11 (2.9.7, config bundle, PrusaLink recommended). Waiting on the
+  owner for printer list, nozzles, materials, PrusaLink yes/no.
 
 Open items, roughly in priority order:
-1. Commit the icon refresh (after the check above). Push the branch only when the owner says.
+1. Maintainer lock + PrusaSlicer club bundle (above). Push the branch only when the owner says.
 2. UX design list, next areas: floating view-control cluster (now mixes old/new icons), printer action row
    buttons, left shapes rail, Library tiles, right-hand panel tabs. Designer mockup direction A "Club label".
 3. UX behaviour list: PrusaSlicer mouse/keys option, G-code preview coloured by feature + time legend, hover

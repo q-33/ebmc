@@ -10,9 +10,9 @@
     "Description": "Add designs from your library or computer to the bed."
   },
   {
-    "Title": "Primitive Shapes",
+    "Title": "Shapes",
     "WidgetName": "LibraryView",
-    "Description": "Drag primitives to the bed to create your own designs."
+    "Description": "Drag a shape onto the bed to add it where you want it. Where a button has a small corner mark, click the mark for more choices."
   },
   {
     "Title": "Print",

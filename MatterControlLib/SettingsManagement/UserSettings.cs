@@ -48,6 +48,7 @@ namespace MatterHackers.MatterControl
 		public const string LayerViewDefault = nameof(LayerViewDefault);
 		public const string LayerViewSyncToPrint = nameof(LayerViewSyncToPrint);
 		public const string LibraryViewWidth = nameof(LibraryViewWidth);
+		public const string MaintainerPin = nameof(MaintainerPin);
 		public const string MaterialsPanelExpanded = nameof(MaterialsPanelExpanded);
 		public const string MirrorPanelExpanded = nameof(MirrorPanelExpanded);
 		public const string NotificationEmailAddress = nameof(NotificationEmailAddress);

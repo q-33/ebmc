@@ -154,6 +154,20 @@ s.update({'ShowShopButton': False, 'UnregisteredProductName': 'EBMC',
           'ShowTourOnStartup': False,
           # No first-run agreement page (MatterHackers' EULA for their own builds)
           'ShowLicenseAgreement': False,
+          # Printer and material settings need the club maintainer PIN; per-print settings stay open
+          'RequireMaintainerForPrinterSettings': True,
+          # Ask "Ready to print?" (bed empty, material loaded, temperatures) before every print started via OctoPrint
+          'ConfirmBedBeforeRemotePrint': True,
+          # The shapes and tools palette replaces the stock shapes rail (stock: 'classic')
+          'ShapesPaletteStyle': 'palette',
+          # One theme: the club's dark theme with its default accent colour; no theme or colour pickers
+          'LockedThemeSet': 'EBMC-Dark',
+          # New QR Code parts point at the club's website (stock: MatterHackers' site)
+          'QrCodeDefaultText': 'https://eastbaymakersclub.com',
+          # Printer tabs show the palette's print-oriented buttons (add model, test shapes, calibration, prepare)
+          'ShowShapesRailOnPrinterTabs': True,
+          # Printer tabs keep only the toolbar tools printing needs (design tabs keep every tool)
+          'TrimPrinterTabToolbar': True,
           # No MatterHackers affiliate/referral code added to links
           'AffiliateCode': ''})
 # Drop upstream's branded sample parts from the preloaded list (no C# code reads this key;

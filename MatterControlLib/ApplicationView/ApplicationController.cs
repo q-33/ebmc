@@ -2148,12 +2148,34 @@ namespace MatterHackers.MatterControl
 				return;
 			}
 
+			// EBMC Edition: while the maintainer lock is on, a G-code file from elsewhere is not printed
+			if (Maintainer.RefuseGCodeSource(editContext.IsGGCodeSource
+				|| string.Equals(Path.GetExtension(partFilePath), ".gcode", StringComparison.OrdinalIgnoreCase)))
+			{
+				UiThread.RunOnIdle(() => StyledMessageBox.ShowMessageBox(Maintainer.ForeignGCodeText, MaintainerMessages.ForeignGCodeTitle(s => s.Localize())));
+				return;
+			}
+
+			// ... nor a plate whose parts change temperatures or send commands
+			if (Maintainer.RefuseCommandParts(printerConfig))
+			{
+				UiThread.RunOnIdle(() => StyledMessageBox.ShowMessageBox(Maintainer.CommandPartsText, MaintainerMessages.CommandPartsTitle(s => s.Localize())));
+				return;
+			}
+
 			try
 			{
 				if (PrinterCalibrationWizard.SetupRequired(printerConfig, requiresLoadedFilament: true))
 				{
 					UiThread.RunOnIdle(() =>
 					{
+						// EBMC Edition: printer setup needs a club maintainer while the lock is on
+						if (!Maintainer.CanManagePrinter)
+						{
+							StyledMessageBox.ShowMessageBox(MaintainerMessages.SetupNeeded(s => s.Localize()), "Printer Setup Required".Localize());
+							return;
+						}
+
 						DialogWindow.Show(
 							new PrinterCalibrationWizard(printerConfig, AppContext.Theme),
 							advanceToIncompleteStage: true);

@@ -17,24 +17,25 @@ namespace MatterHackers.MatterControl.OctoPrint
 		private const string Dot = " · ";
 
 		/// <summary>
-		/// An actionable sentence (or two) for a failed OctoPrint call. Never null.
+		/// An actionable sentence (or two) for a failed OctoPrint call. Never null. <paramref name="canChangeKey"/> is
+		/// false when the club maintainer lock stops this person changing the key; the advice then names a maintainer.
 		/// </summary>
-		public static string DescribeError(OctoPrintException exception, Uri host, Func<string, string> localize)
+		public static string DescribeError(OctoPrintException exception, Uri host, Func<string, string> localize, bool canChangeKey = true)
 		{
 			if (exception == null)
 			{
 				throw new ArgumentNullException(nameof(exception));
 			}
 
-			return DescribeError(exception.Kind, exception.ServerMessage, host, localize)
-				?? DescribeError(OctoPrintError.Unexpected, exception.ServerMessage, host, localize);
+			return DescribeError(exception.Kind, exception.ServerMessage, host, localize, canChangeKey)
+				?? DescribeError(OctoPrintError.Unexpected, exception.ServerMessage, host, localize, canChangeKey);
 		}
 
 		/// <summary>
 		/// The text for one error kind, or null for a kind that has no text yet (a unit test makes sure every
 		/// <see cref="OctoPrintError"/> value has one).
 		/// </summary>
-		public static string DescribeError(OctoPrintError kind, string serverMessage, Uri host, Func<string, string> localize)
+		public static string DescribeError(OctoPrintError kind, string serverMessage, Uri host, Func<string, string> localize, bool canChangeKey = true)
 		{
 			localize = localize ?? (s => s);
 			string hostLabel = HostLabel(host, localize);
@@ -62,7 +63,9 @@ namespace MatterHackers.MatterControl.OctoPrint
 					return Format(localize("The connection to {0} couldn't be secured because its certificate isn't trusted. OctoPi uses a self-signed certificate; on the club network use an address starting with http://"), hostLabel);
 
 				case OctoPrintError.Forbidden:
-					return localize("OctoPrint rejected the API key. Use Get Key, or paste a new key.");
+					return canChangeKey
+						? localize("OctoPrint rejected the API key. Use Get Key, or paste a new key.")
+						: localize("OctoPrint rejected the API key. Ask a club maintainer to get a new key.");
 
 				case OctoPrintError.NotOperational:
 					return localize("OctoPrint is running, but the printer isn't connected to it. Connect the printer in OctoPrint and try again.");
@@ -89,7 +92,12 @@ namespace MatterHackers.MatterControl.OctoPrint
 					return WithServerMessage(localize("This OctoPrint server can't hand out API keys automatically. In OctoPrint, open Settings > Application Keys, create a key, and paste it here."), serverMessage, localize);
 
 				case OctoPrintError.AppKeyDenied:
-					return WithServerMessage(localize("The key request was denied in OctoPrint, or it expired. Use Get Key to try again."), serverMessage, localize);
+					return WithServerMessage(
+						canChangeKey
+							? localize("The key request was denied in OctoPrint, or it expired. Use Get Key to try again.")
+							: localize("The key request was denied in OctoPrint, or it expired. Ask a club maintainer to try again."),
+						serverMessage,
+						localize);
 
 				case OctoPrintError.Unexpected:
 					return WithServerMessage(localize("Something unexpected happened while talking to OctoPrint."), serverMessage, localize);
@@ -262,6 +270,51 @@ namespace MatterHackers.MatterControl.OctoPrint
 			return allSame ? first : string.Format(CultureInfo.InvariantCulture, "{0}_and_{1}_more", first, names.Count - 1);
 		}
 
+		/// <summary>Title of the question asked before a print is started through OctoPrint.</summary>
+		public static string ConfirmPrintTitle(Func<string, string> localize) => (localize ?? (s => s))("Ready to print?");
+
+		/// <summary>The "yes" button of the question asked before a print is started through OctoPrint.</summary>
+		public static string ConfirmPrintStart(Func<string, string> localize) => (localize ?? (s => s))("Start print");
+
+		/// <summary>
+		/// Whether the question before a remote print must leave out material and temperatures: a G-code file carries
+		/// its own, and parts that change temperatures or send commands override the material's, so stating the
+		/// material's temperatures would be wrong.
+		/// </summary>
+		public static bool UseGenericConfirmation(bool isGCodeSource, bool hasCommandParts) => isGCodeSource || hasCommandParts;
+
+		/// <summary>
+		/// The question before a remote print when the material and temperatures are not known (see
+		/// <see cref="UseGenericConfirmation"/>).
+		/// </summary>
+		public static string ConfirmPrintBodyGeneric(Func<string, string> localize)
+		{
+			localize = localize ?? (s => s);
+			return localize("Is the bed empty and clean?")
+				+ "\n\n" + localize("The printer will heat, home, and probe the bed before it prints.");
+		}
+
+		/// <summary>
+		/// The question asked before a print is started through OctoPrint: the print's start G-code homes and probes
+		/// the bed, so a part left on it is hit. <paramref name="materialName"/> is the active material preset's name
+		/// (null or blank: "the right material"); <paramref name="bedTemperature"/> is null when the printer has no
+		/// heated bed, and the bed part is then left out.
+		/// </summary>
+		public static string ConfirmPrintBody(string materialName, double nozzleTemperature, double? bedTemperature, Func<string, string> localize)
+		{
+			localize = localize ?? (s => s);
+
+			string material = string.IsNullOrWhiteSpace(materialName) ? localize("the right material") : materialName.Trim();
+
+			string heating = bedTemperature is double bed
+				? Format(localize("The printer will heat to {0} °C (bed {1} °C), home, and probe the bed before it prints."), Degrees(nozzleTemperature), Degrees(bed))
+				: Format(localize("The printer will heat to {0} °C, home, and probe the bed before it prints."), Degrees(nozzleTemperature));
+
+			return localize("Is the bed empty and clean?")
+				+ "\n" + Format(localize("Is {0} loaded?"), material)
+				+ "\n\n" + heating;
+		}
+
 		/// <summary>
 		/// The page to open for "Open OctoPrint": the approval page the server returned, if it is an absolute
 		/// http or https address (anything else, such as file: or a custom scheme, is ignored), otherwise the
@@ -299,6 +352,12 @@ namespace MatterHackers.MatterControl.OctoPrint
 			}
 
 			return text + " " + Format(localize("OctoPrint said: {0}"), serverMessage.Trim());
+		}
+
+		/// <summary>A temperature without needless decimals: 265, 60, 212.5.</summary>
+		private static string Degrees(double value)
+		{
+			return value.ToString("0.#", CultureInfo.CurrentCulture);
 		}
 
 		private static string Format(string template, params object[] args)

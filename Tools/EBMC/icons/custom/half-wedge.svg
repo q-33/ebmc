@@ -1,0 +1,5 @@
+<!-- EBMC custom icon "half-wedge": half wedge: a wedge half as tall as it is deep, in the same view as the wedge. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 17v-5l9 10z" />
+  <path d="M3 12l9-5 9 10-9 5" />
+</svg>

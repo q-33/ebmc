@@ -11,7 +11,8 @@ namespace MatterHackers.MatterControl.OctoPrint
 	{
 		public static string Describe(OctoPrintException exception, Uri host)
 		{
-			return OctoPrintMessages.DescribeError(exception, host, s => s.Localize());
+			// EBMC Edition: while the maintainer lock is on, the advice names a maintainer instead of buttons that are off
+			return OctoPrintMessages.DescribeError(exception, host, s => s.Localize(), Maintainer.CanManagePrinter);
 		}
 
 		/// <summary>

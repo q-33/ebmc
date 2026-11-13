@@ -105,6 +105,13 @@ namespace MatterHackers.MatterControl.Library.Widgets
 						popupMenu.CreateSeparator();
 
 						var deleteMenuItem = popupMenu.CreateMenuItem("Delete".Localize());
+
+						// EBMC Edition: deleting a printer needs a club maintainer
+						deleteMenuItem.Enabled = Maintainer.CanManagePrinter;
+						if (!deleteMenuItem.Enabled)
+						{
+							deleteMenuItem.ToolTipText = Maintainer.LockedText;
+						}
 						deleteMenuItem.Click += (s2, e2) =>
 						{
 							if (treeView.SelectedNode.Tag is PrinterInfo printerInfo)

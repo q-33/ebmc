@@ -69,6 +69,12 @@ namespace MatterHackers.Agg.UI
 		/// Gets or sets if this operation should be shown in right click and modify menu.
 		/// </summary>
 		public Func<ISceneContext, bool> ShowInModifyMenu { get; set; }
+
+		/// <summary>
+		/// EBMC Edition: false leaves this operation (or group) off the toolbar of printer tabs when the OEM settings
+		/// turn on TrimPrinterTabToolbar. Design tabs always show it.
+		/// </summary>
+		public bool ShowOnPrinterTabs { get; set; } = true;
 	}
 
 	public class SceneSelectionSeparator : SceneOperation

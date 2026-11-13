@@ -14,6 +14,18 @@
 		<Compile Include="..\..\MatterControl.Printing\OctoPrint\*.cs" Link="OctoPrint\%(Filename)%(Extension)" />
 		<!-- The wording and warning/error decision for parts outside the printable area -->
 		<Compile Include="..\..\MatterControl.Printing\Settings\PartsOutsideBedMessages.cs" Link="Settings\%(Filename)%(Extension)" />
+		<!-- The club maintainer lock: which settings are locked, the PIN hash and the wording. SettingsKey and
+		     SliceSettingsLayouts have no dependencies, so the rule is tested against the real layouts -->
+		<Compile Include="..\..\MatterControl.Printing\Settings\SettingsKey.cs" Link="Settings\%(Filename)%(Extension)" />
+		<Compile Include="..\..\MatterControl.Printing\Settings\SliceSettingsLayouts.cs" Link="Settings\%(Filename)%(Extension)" />
+		<Compile Include="..\..\MatterControl.Printing\Settings\SettingsLock.cs" Link="Settings\%(Filename)%(Extension)" />
+		<Compile Include="..\..\MatterControl.Printing\Settings\MaintainerPin.cs" Link="Settings\%(Filename)%(Extension)" />
+		<Compile Include="..\..\MatterControl.Printing\Settings\MaintainerMessages.cs" Link="Settings\%(Filename)%(Extension)" />
+		<!-- The shapes palette's catalog (families, members, tabs, size chips) and click placement rule; no UI dependencies -->
+		<Compile Include="..\..\MatterControlLib\PartPreviewWindow\ShapesPalette\PaletteCatalog.cs" Link="ShapesPalette\%(Filename)%(Extension)" />
+		<Compile Include="..\..\MatterControlLib\PartPreviewWindow\ShapesPalette\PalettePlacement.cs" Link="ShapesPalette\%(Filename)%(Extension)" />
+		<!-- The locked-theme rule (OemSettings.LockedThemeSet) -->
+		<Compile Include="..\..\MatterControlLib\ApplicationView\Themes\ThemeLock.cs" Link="Themes\%(Filename)%(Extension)" />
 	</ItemGroup>
 
 	<ItemGroup>

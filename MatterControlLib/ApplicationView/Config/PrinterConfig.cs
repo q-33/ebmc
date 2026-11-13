@@ -110,6 +110,13 @@ namespace MatterHackers.MatterControl
 					}
 				}
 
+				// EBMC Edition: while the maintainer lock is on, part settings may only change per-print settings
+				if (Maintainer.LockEnabled
+					&& !Maintainer.IsUnlocked)
+				{
+					newSceneOverrides = new PrinterSettingsLayer(SettingsLock.FilterOverrides(newSceneOverrides, true, false, Maintainer.ActiveMaterialKeys(Settings)));
+				}
+
 				var same = newSceneOverrides.Count == sceneOverrides.Count && !newSceneOverrides.Except(sceneOverrides).Any();
 				// if settings count and keys are the same, check the value of the settings
 				if (same && sceneOverrides.Count > 0)

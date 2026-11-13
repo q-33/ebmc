@@ -90,6 +90,12 @@ namespace MatterHackers.MatterControl.OctoPrint
 			forgetButton = AddButton(secondRow, "Forget".Localize(), "Delete the key stored on this computer".Localize(), ref tabIndex);
 			forgetButton.Click += (s, e) => Forget();
 
+			// EBMC Edition: say why the key buttons are off while the maintainer lock is on (rebuilt when the lock changes)
+			if (!Maintainer.CanEdit(printer.Settings, SettingsKey.octoprint_api_key))
+			{
+				editButton.ToolTipText = getKeyButton.ToolTipText = forgetButton.ToolTipText = Maintainer.LockedText;
+			}
+
 			this.Content = column;
 
 			Refresh();
@@ -139,10 +145,13 @@ namespace MatterHackers.MatterControl.OctoPrint
 				summary.Text = OctoPrintMessages.MaskKey(key);
 			}
 
-			editButton.Enabled = haveAddress;
-			getKeyButton.Enabled = haveAddress;
+			// EBMC Edition: changing or removing the key needs a club maintainer while the lock is on; testing it does not
+			bool canChange = Maintainer.CanEdit(printer.Settings, SettingsKey.octoprint_api_key);
+
+			editButton.Enabled = haveAddress && canChange;
+			getKeyButton.Enabled = haveAddress && canChange;
 			testButton.Enabled = key != null;
-			forgetButton.Enabled = key != null;
+			forgetButton.Enabled = key != null && canChange;
 		}
 
 		private void Test()

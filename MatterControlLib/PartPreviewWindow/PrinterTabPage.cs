@@ -585,13 +585,17 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			sideBar.RemovePage("Printer", false);
 
 			var printerType = Printer.Settings.Slicer.PrinterType;
+
+			// EBMC Edition: the Controls and Terminal tabs need a club maintainer while the lock is on
 			if(Printer.ViewState.ControlsVisible
+				&& Maintainer.CanManagePrinter
 				&& printerType == PrinterType.FFF)
 			{
 				sideBar.AddPage("Controls", "Controls".Localize(), new ManualPrinterControls(Printer, theme), false);
 			}
 
 			if (Printer.ViewState.TerminalVisible
+				&& Maintainer.CanManagePrinter
 				&& printerType == PrinterType.FFF)
 			{
 				sideBar.AddPage("Terminal",
@@ -738,6 +742,15 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					}
 				});
 			};
+
+			// EBMC Edition: the Z offset arrows change baby_step_z_offset, a printer setting, so they need a club maintainer
+			// while the lock is on
+			if (!Maintainer.CanEdit(printer.Settings, SettingsKey.baby_step_z_offset))
+			{
+				upButton.Enabled = false;
+				downButton.Enabled = false;
+				upButton.ToolTipText = downButton.ToolTipText = Maintainer.LockedText;
+			}
 
 			// build the bottom row to hold re-slice
 			var bottomRow = new GuiWidget()

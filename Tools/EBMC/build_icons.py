@@ -22,12 +22,14 @@ Inputs (repo-relative):
     Tools/EBMC/icons/map.json      the single source of truth: target PNG (path under
                                    StaticData/Icons) -> source (lucide:<name> or custom:<name>),
                                    output size in px, notes
-    Tools/EBMC/icons/lucide/*.svg  34 Lucide icons, vendored unmodified (version and URL in
+    Tools/EBMC/icons/lucide/*.svg  46 Lucide icons, vendored unmodified (version and URL in
                                    VERSION, licence in LICENSE)
-    Tools/EBMC/icons/custom/*.svg  14 glyphs drawn for EBMC on the same 24-unit grid and 2-unit stroke
+    Tools/EBMC/icons/custom/*.svg  22 glyphs drawn for EBMC on the same 24-unit grid and 2-unit stroke
 
 Safety: every map.json target must be a relative path ending in .png that resolves (after
-symlinks) to an existing file inside StaticData/Icons. All icons are rendered and checked in
+symlinks) to a file inside StaticData/Icons. Outside the folders in NEW_TARGET_DIRS that file
+must already exist (the refresh only replaces upstream icons); inside them (Shapes/, the shapes
+palette's own glyphs) a target may be new and is created. All icons are rendered and checked in
 memory first; files are written only if every source loaded and every check passed.
 
 Outputs: every target in map.json, overwritten in place, as an RGBA PNG of the mapped size whose
@@ -51,6 +53,10 @@ Rendering:
     under one grid unit) must stay empty (alpha <= 8), or the build fails. Lucide's own padding
     rule is one full grid unit; this check catches anything that strays into the edge pixels.
   * Sizes: 64 px for icons the code loads at 16x16, 56 px for 14x14 (4x the logical size).
+    The shapes palette (Shapes/) uses 80 px masters for its 20 px glyphs. It loads them with its own
+    loader (PaletteIcons in MatterControlLib/PartPreviewWindow/ShapesPalette/PaletteButton.cs), which
+    box-halves the master straight to the device size, so 1x (80 -> 40 -> 20) and 2x (80 -> 40) are
+    both exact box reductions.
     The app's loader (agg-sharp StaticData.LoadIcon) behaves differently per device scale:
       1x: the source is halved with a 2x2 box filter until it reaches the logical size, so
           64 -> 32 -> 16 (56 -> 28 -> 14) is an exact box reduction.
@@ -77,6 +83,8 @@ SVG_NS = "http://www.w3.org/2000/svg"
 ICONS_DIR = os.path.join("StaticData", "Icons")
 SOURCE_DIR = os.path.join("Tools", "EBMC", "icons")
 SUPERSAMPLE = 4
+# Folders under StaticData/Icons whose targets may be created (EBMC's own icons, not upstream ones)
+NEW_TARGET_DIRS = ("Shapes",)
 
 ROOT_REQUIRED = {
     "viewBox": "0 0 24 24",
@@ -222,7 +230,10 @@ def resolve_target(repo, target):
     if not dest.startswith(icons_root + os.sep):
         fail(f"target {target!r}: resolves to {dest}, outside {icons_root}")
     if not os.path.isfile(dest):
-        fail(f"target {target!r}: does not exist (the refresh only replaces existing icons)")
+        new_dirs = [os.path.join(icons_root, d) for d in NEW_TARGET_DIRS]
+        if os.path.exists(dest) or os.path.dirname(dest) not in new_dirs:
+            fail(f"target {target!r}: does not exist (the refresh only replaces existing icons, "
+                 f"except directly inside {', '.join(NEW_TARGET_DIRS)}/)")
     return dest
 
 
@@ -391,8 +402,10 @@ def main():
         check_edges(target, image)
         new_images[target] = image
         data = png_bytes(image)
-        with open(dest, "rb") as f:
-            current = f.read()
+        current = None
+        if os.path.isfile(dest):
+            with open(dest, "rb") as f:
+                current = f.read()
         if current != data:
             stale.append(target)
             pending.append((dest, data))
@@ -400,6 +413,8 @@ def main():
     # Pass 2: write
     if not args.check:
         for dest, data in pending:
+            # only a NEW_TARGET_DIRS folder can be missing here (resolve_target checked the parent)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest, "wb") as f:
                 f.write(data)
 

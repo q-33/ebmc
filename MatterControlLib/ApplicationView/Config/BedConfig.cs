@@ -206,6 +206,32 @@ namespace MatterHackers.MatterControl
 
 		public InsertionGroupObject3D AddToPlate(IEnumerable<ILibraryItem> itemsToAdd, Vector2 initialPosition, bool moveToOpenPosition, bool addUndoCheckPoint = true)
 		{
+			return this.AddToPlate(
+				itemsToAdd,
+				initialPosition,
+				(item, itemsToAvoid) =>
+				{
+					if (moveToOpenPosition)
+					{
+						if (itemsToAvoid.Count() == 0)
+						{
+							PlatingHelper.PlaceOnBed(item);
+						}
+						else
+						{
+							PlatingHelper.MoveToOpenPositionRelativeGroup(item, itemsToAvoid);
+						}
+					}
+				},
+				addUndoCheckPoint);
+		}
+
+		/// <summary>
+		/// EBMC Edition: adds items with a caller's layout: layoutParts gets each loaded item and the bed's other items
+		/// (used by the shapes palette to place parts at the bed centre or the nearest free spot).
+		/// </summary>
+		public InsertionGroupObject3D AddToPlate(IEnumerable<ILibraryItem> itemsToAdd, Vector2 initialPosition, Action<IObject3D, IEnumerable<IObject3D>> layoutParts, bool addUndoCheckPoint = true)
+		{
 			if (this.Printer != null
 				&& this.Printer.ViewState.ViewMode != PartViewMode.Model)
 			{
@@ -224,20 +250,7 @@ namespace MatterHackers.MatterControl
 						context.View3DWidget,
 						scene,
 						initialPosition,
-						(item, itemsToAvoid) =>
-						{
-							if (moveToOpenPosition)
-							{
-								if (itemsToAvoid.Count() == 0)
-								{
-									PlatingHelper.PlaceOnBed(item);
-								}
-								else
-								{
-									PlatingHelper.MoveToOpenPositionRelativeGroup(item, itemsToAvoid);
-								}
-							}
-						},
+						layoutParts,
 						addUndoCheckPoint: addUndoCheckPoint));
 			});
 

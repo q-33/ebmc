@@ -64,6 +64,15 @@ namespace MatterHackers.MatterControl
 
 		public static IEnumerable<SceneOperation> All => registeredOperations;
 
+		/// <summary>
+		/// EBMC Edition: marks a modelling operation as one printer tabs can leave off their toolbar.
+		/// </summary>
+		private static SceneOperation DesignOnly(SceneOperation operation)
+		{
+			operation.ShowOnPrinterTabs = false;
+			return operation;
+		}
+
 		private static Dictionary<Type, Func<ThemeConfig, ImageBuffer>> Icons { get; set; }
 
 		private static Dictionary<string, SceneOperation> OperationsById { get; } = new Dictionary<string, SceneOperation>();
@@ -106,8 +115,19 @@ namespace MatterHackers.MatterControl
 
 		public static PopupMenu AddModifyItems(PopupMenu popupMenu, ThemeConfig theme, ISceneContext sceneContext, Func<SceneOperation, bool> includeInToolbarOverflow = null)
 		{
+			// EBMC Edition: on a printer's bed (a printer tab) leave out the modelling operations the printer-tab toolbar
+			// leaves out, so the right-click menu and the Action menu match it. Design tabs have no printer.
+			bool trimForPrinter = OemSettings.Instance.TrimPrinterTabToolbar
+				&& sceneContext?.Printer != null;
+
 			bool Show(SceneOperation operation)
 			{
+				if (trimForPrinter
+					&& !operation.ShowOnPrinterTabs)
+				{
+					return false;
+				}
+
 				// If we are creating the toolbar overflow
 				if (includeInToolbarOverflow != null)
 				{
@@ -763,20 +783,21 @@ namespace MatterHackers.MatterControl
 					TitleGetter = () => "Reshape".Localize(),
 					Operations = new List<SceneOperation>()
 					{
-						CurveOperation(),
-						PinchOperation(),
-                        RadialPinchOperation(),
-                        TwistOperation(),
+						DesignOnly(CurveOperation()),
+						DesignOnly(PinchOperation()),
+                        DesignOnly(RadialPinchOperation()),
+                        DesignOnly(TwistOperation()),
 						PlaneCutOperation(),
 #if DEBUG
-						FindSliceOperation(),
+						DesignOnly(FindSliceOperation()),
 #endif
-						HollowOutOperation(),
+						DesignOnly(HollowOutOperation()),
 					}
 				},
 				new OperationGroup("Image")
 				{
 					TitleGetter = () => "Image".Localize(),
+					ShowOnPrinterTabs = false,
 					Operations = new List<SceneOperation>()
 					{
 						ImageConverterOperation(),
@@ -786,6 +807,7 @@ namespace MatterHackers.MatterControl
 				new OperationGroup("Path")
 				{
 					TitleGetter = () => "Path".Localize(),
+					ShowOnPrinterTabs = false,
 					Visible = OperationGroup.GetVisible("Path", false),
 					Operations = new List<SceneOperation>()
 					{
@@ -800,6 +822,7 @@ namespace MatterHackers.MatterControl
 				new OperationGroup("Merge")
 				{
 					TitleGetter = () => "Merge".Localize(),
+					ShowOnPrinterTabs = false,
 					InitialSelectionIndex = 1,
 					Operations = new List<SceneOperation>()
 					{
@@ -822,6 +845,7 @@ namespace MatterHackers.MatterControl
 				new OperationGroup("Mesh")
 				{
 					TitleGetter = () => "Mesh".Localize(),
+					ShowOnPrinterTabs = false,
 					InitialSelectionIndex = 1,
 					Operations = new List<SceneOperation>()
 					{
@@ -832,7 +856,7 @@ namespace MatterHackers.MatterControl
 				new OperationGroup("Printing")
 				{
 					TitleGetter = () => "Printing".Localize(),
-					Visible = OperationGroup.GetVisible("Path", false),
+					Visible = OperationGroup.GetVisible("Printing", false),
 					Operations = new List<SceneOperation>()
 					{
 						ToggleSupportOperation(),
@@ -843,7 +867,8 @@ namespace MatterHackers.MatterControl
 				new OperationGroup("Constraints")
 				{
 					TitleGetter = () => "Constraints".Localize(),
-					Visible = OperationGroup.GetVisible("Path", false),
+					ShowOnPrinterTabs = false,
+					Visible = OperationGroup.GetVisible("Constraints", false),
 					Operations = new List<SceneOperation>()
 					{
 						FitToBoundsOperation(),

@@ -96,6 +96,24 @@ namespace EBMC.Tests
 		}
 
 		[Test]
+		public void KeyAdviceWhenTheMaintainerLockIsOn()
+		{
+			// EBMC Edition: a member who cannot change the key is sent to a maintainer, not to buttons that are off
+			Assert.That(OctoPrintMessages.DescribeError(OctoPrintError.Forbidden, null, Pi, Identity, canChangeKey: false),
+				Is.EqualTo("OctoPrint rejected the API key. Ask a club maintainer to get a new key."));
+			Assert.That(OctoPrintMessages.DescribeError(OctoPrintError.AppKeyDenied, null, Pi, Identity, canChangeKey: false),
+				Is.EqualTo("The key request was denied in OctoPrint, or it expired. Ask a club maintainer to try again."));
+			Assert.That(OctoPrintMessages.DescribeError(OctoPrintError.AppKeyDenied, null, Pi, Identity, canChangeKey: true),
+				Is.EqualTo("The key request was denied in OctoPrint, or it expired. Use Get Key to try again."));
+			Assert.That(OctoPrintMessages.DescribeError(new OctoPrintException(OctoPrintError.Forbidden, null, null), Pi, Identity, canChangeKey: false),
+				Does.Contain("Ask a club maintainer"));
+
+			// Other errors do not depend on it
+			Assert.That(OctoPrintMessages.DescribeError(OctoPrintError.Timeout, null, Pi, Identity, canChangeKey: false),
+				Is.EqualTo(OctoPrintMessages.DescribeError(OctoPrintError.Timeout, null, Pi, Identity)));
+		}
+
+		[Test]
 		public void SpecifiedWording()
 		{
 			Assert.That(OctoPrintMessages.DescribeError(OctoPrintError.Timeout, null, Pi, Identity), Is.EqualTo("OctoPrint didn't respond in time."));

@@ -39,6 +39,7 @@ using MatterHackers.Localizations;
 using MatterHackers.MatterControl.ConfigurationPage;
 using MatterHackers.MatterControl.CustomWidgets;
 using MatterHackers.MatterControl.DataStorage;
+using MatterHackers.MatterControl.SettingsManagement;
 using MatterHackers.VectorMath;
 
 namespace MatterHackers.MatterControl
@@ -273,9 +274,93 @@ namespace MatterHackers.MatterControl
 
 			this.AddSettingsRow(textSizeRow, generalPanel);
 
-			var themeSection = CreateThemePanel(theme);
-			settingsColumn.AddChild(themeSection);
-			theme.ApplyBoxStyle(themeSection);
+			// EBMC Edition: the club maintainer lock
+			if (Maintainer.LockEnabled)
+			{
+				this.AddSettingsRow(CreateMaintainerRow(), generalPanel);
+			}
+
+			// EBMC Edition: no theme or accent colour choice when the build locks its theme
+			if (!OemSettings.Instance.IsThemeLocked)
+			{
+				var themeSection = CreateThemePanel(theme);
+				settingsColumn.AddChild(themeSection);
+				theme.ApplyBoxStyle(themeSection);
+			}
+		}
+
+		/// <summary>
+		/// EBMC Edition: shows whether printer and material settings are locked, with Unlock (or Set PIN) while locked
+		/// and Lock now / Change PIN while unlocked. Rebuilt from Maintainer.Changed, which every lock change raises.
+		/// </summary>
+		private GuiWidget CreateMaintainerRow()
+		{
+			Func<string, string> localize = s => s.Localize();
+
+			var controls = new FlowLayoutWidget()
+			{
+				VAnchor = VAnchor.Center | VAnchor.Fit,
+				HAnchor = HAnchor.Fit,
+			};
+
+			var row = new SettingsItem("Club maintainer".Localize(), controls, theme)
+			{
+				Name = "Club Maintainer Row",
+			};
+
+			void AddButton(string text, string name, Action action)
+			{
+				var button = new ThemedTextButton(text, theme)
+				{
+					Name = name,
+					VAnchor = VAnchor.Center,
+					BackgroundColor = theme.SlightShade,
+					Margin = new BorderDouble(left: 6),
+				};
+				button.Click += (s, e) => UiThread.RunOnIdle(action);
+				controls.AddChild(button);
+			}
+
+			void Refresh()
+			{
+				if (controls.HasBeenClosed)
+				{
+					return;
+				}
+
+				controls.CloseChildren();
+
+				controls.AddChild(new TextWidget(
+					Maintainer.IsUnlocked ? MaintainerMessages.StatusUnlocked(localize) : MaintainerMessages.StatusLocked(localize),
+					pointSize: theme.DefaultFontSize,
+					textColor: theme.TextColor)
+				{
+					Name = "Club Maintainer Status",
+					VAnchor = VAnchor.Center,
+				});
+
+				if (Maintainer.IsUnlocked)
+				{
+					AddButton("Lock now".Localize(), "Maintainer Lock Button", Maintainer.Lock);
+					AddButton("Change PIN".Localize(), "Maintainer Change PIN Button", () => DialogWindow.Show(new MaintainerPinPage(MaintainerPinMode.ChangePin, null)));
+				}
+				else if (Maintainer.HasPin)
+				{
+					AddButton("Unlock".Localize(), "Maintainer Unlock Button", () => DialogWindow.Show(new MaintainerPinPage(MaintainerPinMode.Unlock, null)));
+				}
+				else
+				{
+					AddButton("Set PIN".Localize(), "Maintainer Set PIN Button", () => DialogWindow.Show(new MaintainerPinPage(MaintainerPinMode.SetPin, null)));
+				}
+			}
+
+			EventHandler onChanged = (s, e) => UiThread.RunOnIdle(Refresh);
+			Maintainer.Changed += onChanged;
+			row.Closed += (s, e) => Maintainer.Changed -= onChanged;
+
+			Refresh();
+
+			return row;
 		}
 
 		private void AddAdvancedPanel(GuiWidget settingsColumn)

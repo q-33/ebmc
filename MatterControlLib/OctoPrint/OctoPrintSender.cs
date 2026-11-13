@@ -10,6 +10,8 @@ using MatterHackers.Localizations;
 using MatterHackers.MatterControl.DataStorage;
 using MatterHackers.MatterControl.Library;
 using MatterHackers.MatterControl.Library.Export;
+using MatterHackers.MatterControl.SettingsManagement;
+using MatterHackers.MatterControl.SlicerConfiguration;
 
 namespace MatterHackers.MatterControl.OctoPrint
 {
@@ -29,6 +31,21 @@ namespace MatterHackers.MatterControl.OctoPrint
 		{
 			if (printer == null)
 			{
+				return;
+			}
+
+			// EBMC Edition: every way of sending (Send menu, Ctrl+P, the Print actions, a design tab's Print) ends here,
+			// so a G-code file from elsewhere is refused here while the maintainer lock is on
+			if (Maintainer.RefuseGCodeSource(printer.Bed.EditContext.IsGGCodeSource))
+			{
+				ShowMessage(Maintainer.ForeignGCodeText);
+				return;
+			}
+
+			// ... and so is a plate whose parts change temperatures or send commands
+			if (Maintainer.RefuseCommandParts(printer))
+			{
+				ShowMessage(Maintainer.CommandPartsText);
 				return;
 			}
 
@@ -66,6 +83,16 @@ namespace MatterHackers.MatterControl.OctoPrint
 				return;
 			}
 
+			// The Send menu's validation: Ctrl+P and the Print actions reach here without the menu, so check again and
+			// show the same problems the menu would list
+			List<ValidationError> validationErrors = OctoPrintValidation.Validate(printer);
+			if (validationErrors.Any(e => e.ErrorLevel == ValidationErrorLevel.Error))
+			{
+				client.Dispose();
+				ApplicationController.Instance.ShowValidationErrors("Nothing was sent to OctoPrint".Localize(), validationErrors);
+				return;
+			}
+
 			var exporter = new GCodeExport();
 			exporter.Initialize(printer);
 			if (!exporter.Enabled)
@@ -95,6 +122,12 @@ namespace MatterHackers.MatterControl.OctoPrint
 				return;
 			}
 
+			// The "Ready to print?" text, built here from the settings on the UI thread; asked later, once OctoPrint
+			// says the printer can start (null: don't ask)
+			string confirmation = startPrint && OemSettings.Instance.ConfirmBedBeforeRemotePrint
+				? ConfirmationText(printer)
+				: null;
+
 			string title = startPrint ? "Sending to OctoPrint".Localize() : "Uploading to OctoPrint".Localize();
 
 			ApplicationController.Instance.Tasks.Execute(
@@ -105,7 +138,7 @@ namespace MatterHackers.MatterControl.OctoPrint
 					var cancellationToken = cancellationTokenSource.Token;
 					try
 					{
-						await RunAsync(client, baseUri, exporter, item, baseName, startPrint, reporter, cancellationToken);
+						await RunAsync(client, baseUri, exporter, item, baseName, startPrint, confirmation, reporter, cancellationToken);
 					}
 					catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 					{
@@ -124,7 +157,7 @@ namespace MatterHackers.MatterControl.OctoPrint
 				});
 		}
 
-		private static async Task RunAsync(OctoPrintClient client, Uri baseUri, GCodeExport exporter, ILibraryItem item, string baseName, bool startPrint, Action<double, string> reporter, CancellationToken cancellationToken)
+		private static async Task RunAsync(OctoPrintClient client, Uri baseUri, GCodeExport exporter, ILibraryItem item, string baseName, bool startPrint, string confirmation, Action<double, string> reporter, CancellationToken cancellationToken)
 		{
 			// 2. Pre-flight: is OctoPrint there, does it accept the key, and can it print?
 			reporter?.Invoke(0, "Checking OctoPrint".Localize());
@@ -158,6 +191,24 @@ namespace MatterHackers.MatterControl.OctoPrint
 					}
 
 					startPrint = false;
+				}
+			}
+
+			// EBMC Edition: the start G-code homes and probes the bed, so ask before the print is started. Asked here,
+			// after the checks above (no question when the print can't start) and before the slice and upload, so
+			// nobody waits through a slice only to answer it; OctoPrint still refuses to start a print it can't run.
+			if (startPrint && confirmation != null)
+			{
+				bool start = await AskAsync(
+					confirmation,
+					OctoPrintMessages.ConfirmPrintTitle(s => s.Localize()),
+					OctoPrintMessages.ConfirmPrintStart(s => s.Localize()),
+					"Cancel".Localize(),
+					cancellationToken);
+
+				if (!start)
+				{
+					return;
 				}
 			}
 
@@ -237,6 +288,31 @@ namespace MatterHackers.MatterControl.OctoPrint
 			{
 				TryDelete(tempPath);
 			}
+		}
+
+		/// <summary>
+		/// The "Ready to print?" text for this printer: the active material preset's name and the temperatures it will
+		/// heat to. Read on the UI thread.
+		/// </summary>
+		private static string ConfirmationText(PrinterConfig printer)
+		{
+			// A G-code file has its own temperatures, and temperature or command parts override the material's: no
+			// numbers then, rather than wrong ones
+			if (OctoPrintMessages.UseGenericConfirmation(printer.Bed.EditContext.IsGGCodeSource, Maintainer.HasCommandParts(printer)))
+			{
+				return OctoPrintMessages.ConfirmPrintBodyGeneric(s => s.Localize());
+			}
+
+			var settings = printer.Settings;
+			double? bedTemperature = settings.GetValue<bool>(SettingsKey.has_heated_bed)
+				? settings.GetValue<double>(SettingsKey.bed_temperature)
+				: (double?)null;
+
+			return OctoPrintMessages.ConfirmPrintBody(
+				settings.MaterialLayer?.Name,
+				settings.GetValue<double>(SettingsKey.temperature),
+				bedTemperature,
+				s => s.Localize());
 		}
 
 		/// <summary>

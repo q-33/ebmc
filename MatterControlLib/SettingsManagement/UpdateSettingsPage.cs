@@ -202,6 +202,13 @@ namespace MatterHackers.MatterControl
 
 					updateButton.Click += (s, e) =>
 					{
+						// EBMC Edition: updating the printer defaults needs a club maintainer
+						if (!Maintainer.CanManagePrinter)
+						{
+							Maintainer.NotifyLocked();
+							return;
+						}
+
 						var scrollAmount = this.contentRow.Descendants<ScrollableWidget>().First().ScrollPositionFromTop;
 						printer.Settings.SetValue(setting.key, setting.newValue, printer.Settings.OemLayer);
 						AddAllContent();

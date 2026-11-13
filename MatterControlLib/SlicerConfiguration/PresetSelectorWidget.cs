@@ -104,8 +104,9 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 
 			editButton = new ThemedIconButton(StaticData.Instance.LoadIcon("icon_edit.png", 16, 16).GrayToColor(theme.TextColor), theme)
 			{
-				ToolTipText = "Edit Selected Setting".Localize(),
-				Enabled = dropDownList.SelectedIndex != -1,
+				// EBMC Edition: editing, duplicating or deleting a preset needs a club maintainer
+				ToolTipText = Maintainer.CanManagePrinter ? "Edit Selected Setting".Localize() : Maintainer.LockedText,
+				Enabled = dropDownList.SelectedIndex != -1 && Maintainer.CanManagePrinter,
 				VAnchor = VAnchor.Center,
 				Margin = new BorderDouble(left: 6)
 			};
@@ -272,6 +273,16 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 				"new",
 				pointSize: theme.DefaultFontSize);
 
+			// EBMC Edition: a new preset needs a club maintainer, and so does choosing the material (members keep the
+			// material that is loaded; the list still shows it)
+			addNewPreset.Enabled = Maintainer.CanManagePrinter;
+			if (layerType == NamedSettingsLayers.Material
+				&& !Maintainer.CanEdit(printer.Settings, SettingsKey.active_material_key))
+			{
+				dropDownList.Enabled = false;
+				dropDownList.ToolTipText = Maintainer.LockedText;
+			}
+
 			var selectedIndex = dropDownList.SelectedIndex;
 
 			dropDownList.SelectionChanged += (s3, e3) =>
@@ -406,6 +417,13 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 
 			if (layerType == NamedSettingsLayers.Material)
 			{
+				if (!Maintainer.CanEdit(activeSettings, SettingsKey.active_material_key))
+				{
+					// EBMC Edition: the list is disabled while locked; this is the backstop
+					Maintainer.NotifyLocked();
+					return;
+				}
+
 				if (extruderIndex == 0)
 				{
 					if (activeSettings.ActiveMaterialKey != item.Value)
@@ -502,7 +520,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 				}
 			});
 
-			editButton.Enabled = item.Text != defaultMenuItemText;
+			editButton.Enabled = item.Text != defaultMenuItemText && Maintainer.CanManagePrinter;
 		}
 
 		private void RebuildDropDownList(bool updateAllSettings)

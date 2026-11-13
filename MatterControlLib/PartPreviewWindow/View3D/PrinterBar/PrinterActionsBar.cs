@@ -328,7 +328,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					Icon = StaticData.Instance.LoadIcon("memory_16x16.png", 16, 16).GrayToColor(theme.TextColor),
 					Title = "Configure EEProm".Localize(),
 					Action = configureEePromButton_Click,
-					IsEnabled = () => printer.Connection.IsConnected
+					IsEnabled = () => printer.Connection.IsConnected && Maintainer.CanManagePrinter
 				}
 			};
 			menuActions.Add(new NamedBoolAction()
@@ -345,21 +345,24 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				{
 					Title = "Show Controls".Localize(),
 					Action = () => { },
-					GetIsActive = () => printer.ViewState.ControlsVisible,
+					GetIsActive = () => printer.ViewState.ControlsVisible && Maintainer.CanManagePrinter,
 					SetIsActive = (value) => printer.ViewState.ControlsVisible = value,
+					IsEnabled = () => Maintainer.CanManagePrinter,
 				});
 				menuActions.Add(new NamedBoolAction()
 				{
 					Title = "Show Terminal".Localize(),
 					Action = () => { },
-					GetIsActive = () => printer.ViewState.TerminalVisible,
+					GetIsActive = () => printer.ViewState.TerminalVisible && Maintainer.CanManagePrinter,
 					SetIsActive = (value) => printer.ViewState.TerminalVisible = value,
+					IsEnabled = () => Maintainer.CanManagePrinter,
 				});
 			}
 			menuActions.Add(new ActionSeparator());
 			menuActions.Add(new NamedAction()
 			{
 				Title = "Import Presets".Localize(),
+				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () =>
 				{
 					AggContext.FileDialogs.OpenFileDialog(
@@ -400,6 +403,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			menuActions.Add(new NamedAction()
 			{
 				Title = "Export Printer".Localize(),
+				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () => UiThread.RunOnIdle(() =>
 				{
 					ApplicationController.Instance.ExportAsMatterControlConfig(printer);
@@ -410,6 +414,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			menuActions.Add(new NamedAction()
 			{
 				Title = "Calibrate Printer".Localize(),
+				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () => UiThread.RunOnIdle(() =>
 				{
 					UiThread.RunOnIdle(() =>
@@ -423,6 +428,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			menuActions.Add(new NamedAction()
 			{
 				Title = "Update Settings...".Localize(),
+				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () =>
 				{
 					DialogWindow.Show(new UpdateSettingsPage(printer));
@@ -432,6 +438,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			menuActions.Add(new NamedAction()
 			{
 				Title = "Restore Settings...".Localize(),
+				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () =>
 				{
 					DialogWindow.Show(new PrinterProfileHistoryPage(printer));
@@ -440,6 +447,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			menuActions.Add(new NamedAction()
 			{
 				Title = "Reset to Defaults...".Localize(),
+				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () =>
 				{
 					StyledMessageBox.ShowMessageBox(
@@ -465,6 +473,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			menuActions.Add(new NamedAction()
 			{
 				Title = "Delete Printer".Localize(),
+				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () =>
 				{
 					StyledMessageBox.ShowMessageBox(
@@ -481,6 +490,27 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 						"Delete Printer".Localize());
 				},
 			});
+
+			// EBMC Edition: unlock or lock the club maintainer settings from here too
+			if (Maintainer.LockEnabled)
+			{
+				menuActions.Add(new ActionSeparator());
+				menuActions.Add(new NamedAction()
+				{
+					Title = Maintainer.IsUnlocked ? "Lock maintainer settings".Localize() : "Unlock maintainer settings...".Localize(),
+					Action = () => UiThread.RunOnIdle(() =>
+					{
+						if (Maintainer.IsUnlocked)
+						{
+							Maintainer.Lock();
+						}
+						else
+						{
+							DialogWindow.Show(new MaintainerPinPage(MaintainerPinMode.Unlock, null));
+						}
+					}),
+				});
+			}
 
 			theme.CreateMenuItems(popupMenu, menuActions);
 		}

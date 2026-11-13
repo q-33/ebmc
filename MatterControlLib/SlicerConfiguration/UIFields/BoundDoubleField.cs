@@ -27,6 +27,7 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the FreeBSD Project.
 */
 
+using System.Linq;
 using MatterHackers.Agg;
 using MatterHackers.Agg.UI;
 
@@ -60,6 +61,16 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 		{
 			if (fieldChangedEventArgs.UserInitiated)
 			{
+				// EBMC Edition: refuse the whole change up front if the maintainer lock refuses this setting or a linked
+				// one, so linked settings are never written for a change that is then refused
+				if (!settingsContext.CanWriteAll(new[] { settingData.SlicerConfigName }
+					.Concat(settingData.SetSettingsOnChange.Select(linked => linked["TargetSetting"]))))
+				{
+					RevertToStoredValue();
+					base.OnValueChanged(fieldChangedEventArgs);
+					return;
+				}
+
 				// If this setting sets other settings, then do that.
 				if (ChangesMultipleOtherSettings)
 				{
@@ -71,8 +82,12 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 					}
 				}
 
-				// also always save to the local setting
-				settingsContext.SetValue(settingData.SlicerConfigName, this.Value);
+				// also always save to the local setting; EBMC Edition: show the stored value again if the maintainer lock
+				// refused it
+				if (!settingsContext.SetValue(settingData.SlicerConfigName, this.Value))
+				{
+					RevertToStoredValue();
+				}
 			}
 			else
 			{
@@ -81,6 +96,21 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 			}
 
 			base.OnValueChanged(fieldChangedEventArgs);
+		}
+
+		/// <summary>
+		/// EBMC Edition: shows the stored value again after the maintainer lock refused a change (unless the field has
+		/// been closed meanwhile).
+		/// </summary>
+		private void RevertToStoredValue()
+		{
+			UiThread.RunOnIdle(() =>
+			{
+				if (this.Content?.HasBeenClosed == false)
+				{
+					this.SetValue(settingsContext.GetValue(settingData.SlicerConfigName), userInitiated: false);
+				}
+			});
 		}
 
 		/// <summary>

@@ -741,6 +741,15 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 							ICheckbox checkbox = uiField.Content as ICheckbox;
 							string checkedKey = checkbox.Checked ? "OnValue" : "OffValue";
 
+							// EBMC Edition: refuse the whole change up front if the maintainer lock refuses this setting or a
+							// linked one, so linked settings are never written for a change that is then refused
+							if (!settingsContext.CanWriteAll(new[] { settingData.SlicerConfigName }
+								.Concat(settingData.SetSettingsOnChange.Select(linked => linked["TargetSetting"]))))
+							{
+								RevertToStoredValue(uiField, settingsContext, settingData.SlicerConfigName);
+								return;
+							}
+
 							// Linked settings should be updated in all cases (user clicked checkbox, user clicked clear)
 							foreach (var setSettingsData in settingData.SetSettingsOnChange)
 							{
@@ -750,8 +759,11 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 								}
 							}
 
-							// Store actual field value
-							settingsContext.SetValue(settingData.SlicerConfigName, uiField.Value);
+							// Store actual field value; EBMC Edition: show the stored value again if the maintainer lock refused it
+							if (!settingsContext.SetValue(settingData.SlicerConfigName, uiField.Value))
+							{
+								RevertToStoredValue(uiField, settingsContext, settingData.SlicerConfigName);
+							}
 						}
 					};
 					break;
@@ -780,7 +792,9 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 					uiField = new ComPortField(printer, theme);
 					uiField.ValueChanged += (s, e) =>
 					{
-						if (e.UserInitiated)
+						// EBMC Edition: this write bypasses SettingsContext, so check the maintainer lock here
+						if (e.UserInitiated
+							&& Maintainer.CanEdit(printer.Settings, SettingsKey.com_port))
 						{
 							printer.Settings.Helpers.SetComPort(uiField.Value);
 						}
@@ -870,12 +884,17 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 					break;
 			}
 
+			// EBMC Edition: the widget that holds the editor, disabled below when the maintainer lock applies. Content
+			// only exists after Initialize, so it is read there.
+			GuiWidget fieldContent = null;
+
 			if (uiField != null)
             {
                 uiField.HelpText = settingData.HelpText;
 
                 uiField.Name = $"{settingData.PresentationName} Field";
                 uiField.Initialize(ref tabIndexForItem);
+                fieldContent = uiField.Content;
 
                 if (settingData.DataEditType == SliceSettingData.DataEditTypes.WIDE_STRING)
                 {
@@ -896,9 +915,11 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
                 uiField.ValueChanged += (s, e) =>
                 {
                     if (useDefaultSavePattern
-                        && e.UserInitiated)
+                        && e.UserInitiated
+                        && !settingsContext.SetValue(settingData.SlicerConfigName, uiField.Value))
                     {
-                        settingsContext.SetValue(settingData.SlicerConfigName, uiField.Value);
+                        // EBMC Edition: the maintainer lock refused the change; show the stored value again
+                        RevertToStoredValue(uiField, settingsContext, settingData.SlicerConfigName);
                     }
 
                     settingsRow.UpdateStyle();
@@ -909,6 +930,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
                 {
                     var dropMenu = new DropMenuWrappedField(uiField, settingData, theme.TextColor, theme, printer);
                     dropMenu.Initialize(tabIndexForItem);
+                    fieldContent = dropMenu.Content;
 
                     settingsRow.AddContent(dropMenu.Content);
                 }
@@ -917,13 +939,27 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
                     if (!placeFieldInDedicatedRow)
                     {
                         settingsRow.AddContent(uiField.Content);
-                        settingsRow.ActionWidget = uiField.Content;
+
+                        // EBMC Edition: a click on a locked row must not change its value
+                        if (!settingsRow.IsLocked)
+                        {
+                            settingsRow.ActionWidget = uiField.Content;
+                        }
                     }
                 }
             }
 
             settingsRow.UIField = uiField;
 			uiField.Row = settingsRow;
+
+			// EBMC Edition: a locked setting stays readable but cannot be edited. The OctoPrint key field decides for
+			// itself, so that a member can still test the connection.
+			if (settingsRow.IsLocked
+				&& fieldContent != null
+				&& settingData.DataEditType != SliceSettingData.DataEditTypes.OCTOPRINT_API_KEY)
+			{
+				fieldContent.Enabled = false;
+			}
 
 			if (errors?.Any() == true)
 			{
@@ -985,6 +1021,21 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 				settingsRow.Enabled = false;
 				return settingsRow;
 			}
+		}
+
+		/// <summary>
+		/// EBMC Edition: puts the stored value back into a field whose change was refused, so a rejected value never
+		/// stays on screen.
+		/// </summary>
+		private static void RevertToStoredValue(UIField uiField, SettingsContext settingsContext, string slicerConfigName)
+		{
+			UiThread.RunOnIdle(() =>
+			{
+				if (uiField.Content?.HasBeenClosed == false)
+				{
+					uiField.SetValue(settingsContext.GetValue(slicerConfigName), userInitiated: false);
+				}
+			});
 		}
 
         public void FilterToOverrides(IEnumerable<PrinterSettingsLayer> layers)

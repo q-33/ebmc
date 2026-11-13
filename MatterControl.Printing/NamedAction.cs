@@ -47,6 +47,12 @@ namespace MatterHackers.MatterControl
 		public string Shortcut { get; set; }
 
 		public string Title { get; set; }
+
+		/// <summary>
+		/// EBMC Edition: true when the action is disabled only because the club maintainer lock is on (its other
+		/// conditions are met), so the UI can say so. Null for actions the lock does not affect.
+		/// </summary>
+		public Func<bool> IsBlockedByLock { get; set; }
 	}
 
 	public class ActionSeparator : NamedAction

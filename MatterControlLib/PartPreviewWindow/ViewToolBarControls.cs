@@ -42,6 +42,7 @@ using MatterHackers.MatterControl.CustomWidgets;
 using MatterHackers.MatterControl.DataStorage;
 using MatterHackers.MatterControl.Library;
 using MatterHackers.MatterControl.Library.Widgets;
+using MatterHackers.MatterControl.SettingsManagement;
 using MatterHackers.MatterControl.SlicerConfiguration;
 using MatterHackers.VectorMath;
 
@@ -179,6 +180,12 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			// Add Selected IObject3D -> Operations to toolbar
 			foreach (var namedAction in SceneOperations.All)
 			{
+				// EBMC Edition: printer tabs can leave modelling tools off the toolbar
+				if (!ShowOnThisToolbar(namedAction))
+				{
+					continue;
+				}
+
 				if (namedAction is SceneSelectionSeparator)
 				{
 					this.AddChild(new ToolbarSeparator(theme.GetBorderColor(50), theme.SeparatorMargin));
@@ -342,7 +349,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			{
 				foreach (var namedAction in SceneOperations.All)
 				{
-					if (namedAction is OperationGroup operationGroup)
+					if (namedAction is OperationGroup operationGroup
+						&& ShowOnThisToolbar(operationGroup))
 					{
 						yield return operationGroup;
 					}
@@ -463,13 +471,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		{
 			var buttonGroup = new FlowLayoutWidget();
 
-			foreach (var operation in operationGroup.Operations)
+			foreach (var operation in ToolbarOperations(operationGroup))
 			{
-				if (operation == null)
-                {
-					continue;
-                }
-
 				var operationButton = new OperationIconButton(operation, sceneContext, theme);
 				if (!string.IsNullOrEmpty(operation.UiHint))
 				{
@@ -499,7 +502,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		{
 			var buttonGroup = new FlowLayoutWidget();
 
-			var defaultOperation = operationGroup.GetDefaultOperation();
+			var groupOperations = ToolbarOperations(operationGroup);
+			var defaultOperation = ToolbarDefaultOperation(operationGroup);
 
 			PopupMenuButton actionAndDropDown = null;
 			actionAndDropDown = theme.CreateSplitButton(
@@ -514,7 +518,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					ButtonName = defaultOperation.Title,
 					ExtendPopupMenu = (PopupMenu popupMenu) =>
 					{
-						foreach (var operation in operationGroup.Operations)
+						foreach (var operation in groupOperations)
 						{
 							var operationMenu = popupMenu.CreateMenuItem(operation.Title, operation.Icon?.Invoke(theme));
 
@@ -577,6 +581,52 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		}
 
 		public bool IsPrinterMode { get; }
+
+		/// <summary>
+		/// EBMC Edition: true on a printer tab when the OEM settings trim its toolbar to what printing needs.
+		/// </summary>
+		private bool TrimForPrinter => IsPrinterMode && OemSettings.Instance.TrimPrinterTabToolbar;
+
+		/// <summary>
+		/// The operations of a group that this toolbar shows.
+		/// </summary>
+		private List<SceneOperation> ToolbarOperations(OperationGroup operationGroup)
+		{
+			return operationGroup.Operations
+				.Where(operation => operation != null && (!TrimForPrinter || operation.ShowOnPrinterTabs))
+				.ToList();
+		}
+
+		/// <summary>
+		/// The group's remembered operation, or its first shown one when this toolbar leaves the remembered one out.
+		/// </summary>
+		private SceneOperation ToolbarDefaultOperation(OperationGroup operationGroup)
+		{
+			var defaultOperation = operationGroup.GetDefaultOperation();
+			var shown = ToolbarOperations(operationGroup);
+
+			return shown.Contains(defaultOperation) ? defaultOperation : shown.First();
+		}
+
+		/// <summary>
+		/// Whether an operation or group belongs on this toolbar: everything on design tabs; on a trimmed printer tab only
+		/// the ones marked for printer tabs, and a group only if it keeps at least one operation.
+		/// </summary>
+		private bool ShowOnThisToolbar(SceneOperation operation)
+		{
+			if (!TrimForPrinter)
+			{
+				return true;
+			}
+
+			if (!operation.ShowOnPrinterTabs)
+			{
+				return false;
+			}
+
+			return !(operation is OperationGroup group)
+				|| ToolbarOperations(group).Any();
+		}
 
 		public ViewControls3DButtons ActiveButton
 		{
@@ -777,7 +827,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					&& button is PopupMenuButton splitButton
 					&& button.Descendants<ThemedIconButton>().FirstOrDefault() is ThemedIconButton iconButton)
 				{
-					var defaultOperation = operationGroup.GetDefaultOperation();
+					var defaultOperation = ToolbarDefaultOperation(operationGroup);
 					iconButton.Enabled = defaultOperation.IsEnabled(sceneContext);
 					iconButton.ToolTipText = defaultOperation.Title;
 
@@ -891,17 +941,11 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		{
 			PopupMenuButton toggleSupportButton = null;
 
-			var minimumSupportHeight = .05;
-			if (sceneContext.Printer != null)
-			{
-				minimumSupportHeight = sceneContext.Printer.Settings.GetValue<double>(SettingsKey.layer_height) / 2;
-			}
-
 			toggleSupportButton = new PopupMenuButton(StaticData.Instance.LoadIcon("edit_support.png", 16, 16).GrayToColor(theme.TextColor), theme)
 			{
 				Name = "Support SplitButton",
 				ToolTipText = "Generate Support".Localize(),
-				DynamicPopupContent = () => new GenerateSupportPanel(AppContext.MenuTheme, sceneContext.Scene, minimumSupportHeight),
+				DynamicPopupContent = () => CreateSupportPanel(sceneContext),
 				PopupHAnchor = HAnchor.Fit,
 				PopupVAnchor = VAnchor.Fit,
 				MakeScrollable = false,
@@ -913,6 +957,20 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			};
 
 			return toggleSupportButton;
+		}
+
+		/// <summary>
+		/// The Generate Support panel the toolbar's support button opens (also opened by the shapes palette).
+		/// </summary>
+		internal static GuiWidget CreateSupportPanel(ISceneContext sceneContext)
+		{
+			var minimumSupportHeight = .05;
+			if (sceneContext.Printer != null)
+			{
+				minimumSupportHeight = sceneContext.Printer.Settings.GetValue<double>(SettingsKey.layer_height) / 2;
+			}
+
+			return new GenerateSupportPanel(AppContext.MenuTheme, sceneContext.Scene, minimumSupportHeight);
 		}
 
 		private GuiWidget CreateSaveButton(ThemeConfig theme)

@@ -93,6 +93,13 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 			this.settingData = settingData;
 			this.settingsContext = settingsContext;
 
+			// EBMC Edition: a member can read a locked setting but not change it; say why in its help popover
+			this.IsLocked = !Maintainer.CanEdit(printer.Settings, settingData.SlicerConfigName);
+			if (this.IsLocked)
+			{
+				this.HelpText = string.IsNullOrEmpty(this.HelpText) ? Maintainer.LockedText : Maintainer.LockedText + "\n\n" + this.HelpText;
+			}
+
 			using (this.LayoutLock())
 			{
 				this.AddChild(dataArea = new FlowLayoutWidget
@@ -146,6 +153,8 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 						settingsContext.ClearValue(settingData.SlicerConfigName);
 					};
 
+					restoreButton.Enabled = !this.IsLocked;
+
 					restoreArea.AddChild(restoreButton);
 
 					restoreArea.Selectable = true;
@@ -171,6 +180,11 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 		}
 
 		public SettingsValidationError ValidationEror { get; set; }
+
+		/// <summary>
+		/// EBMC Edition: true when the maintainer lock stops this setting being changed now.
+		/// </summary>
+		public bool IsLocked { get; }
 
 		public Color HighlightColor
 		{
@@ -253,9 +267,14 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 			var popupMenu = new PopupMenu(menuTheme);
 			var settingName = settingData.SlicerConfigName;
 
-			var enableClearUser = printer.Settings.UserLayer.ContainsKey(settingName);
-			var enableClearMaterial = printer.Settings.MaterialLayer?.ContainsKey(settingName) == true;
-			var enableClearQuality = printer.Settings.QualityLayer?.ContainsKey(settingName) == true;
+			// EBMC Edition: clearing an override needs the setting to be unlocked; changing a preset or the printer
+			// defaults needs a maintainer whatever the setting
+			var enableClearUser = printer.Settings.UserLayer.ContainsKey(settingName)
+				&& Maintainer.CanEdit(printer.Settings, settingName);
+			var enableClearMaterial = printer.Settings.MaterialLayer?.ContainsKey(settingName) == true
+				&& Maintainer.CanManagePrinter;
+			var enableClearQuality = printer.Settings.QualityLayer?.ContainsKey(settingName) == true
+				&& Maintainer.CanManagePrinter;
 			// put in clear layer menu items
 			{
 				var clearSettingMenuItem = popupMenu.CreateMenuItem("Clear Override".Localize());
@@ -300,10 +319,10 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 				};
 			}
 
-			var canSaveDefault = !SettingIsOem();
+			var canSaveDefault = !SettingIsOem() && Maintainer.CanManagePrinter;
 			var isPrinterSetting = PrinterSettings.Layout.AllPrinterSettings.ContainsKey(settingName);
-			var canSaveQuality = !isPrinterSetting && printer.Settings.QualityLayer != null && !SettingIsSameAsLayer(printer.Settings.QualityLayer);
-			var canSaveMaterial = !isPrinterSetting && printer.Settings.MaterialLayer != null && !SettingIsSameAsLayer(printer.Settings.MaterialLayer);
+			var canSaveQuality = !isPrinterSetting && printer.Settings.QualityLayer != null && !SettingIsSameAsLayer(printer.Settings.QualityLayer) && Maintainer.CanManagePrinter;
+			var canSaveMaterial = !isPrinterSetting && printer.Settings.MaterialLayer != null && !SettingIsSameAsLayer(printer.Settings.MaterialLayer) && Maintainer.CanManagePrinter;
 
 			if (canSaveDefault || canSaveQuality || canSaveMaterial)
 			{

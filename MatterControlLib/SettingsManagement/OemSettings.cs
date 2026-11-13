@@ -93,6 +93,56 @@ namespace MatterHackers.MatterControl.SettingsManagement
         /// </summary>
         public bool ShowLicenseAgreement = true;
 
+        /// <summary>
+        /// EBMC Edition: true makes printer and material settings need a club maintainer, who unlocks them with a PIN
+        /// for the rest of the session (see Maintainer). Settings for a single print stay open to everyone.
+        /// </summary>
+        public bool RequireMaintainerForPrinterSettings = false;
+
+        /// <summary>
+        /// EBMC Edition: true asks "Ready to print?" (is the bed empty, is the material loaded, the temperatures) before
+        /// any print is started through OctoPrint. The start G-code homes and probes the bed, so a part left on it is hit.
+        /// </summary>
+        public bool ConfirmBedBeforeRemotePrint = false;
+
+        /// <summary>
+        /// EBMC Edition: false leaves the shapes rail (Cube, Hole, Text, ... and its collapse button), or the shapes
+        /// palette when ShapesPaletteStyle is "palette", off printer tabs, so the bed view uses the full width.
+        /// Design tabs keep it.
+        /// </summary>
+        public bool ShowShapesRailOnPrinterTabs = true;
+
+        /// <summary>
+        /// EBMC Edition: true leaves modelling tools (booleans, reshaping, mesh, image, path and constraint tools) off
+        /// the toolbar of printer tabs. Design tabs keep every tool.
+        /// </summary>
+        public bool TrimPrinterTabToolbar = false;
+
+        /// <summary>
+        /// EBMC Edition: the left shapes rail. "classic" is the stock rail of library thumbnails; "palette" is the EBMC
+        /// shapes and tools palette (PartPreviewWindow/ShapesPalette): icon buttons with family flyouts, a Solid/Hole
+        /// switch and the modelling tools on design tabs, print-oriented buttons on printer tabs.
+        /// </summary>
+        public string ShapesPaletteStyle = "classic";
+
+        /// <summary>
+        /// EBMC Edition: a themeset name (e.g. "EBMC-Dark") the app always uses, with its default accent colour; the
+        /// theme and accent colour choices are then removed from the interface. Empty keeps the stock behaviour (the
+        /// user's stored theme and the theme pickers).
+        /// </summary>
+        public string LockedThemeSet = "";
+
+        [JsonIgnore]
+        public bool IsThemeLocked => !string.IsNullOrWhiteSpace(LockedThemeSet);
+
+        /// <summary>
+        /// EBMC Edition: the text a new QR Code part starts with; empty keeps the stock default.
+        /// </summary>
+        public string QrCodeDefaultText = "";
+
+        [JsonIgnore]
+        public bool UseShapesPalette => string.Equals(ShapesPaletteStyle, "palette", System.StringComparison.OrdinalIgnoreCase);
+
         public string UnregisteredProductName { get; set; } = "MatterControl";
         public string RegisteredProductName { get; set; } = "MatterControl Pro";
 

@@ -35,6 +35,7 @@ using MatterHackers.ImageProcessing;
 using MatterHackers.Localizations;
 using MatterHackers.MatterControl.CustomWidgets;
 using MatterHackers.MatterControl.Library;
+using MatterHackers.MatterControl.SettingsManagement;
 using MatterHackers.VectorMath;
 
 namespace MatterHackers.MatterControl.PartPreviewWindow
@@ -134,6 +135,41 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			};
 			toolbarAndView3DWidget.AddChild(viewToolBarControls);
 
+			// EBMC Edition: printer tabs can leave out the shapes rail (and its collapse button)
+			if (!isPrinterType
+				|| OemSettings.Instance.ShowShapesRailOnPrinterTabs)
+			{
+				// EBMC Edition: the club's shapes and tools palette, or the stock rail
+				if (OemSettings.Instance.UseShapesPalette)
+				{
+					favoritesBarAndView3DWidget.AddChild(new ShapesPalette(theme, sceneContext, view3DWidget, isPrinterType));
+				}
+				else
+				{
+					AddShapesRail(favoritesBarAndView3DWidget);
+				}
+			}
+
+			favoritesBarAndView3DWidget.AddChild(view3DWidget);
+			toolbarAndView3DWidget.AddChild(favoritesBarAndView3DWidget);
+
+			view3DContainer.AddChild(toolbarAndView3DWidget);
+
+			leftToRight.AddChild(view3DContainer);
+
+			if (sceneContext.World.RotationMatrix == Matrix4X4.Identity)
+			{
+				this.view3DWidget.ResetView();
+			}
+
+			this.AnchorAll();
+		}
+
+		/// <summary>
+		/// The shapes rail on the left of the 3D view: the library's root items as icons, with a button to widen or narrow it.
+		/// </summary>
+		private void AddShapesRail(GuiWidget favoritesBarAndView3DWidget)
+		{
 			var favoritesBarContext = new LibraryConfig()
 			{
 				ActiveContainer = ApplicationController.Instance.Library.RootLibaryContainer
@@ -221,20 +257,6 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			leftBar.AddChild(expandBarButton);
 
 			favoritesBar.Margin = new BorderDouble(bottom: expandBarButton.Height + expandBarButton.Margin.Height);
-
-			favoritesBarAndView3DWidget.AddChild(view3DWidget);
-			toolbarAndView3DWidget.AddChild(favoritesBarAndView3DWidget);
-
-			view3DContainer.AddChild(toolbarAndView3DWidget);
-
-			leftToRight.AddChild(view3DContainer);
-
-			if (sceneContext.World.RotationMatrix == Matrix4X4.Identity)
-			{
-				this.view3DWidget.ResetView();
-			}
-
-			this.AnchorAll();
 		}
 
 		public PartWorkspace Workspace { get; }
