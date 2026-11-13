@@ -310,13 +310,19 @@ Open follow-ups (not started): Transform section should edit parametric objects'
 
 TEMPERATURE LIMITS — owner 2026-11-13: "Set the max temp to 300", "The max bed temp should be 100".
 Staged firmware config (printer-config/proposed/config, untracked): hotend max_temp 400 -> 300, bed max_temp
-140 -> 100, each with a .bak copy beside it. NOT YET ON THE PRINTER (the Pi was unreachable from the owner's
-Mac; needs the SD card in the Mac, or config-set through OctoPrint + reset when the Pi is reachable, then
-confirm the stored values). App: Temperature Tower and Set Temperature parts now cap at 300 (were 400).
+140 -> 100, each with a .bak copy beside it. WRITTEN TO THE PRINTER'S SD CARD 2026-11-13 13:19 through OctoPrint (config-set sd; read back: hotend 300,
+bed 100; before: 400 / 140). The firmware reads its config at start-up, so the limits take effect after the
+NEXT printer reset or power cycle — not yet done (printer was hot at 265/60 and idle). After the reset:
+re-read both values and note it here. App: Temperature Tower and Set Temperature parts now cap at 300 (were 400).
 On-screen pass 2026-11-13 09:00: start card, starters, palette families, club menus, Mirror Copy, Cmd+D,
 shortcuts sheet, dialog template seen working. Defects found and fixed afterwards (976 tests, NOT re-checked
 on screen): Find a tool popup had zero width; start card position/text; Size field appended typed text to
 the old value ("79.7100.126" read as 79.71*0.126); clipped properties title; badge tile tint.
+
+2026-11-13 13:27: new speeds applied to the INSTALLED printer on the owner's Mac through Printer Options >
+Update settings (owner unlocked the maintainer lock): infill/top/perimeters 70, support/raft 80, bridges 40,
+travel 250, first layer 20; confirmed in the saved profile, no speed overrides. Not yet printed at these
+speeds. Firmware limits (hotend 300, bed 100) are on the SD card but need a printer reset to take effect.
 
 SPEEDS — owner approved 2026-11-12 ("I agree with your suggestions. Except, let's keep the first layer at
 20"): club profile infill/perimeters/top 35->70, support/raft 40->80, bridges 20->40, travel 150->250 (firmware
