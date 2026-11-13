@@ -95,8 +95,8 @@ Z homes to max, msd_disable true (SD card must be pulled to edit config).
 - [ ] Send follow-ups: Stop during slicing waits for the slice; key shown in clear while pasting; no print-history record
 
 ## OctoPrint Pi (found 2026-11-11)
-OctoprintPulseXE.local, Raspberry Pi 4B 4 GB, OctoPi 1.1.0 / OctoPrint 1.11.8, a club account,
-SSH key [key path removed] (owner installed it). Printer = Smoothieboard on the USB serial port.
+OctoPrint runs on a Raspberry Pi 4B 4 GB (OctoPi 1.1.0 / OctoPrint 1.11.8) on the club network. Address, login
+and key locations are NOT recorded in this public file; they are in the owner's private notes. Printer = Smoothieboard over USB serial.
 
 ## Bench results on the Pulse via OctoPrint (2026-11-11, cold, owner at the printer)
 Machine: bed moves on Y; gantry carries the hotend on Z; Z homes to the TOP (max).
@@ -113,7 +113,7 @@ Machine: bed moves on Y; gantry carries the hotend on Z; Z homes to the TOP (max
 - [ ] Hot check: Z zero at 255 C; first-layer test print through OctoPrint
 - [ ] Firmware max hotend temp is 400 C (M143 S0); EBMC.md says keep under 300 C — propose lowering (needs owner yes)
 - [ ] OctoPrint on the Pi: printer profile set to 250x220x210, nozzle 0.3; serial log on; config backups in
-      [path on the Pi] Still default: disconnectOnErrors/sendM112OnError (kept on purpose).
+      a backups folder on the Pi. Still default: disconnectOnErrors/sendM112OnError (kept on purpose).
 
 ## Bench results, afternoon 2026-11-11 (cold, via OctoPrint, owner at the printer)
 Firmware source read at this build's commit (upstream Smoothieware d82d66f): G32 stores heights relative to its
@@ -221,7 +221,7 @@ STATE 2026-11-12 (evening):
   nylon / exotic materials. A print sent from the app through OctoPrint worked today.
 - OctoPrint fixes today: ModemManager disabled on the Pi (it probed the printer port and garbled the first
   line), "send M112 on error" off (it halted Smoothie after any error), Preheat (EBMC) buttons + temperature
-  presets PLA 210/55, PETG 240/75, NylonX 265/60, NylonG 265/60. Backups in [path on the Pi]
+  presets PLA 210/55, PETG 240/75, NylonX 265/60, NylonG 265/60. Config backed up on the Pi first.
 - Printer: one halt mid-start at 15:32, "MINTEMP or MAXTEMP triggered on B" (bed sensor) as the bed moved to
   Y5; suspected bed thermistor wiring; owner says the printer "is now fixed" — ask what was done; wiggle test
   not run.
@@ -240,6 +240,74 @@ STATE 2026-11-12 (evening):
 - PrusaSlicer bundle research delivered 2026-11-11 (2.9.7, config bundle, PrusaLink recommended). Waiting on the
   owner for printer list, nozzles, materials, PrusaLink yes/no.
 
+IMPROVEMENT PROGRAMME — owner 2026-11-12: "Commit the work so far. After that ... think extra hard about what
+we could do to improve the app, and do it ... don't do anything that will change/alter printing itself since
+it's working great ... simplicity for a beginning user ... Fusion360 like tools for an advanced user ... Test
+them and integrate ... as UX designer ... more tools, cleaning up menus, icons, pop-ups ... improve the
+beginner mode as well as the advanced mode."
+Committed first: 6f235b466 (lock, palette, print safety, single theme). Branch 7 ahead of origin, NOT pushed.
+HARD RULE for this programme: no change to slicing, G-code output, start/end G-code, the export stream chain,
+OctoPrintSender's upload/start behaviour, the club profile's slice/printer settings, or anything on the Pi or
+printer. Design side, UI, wording, menus, icons, dialogs, Library, Help only. Commit only when the owner asks.
+Plan (one build tree, so code batches run one after another; designers/reviewers are read-only in parallel):
+- [ ] R  Independent review of the last fix round + theme lock (already committed); fix findings.
+- [ ] UX UX audit + mockups: Simple/Advanced modes, menus, icons, pop-ups, properties panel, Library, Help.
+- [ ] A1 Design-tool fixes: Subtract uses holes; boolean/rebuild failures reported; Duplicate beside; Lay Flat,
+        Plane Cut and scale-handle crashes; text size in mm; Measure dX/dY/dZ; Plane Cut keep top/bottom;
+        load failures reported; wrong-size/units check on load; macOS file dialog focus.
+- [ ] A2 New shapes (rounded plate, tube, polygon/hex prism, star, heart, slot, gear) and Club Starters
+        (name tag, sign, box with lid, hook, phone stand, knob, cable clip, plant label, QR tag) in the palette.
+- [ ] B  Simple / Advanced mode (app-wide switch) per the UX spec; menus, pop-ups and icon clean-up.
+- [ ] C  Fusion-style tools that fit a mesh modeller: command search, position/size fields, mirror copy,
+        pattern tools, section view, place-on-face, SVG import, parameters table surfaced.
+- [ ] Each batch: unit tests + Release build, on-screen check by the orchestrator, independent Opus review.
+NOT in this programme without a separate yes: the exact-solid CAD kernel spike (needs downloading/building
+OpenCascade), the Release "UserHasPermission" persistence change (it changes which objects reach the slicer),
+anything on the print path.
+
+RESUME POINT (written 2026-11-12 ~22:00; owner: "That looks good, keep going"; usage limits nearly reached)
+Branch macos-arm64 at c908cc7bf (history scrubbed of access details; 7 ahead of origin; NOT pushed; do not push
+or commit without the owner's word). Uncommitted in the tree, all built and unit-tested (469 tests, 0 errors):
+  A1 design-tool fixes (DesignTools/EBMC/*, Subtract/Combine/PlaneCut/Text/Measure/Duplicate, ModelSizeCheck,
+  load-failure notice, macOS file panel focus, typos), the print-safety re-check before export, palette queue
+  fixes, native/occt/ (OpenCascade 8.0.1 shim + .NET test; spike PASSED 13/13; _build/ is git-ignored).
+  A1 seen on screen: Duplicate beside, Solid/Hole buttons, hole insert, save-prompt wording. Rest unchecked.
+  A1 has NOT had its independent review yet.
+In flight when this was written: "Integrate OpenCascade solids into app" implementer (Solid Box / Cylinder /
+  plate with hole, STEP import/export, OEM EnableSolidModeling). If its report is missing after a restart, look
+  at git status for MatterControlLib/DesignTools/Solid/ and re-brief a fresh implementer from native/occt/README.md.
+Approved order after that (owner saw tasks/design/ux-modes-mockups.html and said keep going):
+  1. on-screen check + independent review of A1 and the solids batch; fix findings
+  2. visual clean-up: P1 icons, Nunito default font, dialog + menu styles, tooltips/toast, theme JSON fixes,
+     wording/typos, DockingTabControl int-cast fix (UX report "safe now" items 1-10)
+  3. Simple / Advanced switch per the mockups (default Simple; drives SliceSettingsViewDetail)
+  4. A2 new shapes + Club Starters; empty-tab start card
+  5. advanced tools: command search, typed transform panel, mirror copy, section view, shortcuts sheet
+LEFT OUT unless the owner asks (print-adjacent): design-tab Print becoming "Send to printer tab" without
+  starting; Simple printer panel with quality/strength; eye-toggle hiding (until it is known whether hidden
+  parts are sliced); the Release UserHasPermission persistence change.
+Still waiting on the owner: what fixed the printer (bed sensor halt 2026-11-12 15:32); G-code rule (their usual
+  job is a .gcode file, refused while locked); PrusaSlicer bundle answers; purge of old commits from the reflog.
+
+STATE 2026-11-12 23:10: solids review fix round DONE (528 tests, 0 errors; not seen on screen). Visual
+clean-up batch DONE and reviewed; seen on screen (Nunito, new view icons). Its review fixes are QUEUED on the
+Simple/Advanced implementer as a second task (most important: TextObject3D line wrapping must measure with
+Liberation again, because the Nunito default font changed wrapped text-part geometry; also tooltips re-wrap,
+Cmd vs Ctrl hints on macOS, bolder Z arrows, OverflowBar active tab + dead rows, build_icons key check).
+IN FLIGHT: Simple / Advanced mode implementer (batch 3). NEXT after it: on-screen check of modes + solids
+fixes, independent review of modes, then batch 4 (new shapes + Club Starters + empty-tab start card), then
+batch 5 (command search, typed transform panel, mirror copy, section view, shortcuts sheet), then the dialog
+and menu clean-up from the UX report (items 5, 6, 9).
+For the owner to confirm: OpenCASCADE.txt contact line and copyright holder ("East Bay Makers Club and
+contributors") in the shim's BSD header; attaching the OCCT source archive to releases.
+
+SPEEDS — owner approved 2026-11-12 ("I agree with your suggestions. Except, let's keep the first layer at
+20"): club profile infill/perimeters/top 35->70, support/raft 40->80, bridges 20->40, travel 150->250 (firmware
+X/Y cap is 300), first layer stays 20; retract 40 and min speed 15 unchanged. Done in the generator and
+regenerated (uncommitted). The installed printer on the owner's Mac keeps its own copy: owner must unlock and
+use Printer Options > Update Settings. Not yet printed at these speeds. This is the ONE approved exception to
+the programme's "nothing changes printing" rule; reviewers must expect these 8 OemLayer keys to differ.
+
 Open items, roughly in priority order:
 1. Maintainer lock + PrusaSlicer club bundle (above). Push the branch only when the owner says.
 2. UX design list, next areas: floating view-control cluster (now mixes old/new icons), printer action row
@@ -257,9 +325,8 @@ Open items, roughly in priority order:
 7. MACOS.md still says running on a Mac is "Not yet tried" — update with today's results.
 
 Access for next time (nothing secret is stored in this repo):
-- OctoPrint: http://OctoprintPulseXE.local, a club account. SSH key on the owner's Mac:
-  [key path removed] API key for Claude's use: [path removed] (application key; revoke in OctoPrint > Settings > Application Keys). OctoPrint config backups on the Pi:
-  [path on the Pi] Serial log is ON ([path on the Pi]).
+- OctoPrint and the Pi: address, account, SSH key and API key locations are kept out of this public file (owner's
+  private notes / Claude memory "ebmc-resume-pointer"). OctoPrint config backups and the serial log are on the Pi.
 - Printer SD card backups: printer-config/ in the repo folder (untracked on purpose).
 - Mock OctoPrint for tests: python3 Tools/EBMC/octoprint_mock.py --port 5050 --key testkey
 

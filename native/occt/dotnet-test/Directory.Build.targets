@@ -1,0 +1,6 @@
+<Project>
+	<!--
+		Deliberately empty. Its presence stops MSBuild from importing the repository-root Directory.Build.targets
+		into this standalone spike project.
+	-->
+</Project>

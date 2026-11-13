@@ -51,6 +51,19 @@ namespace MatterHackers.MatterControl
 
 		private FlowLayoutWidget validationPanel;
 
+		/// <summary>EBMC Edition: a format's own item check; anything it throws only hides that one format.</summary>
+		private static bool CanExport(IExportItemFilter filter, IEnumerable<ILibraryItem> libraryItems)
+		{
+			try
+			{
+				return filter.CanExport(libraryItems);
+			}
+			catch
+			{
+				return false;
+			}
+		}
+
 		public ExportPrintItemPage(IEnumerable<ILibraryItem> libraryItems, bool centerOnBed, PrinterConfig printer)
 		{
 			this.WindowTitle = "Export File".Localize();
@@ -107,6 +120,13 @@ namespace MatterHackers.MatterControl
 						});
 					}
 
+					continue;
+				}
+
+				// EBMC Edition: leave out a format that cannot hold these items (STEP needs exact solids only)
+				if (plugin is IExportItemFilter itemFilter
+					&& !CanExport(itemFilter, libraryItems))
+				{
 					continue;
 				}
 

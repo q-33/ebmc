@@ -119,6 +119,22 @@ namespace MatterHackers.MatterControl.SettingsManagement
         public bool TrimPrinterTabToolbar = false;
 
         /// <summary>
+        /// EBMC Edition: true checks the size of each model file (STL, OBJ, 3MF, AMF) after it is added to a bed. A model
+        /// under 2 mm across, larger than the printer's bed (printer tabs) or over 1000 mm (design tabs) gets a prompt
+        /// offering to scale it (for example 25.4x for a model made in inches). It only places the model; nothing about
+        /// slicing changes. Decisions are in DesignTools/EBMC/ModelFit.cs.
+        /// </summary>
+        public bool OfferModelSizeFix = false;
+
+        /// <summary>
+        /// EBMC Edition: true offers exact solids made by the Open CASCADE kernel (libebmc_occt) on design tabs: the
+        /// palette's Solids family (Solid Box, Solid Cylinder, Plate with Hole), the same items in the Primitives list,
+        /// opening STEP files and exporting solids as STEP. Only takes effect when the kernel library is present
+        /// (DesignTools/Solid/SolidKernel.cs). The objects reach the slicer as ordinary meshes.
+        /// </summary>
+        public bool EnableSolidModeling = false;
+
+        /// <summary>
         /// EBMC Edition: the left shapes rail. "classic" is the stock rail of library thumbnails; "palette" is the EBMC
         /// shapes and tools palette (PartPreviewWindow/ShapesPalette): icon buttons with family flyouts, a Solid/Hole
         /// switch and the modelling tools on design tabs, print-oriented buttons on printer tabs.
@@ -134,6 +150,13 @@ namespace MatterHackers.MatterControl.SettingsManagement
 
         [JsonIgnore]
         public bool IsThemeLocked => !string.IsNullOrWhiteSpace(LockedThemeSet);
+
+        /// <summary>
+        /// EBMC Edition: the family of the interface typeface, loaded from StaticData/Fonts as
+        /// "{family}_Regular", "{family}_Bold", "{family}_Italic" and "{family}_Bold_Italic" (e.g. "Nunito").
+        /// Empty keeps the stock Liberation Sans. Only interface text changes: text parts name their own font.
+        /// </summary>
+        public string DefaultUiFont = "";
 
         /// <summary>
         /// EBMC Edition: the text a new QR Code part starts with; empty keeps the stock default.

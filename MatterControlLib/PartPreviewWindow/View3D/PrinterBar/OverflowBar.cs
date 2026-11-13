@@ -97,6 +97,13 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			this.ExtendOverflowMenu(popupMenu);
 		}
 
+		/// <summary>
+		/// EBMC Edition: when true (the default), the items after the first stretched spacer (the right-aligned group, such
+		/// as the search button of the slice settings tabs) keep their room and the items before the spacer overflow first.
+		/// When false, items overflow strictly from the end of the row, as in stock MatterControl.
+		/// </summary>
+		public bool ReserveTrailingItems { get; set; } = true;
+
 		public override void OnBoundsChanged(EventArgs e)
 		{
 			base.OnBoundsChanged(e);
@@ -106,27 +113,66 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				return;
 			}
 
-			double maxRight = this.Width - RightAnchorItem.Width;
-			//double maxRight = this.Width - this.Padding.Width - RightAnchorItem.Width - RightAnchorItem.Margin.Width;
+			// EBMC Edition: an item is shown only when all of it fits (stock showed it when half of it fitted, so the last
+			// tab was clipped and never offered in the overflow menu), measured against the room the action area really
+			// has: the bar less its padding, the action area's margins and padding, and the overflow button with its margins
+			var actionArea = this.ActionArea;
+			double reservedRight = Math.Max(
+				actionArea.DeviceMarginAndBorder.Right,
+				this.RightAnchorItem.Width + this.RightAnchorItem.DeviceMarginAndBorder.Width);
+			double available = this.Width
+				- this.DevicePadding.Width
+				- actionArea.DeviceMarginAndBorder.Left
+				- reservedRight
+				- actionArea.DevicePadding.Width;
 
-			double accumulatedX = 0;
+			var items = actionArea.Children.Where(c => !ignoredTypes.Contains(c.GetType())).ToList();
 
-			bool withinLimits = true;
-
-			foreach (var widget in this.ActionArea.Children.Where(c => !ignoredTypes.Contains(c.GetType())))
+			// Stretched widgets take what is left, so only their minimum size counts
+			double ItemWidth(GuiWidget widget)
 			{
-				var totalX = widget.Width + widget.DeviceMarginAndBorder.Width;
+				var width = widget.HAnchor.HasFlag(HAnchor.Stretch) ? widget.MinimumSize.X : widget.Width;
+				return width + widget.DeviceMarginAndBorder.Width;
+			}
 
-				withinLimits &= (accumulatedX + totalX / 2) <= maxRight;
-
-				// Widget is visible when no previous sibling has been rejected and its right edge is less than maxRight
-				widget.Visible = withinLimits; // widget.Position.X + widget.Width < maxRight;
-
-				// Ignore stretched widgets
-				if (widget.HAnchor != HAnchor.Stretch)
+			var leading = items;
+			var trailing = new List<GuiWidget>();
+			if (this.ReserveTrailingItems)
+			{
+				int spacerIndex = items.FindIndex(c => c is HorizontalSpacer);
+				if (spacerIndex >= 0)
 				{
-					accumulatedX += totalX;
+					// the spacer itself stays visible so the trailing group stays right-aligned
+					items[spacerIndex].Visible = true;
+					leading = items.Take(spacerIndex).ToList();
+					trailing = items.Skip(spacerIndex + 1).ToList();
 				}
+			}
+
+			// Reserve the right-aligned group first; if even that does not fit, its last items overflow
+			double trailingWidth = 0;
+			bool withinLimits = true;
+			foreach (var widget in trailing)
+			{
+				var width = ItemWidth(widget);
+				withinLimits &= trailingWidth + width <= available;
+				widget.Visible = withinLimits;
+				if (withinLimits)
+				{
+					trailingWidth += width;
+				}
+			}
+
+			// Then the leading items, left to right; once one does not fit, it and all after it overflow
+			double accumulatedX = 0;
+			double room = available - trailingWidth;
+			withinLimits = true;
+			foreach (var widget in leading)
+			{
+				var width = ItemWidth(widget);
+				withinLimits &= accumulatedX + width <= room;
+				widget.Visible = withinLimits;
+				accumulatedX += width;
 			}
 		}
 
@@ -155,8 +201,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 					var iconImage = iconButton?.IconImage;
 
+					// EBMC Edition: tabs have no tooltip, so fall back to their label when the tooltip is empty as well as null
 					menuItem = popupMenu.CreateMenuItem(
-						widget.ToolTipText ?? widget.Text,
+						string.IsNullOrEmpty(widget.ToolTipText) ? widget.Text : widget.ToolTipText,
 						iconImage);
 
 					menuItem.Enabled = widget.Enabled;

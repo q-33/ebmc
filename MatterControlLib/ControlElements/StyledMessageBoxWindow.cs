@@ -102,7 +102,7 @@ namespace MatterHackers.MatterControl
 
 				if (yesOk == "")
 				{
-					yesOk = (messageType == MessageType.OK) ? "Ok".Localize() : "Yes".Localize();
+					yesOk = (messageType == MessageType.OK) ? "OK".Localize() : "Yes".Localize();
 				}
 
 				this.HeaderText = caption;

@@ -383,10 +383,19 @@ namespace MatterHackers.MatterControl.CrossPlatform
 			};
 		}
 
+		/// <summary>
+		/// EBMC: osascript is a background process, so its panel used to open behind other windows or without keyboard
+		/// focus. "activate" with no target activates the script's own process (osascript), which brings the panel to
+		/// the front with focus. It sends no Apple Event to another application, so macOS asks for no Automation
+		/// permission (unlike "tell application \"System Events\" to activate"). It is wrapped in its own try so a
+		/// failure to activate never stops the panel opening.
+		/// </summary>
+		internal static readonly string[] MacActivateLines = { "try", "activate", "end try" };
+
 		private static string[] RunOsaScript(List<string> scriptLines)
 		{
 			var startInfo = new ProcessStartInfo("/usr/bin/osascript");
-			foreach (string line in scriptLines)
+			foreach (string line in MacActivateLines.Concat(scriptLines))
 			{
 				startInfo.ArgumentList.Add("-e");
 				startInfo.ArgumentList.Add(line);

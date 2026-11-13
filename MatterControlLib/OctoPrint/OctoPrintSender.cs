@@ -122,11 +122,9 @@ namespace MatterHackers.MatterControl.OctoPrint
 				return;
 			}
 
-			// The "Ready to print?" text, built here from the settings on the UI thread; asked later, once OctoPrint
-			// says the printer can start (null: don't ask)
-			string confirmation = startPrint && OemSettings.Instance.ConfirmBedBeforeRemotePrint
-				? ConfirmationText(printer)
-				: null;
+			// The "Ready to print?" question is asked later, once OctoPrint says the printer can start. Its text is
+			// built when it is shown (on the UI thread), so it matches the bed at that moment
+			bool confirm = startPrint && OemSettings.Instance.ConfirmBedBeforeRemotePrint;
 
 			string title = startPrint ? "Sending to OctoPrint".Localize() : "Uploading to OctoPrint".Localize();
 
@@ -138,7 +136,7 @@ namespace MatterHackers.MatterControl.OctoPrint
 					var cancellationToken = cancellationTokenSource.Token;
 					try
 					{
-						await RunAsync(client, baseUri, exporter, item, baseName, startPrint, confirmation, reporter, cancellationToken);
+						await RunAsync(printer, client, baseUri, exporter, item, baseName, startPrint, confirm, reporter, cancellationToken);
 					}
 					catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 					{
@@ -157,7 +155,7 @@ namespace MatterHackers.MatterControl.OctoPrint
 				});
 		}
 
-		private static async Task RunAsync(OctoPrintClient client, Uri baseUri, GCodeExport exporter, ILibraryItem item, string baseName, bool startPrint, string confirmation, Action<double, string> reporter, CancellationToken cancellationToken)
+		private static async Task RunAsync(PrinterConfig printer, OctoPrintClient client, Uri baseUri, GCodeExport exporter, ILibraryItem item, string baseName, bool startPrint, bool confirm, Action<double, string> reporter, CancellationToken cancellationToken)
 		{
 			// 2. Pre-flight: is OctoPrint there, does it accept the key, and can it print?
 			reporter?.Invoke(0, "Checking OctoPrint".Localize());
@@ -197,10 +195,10 @@ namespace MatterHackers.MatterControl.OctoPrint
 			// EBMC Edition: the start G-code homes and probes the bed, so ask before the print is started. Asked here,
 			// after the checks above (no question when the print can't start) and before the slice and upload, so
 			// nobody waits through a slice only to answer it; OctoPrint still refuses to start a print it can't run.
-			if (startPrint && confirmation != null)
+			if (startPrint && confirm)
 			{
 				bool start = await AskAsync(
-					confirmation,
+					() => ConfirmationText(printer),
 					OctoPrintMessages.ConfirmPrintTitle(s => s.Localize()),
 					OctoPrintMessages.ConfirmPrintStart(s => s.Localize()),
 					"Cancel".Localize(),
@@ -210,6 +208,16 @@ namespace MatterHackers.MatterControl.OctoPrint
 				{
 					return;
 				}
+			}
+
+			cancellationToken.ThrowIfCancellationRequested();
+
+			// EBMC Edition: the boxes above are not modal, so the bed can change while they are open (a member could
+			// add a Set Temperature part, or load a G-code file). Check the refusals and the validation again, on the
+			// UI thread, right before the G-code is produced; if anything is now refused, send nothing.
+			if (!await RecheckBeforeExportAsync(printer))
+			{
+				return;
 			}
 
 			cancellationToken.ThrowIfCancellationRequested();
@@ -291,6 +299,53 @@ namespace MatterHackers.MatterControl.OctoPrint
 		}
 
 		/// <summary>
+		/// EBMC Edition: the same refusals and validation as at the start of <see cref="SendBed"/>, run again on the UI
+		/// thread. Shows the same message and returns false when the bed may not be sent any more. Nothing is removed
+		/// from the bed.
+		/// </summary>
+		private static Task<bool> RecheckBeforeExportAsync(PrinterConfig printer)
+		{
+			var allowed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+			UiThread.RunOnIdle(() =>
+			{
+				try
+				{
+					if (Maintainer.RefuseGCodeSource(printer.Bed.EditContext.IsGGCodeSource))
+					{
+						StyledMessageBox.ShowMessageBox(Maintainer.ForeignGCodeText, "OctoPrint".Localize());
+						allowed.TrySetResult(false);
+						return;
+					}
+
+					if (Maintainer.RefuseCommandParts(printer))
+					{
+						StyledMessageBox.ShowMessageBox(Maintainer.CommandPartsText, "OctoPrint".Localize());
+						allowed.TrySetResult(false);
+						return;
+					}
+
+					List<ValidationError> validationErrors = OctoPrintValidation.Validate(printer);
+					if (validationErrors.Any(e => e.ErrorLevel == ValidationErrorLevel.Error))
+					{
+						ApplicationController.Instance.ShowValidationErrors("Nothing was sent to OctoPrint".Localize(), validationErrors);
+						allowed.TrySetResult(false);
+						return;
+					}
+
+					allowed.TrySetResult(true);
+				}
+				catch (Exception e)
+				{
+					// fail closed: if the check itself fails, send nothing
+					allowed.TrySetException(e);
+				}
+			});
+
+			return allowed.Task;
+		}
+
+		/// <summary>
 		/// The "Ready to print?" text for this printer: the active material preset's name and the temperatures it will
 		/// heat to. Read on the UI thread.
 		/// </summary>
@@ -318,7 +373,15 @@ namespace MatterHackers.MatterControl.OctoPrint
 		/// <summary>
 		/// A yes/no question that also ends, as "no", when the task is stopped: the box is then closed.
 		/// </summary>
-		private static async Task<bool> AskAsync(string message, string caption, string yes, string no, CancellationToken cancellationToken)
+		private static Task<bool> AskAsync(string message, string caption, string yes, string no, CancellationToken cancellationToken)
+		{
+			return AskAsync(() => message, caption, yes, no, cancellationToken);
+		}
+
+		/// <summary>
+		/// As above, with the message built on the UI thread when the box is shown.
+		/// </summary>
+		private static async Task<bool> AskAsync(Func<string> buildMessage, string caption, string yes, string no, CancellationToken cancellationToken)
 		{
 			var answer = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 			DialogWindow window = null;
@@ -328,6 +391,18 @@ namespace MatterHackers.MatterControl.OctoPrint
 				if (cancellationToken.IsCancellationRequested)
 				{
 					answer.TrySetResult(false);
+					return;
+				}
+
+				string message;
+				try
+				{
+					message = buildMessage();
+				}
+				catch (Exception e)
+				{
+					// never leave the task waiting for a box that was not shown
+					answer.TrySetException(e);
 					return;
 				}
 

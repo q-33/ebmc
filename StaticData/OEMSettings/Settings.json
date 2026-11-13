@@ -20,5 +20,8 @@
   "ShapesPaletteStyle": "palette",
   "ConfirmBedBeforeRemotePrint": true,
   "QrCodeDefaultText": "https://eastbaymakersclub.com",
-  "LockedThemeSet": "EBMC-Dark"
+  "LockedThemeSet": "EBMC-Dark",
+  "OfferModelSizeFix": true,
+  "EnableSolidModeling": true,
+  "DefaultUiFont": "Nunito"
 }

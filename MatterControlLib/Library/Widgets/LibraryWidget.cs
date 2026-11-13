@@ -576,7 +576,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			{
 				Icon = StaticData.Instance.LoadIcon("cube.png", 16, 16).GrayToColor(theme.TextColor),
 				Title = "Add".Localize(),
-				ToolTipText = "Add an.stl, .obj, .3mf, .amf, .gcode or.zip file to the Library".Localize(),
+				ToolTipText = "Add an .stl, .obj, .3mf, .amf, .gcode or .zip file to the Library".Localize(),
 				Action = (selectedLibraryItems, listView) =>
 				{
 					UiThread.RunOnIdle(() =>

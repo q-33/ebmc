@@ -73,6 +73,18 @@
 		<Content Include="$(PkgOpenTK_redist_glfw)\runtimes\linux-x64\native\libglfw.so.3" Link="native\linux-x64\libglfw.so.3" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
 	</ItemGroup>
 
+	<!--
+		EBMC: the solid modelling kernel (Open CASCADE inside libebmc_occt.dylib), when native/occt/build.sh has staged
+		it. It is not in git (19 MB); a machine without it still builds, and the app then hides every solid feature.
+		Platform/NativeLibraries.cs finds it in native/<runtime>/ like GLFW. Only osx-arm64 is built so far.
+	-->
+	<PropertyGroup>
+		<EbmcOcctOsxArm64>$(MSBuildThisFileDirectory)..\native\occt\dist\osx-arm64\libebmc_occt.dylib</EbmcOcctOsxArm64>
+	</PropertyGroup>
+	<ItemGroup Condition="Exists('$(EbmcOcctOsxArm64)')">
+		<Content Include="$(EbmcOcctOsxArm64)" Link="native\osx-arm64\libebmc_occt.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Visible="false" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<!-- A published copy is self contained: it carries StaticData with it -->
 		<Content Include="..\StaticData\**\*" Link="StaticData\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Never" CopyToPublishDirectory="PreserveNewest" />

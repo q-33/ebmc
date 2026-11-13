@@ -15,9 +15,12 @@ o.update({
     'nozzle_diameter': '0.3',
     'layer_height': '0.15', 'first_layer_height': '0.2',
     'first_layer_extrusion_width': '120%',
-    'first_layer_speed': '20', 'travel_speed': '150',
-    'infill_speed': '35', 'perimeter_speed': '35',
-    'external_perimeter_speed': '35', 'top_solid_infill_speed': '35',
+    # Speeds doubled on 2026-11-12 after the first good NylonX prints (owner approved). First layer stays
+    # at 20 for adhesion; travel is 250, under the firmware's 300 mm/s X/Y limit.
+    'first_layer_speed': '20', 'travel_speed': '250',
+    'infill_speed': '70', 'perimeter_speed': '70',
+    'external_perimeter_speed': '70', 'top_solid_infill_speed': '70',
+    'support_material_speed': '80', 'raft_print_speed': '80', 'bridge_speed': '40',
     'retract_length': '2', 'retract_before_travel_avoid': '5',
     'retract_lift': '0.4', 'retract_restart_extra': '0',
     'skirts': '4', 'infill_overlap_perimeter': '20%',
@@ -103,6 +106,10 @@ W('StaticData/Themes/System/EBMC/EBMC-Paper.themeset', {
 # ---------- club dark theme (the default): the same palette on the site's ink colours ----------
 D_BG, D_TAB, D_RAISED, D_LINE = '#1F1C19', '#151311', '#2B2723', '#3D3731'
 D_TEXT, D_MUTED = '#EDE6DA', '#9A9186'
+D_FIELD = '#262320'
+# Disabled text: 3.6:1 on the workspace and 3.1:1 on menus (#5A534B was 2.2:1), still well below the
+# muted text (#9A9186, 5.5:1) so it reads as disabled. Used for disabled text, borders and palette glyphs.
+D_DISABLED = '#7A7268'
 SKY, MINT = '#6C9BFF', '#35B98B'   # the club blue and green, lightened to stay readable on a dark ground
 def dfield(bg, border, text=D_TEXT, light=None):
     d = {'BackgroundColor': bg, 'ForegroundColor': '#00000000', 'BorderColor': border, 'TextColor': text}
@@ -120,22 +127,48 @@ def recolor_dark(t):
         'BedColor': '#625B53', 'BedBackgroundColor': '#262320', 'PrinterBedTextColor': '#161412',
         'BorderColor': D_TEXT, 'BorderColor40': D_LINE, 'BorderColor20': D_LINE,
         'PopupBorderColor': D_TAB, 'RowBorder': D_LINE,
-        'DisabledColor': '#5A534B', 'SplashAccentColor': D_TEXT, 'SectionBackgroundColor': D_RAISED,
+        'DisabledColor': D_DISABLED, 'SplashAccentColor': D_TEXT, 'SectionBackgroundColor': D_RAISED,
+        # read by ThemeConfig (settable); used by buttons, menu buttons and the printer bar (stock 3)
+        'ButtonRadius': 6,
     })
+    # a focused field stays dark (stock: cream #FFF7EA), marked by the accent border
     t['EditFieldColors'] = {
-        'Focused': field(CREAM, ORANGE, light=MUTED),
+        'Focused': dfield(D_FIELD, ORANGE, light=D_MUTED),
         'Hovered': dfield(D_RAISED, ORANGE, text='#FFFFFF'),
-        'Inactive': dfield('#262320', D_TAB, light=D_MUTED)}
+        'Inactive': dfield(D_FIELD, D_TAB, light=D_MUTED)}
     t['DropList'] = {
         'Open': dfield(D_TAB, '#00000000'), 'Focused': dfield('#00000000', '#00000000', text='#00000000'),
-        'Hovered': dfield(D_RAISED, ORANGE, text='#FFFFFF'), 'Inactive': dfield('#262320', D_TAB)}
+        'Hovered': dfield(D_RAISED, ORANGE, text='#FFFFFF'), 'Inactive': dfield(D_FIELD, D_TAB)}
     if 'BedGridColors' in t: t['BedGridColors']['Line'] = '#3F3932'
+    # inherited from Modern-Dark but not a ThemeConfig property (ignored when the theme loads)
+    t.pop('HotendLimitsBackgroundColor', None)
     return t
 W('StaticData/Themes/System/EBMC/EBMC-Dark.json',
   recolor_dark(J('StaticData/Themes/System/Modern/Modern-Dark.json')))
+# Menu theme (popup menus and popovers such as the temperature and render-option panels). Every key the stock
+# file carries is set to a dark club value; the stock greys (TabBar #B1B1B1, Disabled #FBFBFB, Border #C8C8C8,
+# focused field #CCCCCC) made disabled items look enabled and separators (BorderColor20) invisible.
 menu = J('StaticData/Themes/System/Modern/Modern-Dark-Menu.json')
-menu.update({'TextColor': D_TEXT, 'BackgroundColor': D_RAISED, 'PopupBorderColor': D_TAB,
-             'RowBorder': D_LINE, 'SectionBackgroundColor': D_BG, 'BedBackgroundColor': D_BG})
+menu.update({'TextColor': D_TEXT, 'BackgroundColor': D_RAISED,
+             'PresetColors': {'MaterialPreset': ORANGE, 'QualityPreset': YELLOW, 'UserOverride': SKY + '96'},
+             'TabBarBackground': D_TAB, 'InactiveTabColor': D_BG,
+             'InteractionLayerOverlayColor': D_RAISED + 'F0', 'SplitterBackground': D_LINE,
+             # replaced at start-up by the accent colour (ThemeSet.SetAccentColor)
+             'AccentMimimalOverlay': ORANGE + '50', 'PrimaryAccentColor': ORANGE,
+             'LightTextColor': D_MUTED,
+             # BorderColor20 is the menu separator line
+             'BorderColor': D_LINE, 'BorderColor40': D_LINE, 'BorderColor20': D_LINE,
+             'PopupBorderColor': D_TAB, 'RowBorder': D_LINE,
+             'DisabledColor': D_DISABLED, 'SplashAccentColor': D_TEXT,
+             'SectionBackgroundColor': D_BG, 'BedBackgroundColor': D_BG,
+             'ButtonRadius': 6})
+menu['EditFieldColors'] = {
+    'Focused': dfield(D_FIELD, ORANGE, light=D_MUTED),
+    'Hovered': dfield(D_FIELD, ORANGE, light=D_MUTED),
+    'Inactive': dfield(D_FIELD, D_LINE, light=D_MUTED)}
+menu['DropList'] = {
+    'Open': dfield(D_TAB, '#00000000'), 'Focused': dfield(D_FIELD, ORANGE),
+    'Hovered': dfield(D_FIELD, ORANGE), 'Inactive': dfield(D_FIELD, D_LINE)}
 W('StaticData/Themes/System/EBMC/EBMC-Dark-Menu.json', menu)
 W('StaticData/Themes/System/EBMC/EBMC-Dark.themeset', {
     'Name': 'East Bay Makers Club Dark', 'DefaultColorIndex': 0,
@@ -168,6 +201,13 @@ s.update({'ShowShopButton': False, 'UnregisteredProductName': 'EBMC',
           'ShowShapesRailOnPrinterTabs': True,
           # Printer tabs keep only the toolbar tools printing needs (design tabs keep every tool)
           'TrimPrinterTabToolbar': True,
+          # Offer to scale a model file that is tiny (made in inches?) or bigger than the bed when it is added
+          'OfferModelSizeFix': True,
+          # Exact solids (Open CASCADE kernel) on design tabs, STEP open/export; needs the kernel library in the app
+          'EnableSolidModeling': True,
+          # Interface typeface: Nunito (StaticData/Fonts/Nunito_*.ttf, SIL OFL) instead of Liberation Sans;
+          # empty keeps the stock font. Text parts (3D text objects) keep their own font setting
+          'DefaultUiFont': 'Nunito',
           # No MatterHackers affiliate/referral code added to links
           'AffiliateCode': ''})
 # Drop upstream's branded sample parts from the preloaded list (no C# code reads this key;

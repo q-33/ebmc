@@ -131,7 +131,11 @@ namespace MatterHackers.MatterControl
 
 		public event EventHandler AnyPrintComplete;
 
-		public static string[] ShellFileExtensions => new string[] { ".stl", ".amf", ".3mf", ".obj", ".mcx", ".png", ".jpg", ".jpeg", ".ttf", ".otf" };
+		public static string[] ShellFileExtensions => new string[] { ".stl", ".amf", ".3mf", ".obj", ".mcx", ".png", ".jpg", ".jpeg", ".ttf", ".otf" }
+			.Concat(AddedShellFileExtensions).ToArray();
+
+		/// <summary>EBMC Edition: file types added at start-up when their feature is on (STEP when solid modelling is).</summary>
+		private static readonly List<string> AddedShellFileExtensions = new List<string>();
 
 		public bool IsMatterControlPro()
 		{
@@ -753,7 +757,7 @@ namespace MatterHackers.MatterControl
 				new NamedActionGroup()
 				{
 					ID = "Edit",
-					Title = "Edit",
+					Title = "Edit".Localize(),
 					Group = new NamedAction[]
 					{
 						new NamedAction()
@@ -1261,6 +1265,13 @@ namespace MatterHackers.MatterControl
 			this.Library.ContentProviders.Add("gcode", new GCodeContentProvider());
 			this.Library.ContentProviders.Add(new[] { "png", "gif", "jpg", "jpeg" }, new ImageContentProvider());
 			this.Library.ContentProviders.Add(new[] { "scad" }, new OpenScadContentProvider());
+
+			// EBMC Edition: STEP files open as exact solid parts when solid modelling is on and the kernel loaded
+			if (DesignTools.Solid.SolidModeling.IsEnabled)
+			{
+				this.Library.ContentProviders.Add(StepContentProvider.Extensions, new StepContentProvider());
+				AddedShellFileExtensions.AddRange(StepContentProvider.Extensions.Select(e => "." + e));
+			}
 
 			this.InitializeLibrary();
 		}
@@ -2294,6 +2305,85 @@ namespace MatterHackers.MatterControl
 			});
 		}
 
+		/// <summary>
+		/// EBMC Edition: use the named family (OEM setting DefaultUiFont, e.g. "Nunito") for interface text: Regular for
+		/// body text, Bold where a widget asks for bold. Each face falls back to the stock one when it does not load.
+		/// Text parts are not affected; they load their font by name (TextObject3D.Font).
+		/// </summary>
+		private static void SetInterfaceFont(string family)
+		{
+			if (string.IsNullOrWhiteSpace(family))
+			{
+				return;
+			}
+
+			// Read the TrueType files directly: this runs before the ApplicationController is created
+			TypeFace Load(string face)
+			{
+				try
+				{
+					var path = Path.Combine("Fonts", $"{family}_{face}.ttf");
+					if (!StaticData.Instance.FileExists(path))
+					{
+						return null;
+					}
+
+					// the stream stays open, as in GetTypeFace
+					var stream = StaticData.Instance.OpenStream(path);
+					var typeFace = new TypeFace();
+					if (stream == null || !typeFace.LoadTTF(stream))
+					{
+						return null;
+					}
+
+					FitDescentToGlyphs(typeFace);
+					return typeFace;
+				}
+				catch
+				{
+					return null;
+				}
+			}
+
+			var regular = Load("Regular");
+			if (regular == null)
+			{
+				return;
+			}
+
+			var bold = Load("Bold");
+			AggContext.DefaultFont = regular;
+			AggContext.DefaultFontBold = bold ?? LiberationSansBoldFont.Instance;
+			AggContext.DefaultFontItalic = Load("Italic") ?? regular;
+			AggContext.DefaultFontBoldItalic = Load("Bold_Italic") ?? bold ?? LiberationSansBoldFont.Instance;
+		}
+
+		/// <summary>
+		/// EBMC Edition, workaround: agg-sharp sizes a line of text as one em, from the font's descent up, and clips each
+		/// text widget to that box. Nunito's descent (-0.353 em) is much deeper than its letters go (-0.19 em), so the box
+		/// top (0.647 em) would cut the top of capitals and ascenders (0.71 em) by about a pixel. For the interface faces
+		/// the descent is set to -0.25 em (box -0.25 to 0.75 em), which holds both, as Liberation Sans' box does. Only
+		/// these interface copies are changed; text parts load their own copy through GetTypeFace. The real fix is for
+		/// agg-sharp's TextWidget to size text from the glyph extents (or the font's line metrics); remove this then.
+		/// </summary>
+		private static void FitDescentToGlyphs(TypeFace typeFace)
+		{
+			try
+			{
+				var target = -(int)Math.Round(typeFace.UnitsPerEm * 0.25);
+				if (typeFace.Descent < target
+					&& typeof(TypeFace).GetField("descent", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic) is System.Reflection.FieldInfo field
+					&& field.FieldType == typeof(int))
+				{
+					field.SetValue(typeFace, target);
+				}
+			}
+			catch
+			{
+				// keep the font's own descent
+			}
+		}
+
 		public static void LoadTranslationMap()
 		{
 			// EBMC Edition: the app is English-only. Any language stored by an earlier version
@@ -2314,6 +2404,8 @@ namespace MatterHackers.MatterControl
 				AggContext.DefaultFontBold = LiberationSansBoldFont.Instance;
 				AggContext.DefaultFontItalic = LiberationSansFont.Instance;
 				AggContext.DefaultFontBoldItalic = LiberationSansBoldFont.Instance;
+
+				SetInterfaceFont(OemSettings.Instance?.DefaultUiFont);
 			}
 
 			string machineTranslation = Path.Combine("Translations", twoLetterIsoLanguageName, "Translation.txt");

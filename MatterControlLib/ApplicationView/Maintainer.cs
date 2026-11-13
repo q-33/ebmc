@@ -86,7 +86,16 @@ namespace MatterHackers.MatterControl
 		/// Whether the printer's bed must be refused for sending or printing now because of such parts (see
 		/// <see cref="SettingsLock.RefuseCommandParts"/>).
 		/// </summary>
-		public static bool RefuseCommandParts(PrinterConfig printer) => SettingsLock.RefuseCommandParts(HasCommandParts(printer), LockEnabled, IsUnlocked);
+		public static bool RefuseCommandParts(PrinterConfig printer)
+		{
+			// only walk the scene when the lock could refuse (same result as the rule, without the walk when unlocked)
+			if (!(LockEnabled && !IsUnlocked))
+			{
+				return false;
+			}
+
+			return SettingsLock.RefuseCommandParts(HasCommandParts(printer), LockEnabled, IsUnlocked);
+		}
 
 		/// <summary>
 		/// Why a bed with temperature or command parts is refused while locked.

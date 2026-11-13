@@ -30,5 +30,15 @@
   {
     "Name": "Lucide",
     "Url": "https://lucide.dev"
+  },
+  {
+    "Name": "Nunito",
+    "Title": "Nunito font",
+    "Url": "https://github.com/googlefonts/NunitoFont"
+  },
+  {
+    "Name": "OpenCASCADE",
+    "Title": "Open CASCADE Technology",
+    "Url": "https://dev.opencascade.org"
   }
 ]

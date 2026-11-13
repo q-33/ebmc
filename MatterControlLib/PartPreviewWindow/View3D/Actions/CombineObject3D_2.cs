@@ -130,8 +130,14 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
                             SourceContainer.Visible = false;
                         }
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        // EBMC: show the original parts and say what happened instead of failing silently
+                        SubtractObject3D_2.ShowSourceAfterFailure(this);
+                        if (!cancellationTokenSource.IsCancellationRequested)
+                        {
+                            DesignNotices.OperationFailed("Combine".Localize(), e);
+                        }
                     }
 
                     if (!NameOverriden)

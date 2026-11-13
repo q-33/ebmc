@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- Standalone Stage 0 spike: proves libebmc_occt.dylib can be called from .NET. Not part of the app. -->
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+		<RootNamespace>EbmcOcctSpike</RootNamespace>
+		<!-- Where build.sh puts the native library -->
+		<EbmcOcctNativeDir>$(MSBuildThisFileDirectory)../_build/shim/</EbmcOcctNativeDir>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The app's bindings, compiled in here so the spike tests the same file the app ships (no duplicate copy) -->
+		<Compile Include="$(MSBuildThisFileDirectory)../../../MatterControlLib/DesignTools/Solid/EbmcOcct.cs" Link="EbmcOcct.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Copy the dylib next to the test binary; EbmcOcct.cs resolves it from AppContext.BaseDirectory. -->
+		<None Include="$(EbmcOcctNativeDir)libebmc_occt.dylib" Condition="Exists('$(EbmcOcctNativeDir)libebmc_occt.dylib')">
+			<Link>libebmc_occt.dylib</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</None>
+	</ItemGroup>
+
+</Project>

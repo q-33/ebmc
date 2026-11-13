@@ -127,5 +127,8 @@ MatterControl.userprefs
 /dist/
 
 # EBMC: local-only files (printer SD-card config, Finder metadata)
-printer-config/
+/printer-config/
+/tasks/design/
 .DS_Store
+native/occt/_build/
+native/occt/dist/

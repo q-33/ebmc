@@ -1,0 +1,5 @@
+<!-- EBMC custom icon "build-volume": show the print area: a dashed build volume standing on a solid plate (drawn for EBMC; the UX sheet's version used stroke-dasharray, which the icon build does not accept, and read as a solid cube at 16 px). Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M2 20h15l5-5H7z" />
+  <path d="M2 16.5V14M2 10.5V8l3-3h2.5M11 5h3M17.5 5H22v2.5M22 11v1" />
+</svg>

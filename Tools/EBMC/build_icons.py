@@ -22,9 +22,9 @@ Inputs (repo-relative):
     Tools/EBMC/icons/map.json      the single source of truth: target PNG (path under
                                    StaticData/Icons) -> source (lucide:<name> or custom:<name>),
                                    output size in px, notes
-    Tools/EBMC/icons/lucide/*.svg  46 Lucide icons, vendored unmodified (version and URL in
+    Tools/EBMC/icons/lucide/*.svg  74 Lucide icons, vendored unmodified (version and URL in
                                    VERSION, licence in LICENSE)
-    Tools/EBMC/icons/custom/*.svg  22 glyphs drawn for EBMC on the same 24-unit grid and 2-unit stroke
+    Tools/EBMC/icons/custom/*.svg  32 glyphs drawn for EBMC on the same 24-unit grid and 2-unit stroke
 
 Safety: every map.json target must be a relative path ending in .png that resolves (after
 symlinks) to a file inside StaticData/Icons. Outside the folders in NEW_TARGET_DIRS that file
@@ -35,6 +35,15 @@ memory first; files are written only if every source loaded and every check pass
 Outputs: every target in map.json, overwritten in place, as an RGBA PNG of the mapped size whose
 pixels are all pure black (0,0,0) with the shape carried by alpha. The app tints such icons with
 GrayToColor(theme.TextColor), which recolours every unsaturated pixel and keeps its alpha.
+An entry may instead name "color": "#RRGGBB" (a saturated colour). Its pixels are then that colour,
+again with the shape in alpha. GrayToColor leaves saturated pixels alone, so the colour survives
+callers that tint (and shows as is where a caller does not tint). Used for the status icons
+(error, warning, info) whose colour carries meaning.
+An entry may also name "glyph": N (px, a multiple of 4 below size, with size - N a multiple of 8):
+the 24-unit drawing is then rendered at N px and centred on the transparent size x size canvas, so
+the edge offset stays a whole number of pixels at every halving down to size/4. Used where a caller
+loads an icon into a larger box than the glyph should fill (the overflow button and the Z offset
+arrows load 32 px icons; the old art left the same margin). The SVG geometry is not changed.
 
 Rendering:
   * SVG is treated as untrusted data. Each file is parsed with the stdlib XML parser, DOCTYPE and
@@ -52,7 +61,11 @@ Rendering:
   * Edge clearance: the outermost size//24 pixels on every side (2 px at 56 and 64 px, a little
     under one grid unit) must stay empty (alpha <= 8), or the build fails. Lucide's own padding
     rule is one full grid unit; this check catches anything that strays into the edge pixels.
-  * Sizes: 64 px for icons the code loads at 16x16, 56 px for 14x14 (4x the logical size).
+  * Sizes: 64 px for icons the code loads at 16x16, 56 px for 14x14 (4x the logical size); likewise
+    48 px for 12x12, 96 px for 24x24 and 128 px for 32x32. When callers load one file at several
+    sizes, the master suits the most common one (a 48 px chevron loaded at 14 or 10 px is box-halved
+    to 24 px and then resampled bilinearly). Library/folder.png is loaded at its own size (256 px)
+    as a library tile, so it stays 256.
     The shapes palette (Shapes/) uses 80 px masters for its 20 px glyphs. It loads them with its own
     loader (PaletteIcons in MatterControlLib/PartPreviewWindow/ShapesPalette/PaletteButton.cs), which
     box-halves the master straight to the device size, so 1x (80 -> 40 -> 20) and 2x (80 -> 40) are
@@ -190,8 +203,17 @@ def clean_svg(shapes, px):
     return "".join(out)
 
 
-def render(shapes, size):
-    """Rasterise to a black-on-transparent RGBA image of size x size."""
+def render(shapes, size, color=None, glyph=None):
+    """Rasterise to a black-on-transparent (or color-on-transparent) RGBA image of size x size.
+
+    With glyph, the drawing is rendered at glyph x glyph px and centred on the size x size canvas."""
+    if glyph is not None and glyph != size:
+        inner = render(shapes, glyph, color)
+        canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0) if color is None else
+                           tuple(int(color[i:i + 2], 16) for i in (1, 3, 5)) + (0,))
+        offset = (size - glyph) // 2
+        canvas.paste(inner, (offset, offset))
+        return canvas
     big = size * SUPERSAMPLE
     png = bytes(resvg_py.svg_to_bytes(svg_string=clean_svg(shapes, big)))
     image = Image.open(io.BytesIO(png))
@@ -199,8 +221,11 @@ def render(shapes, size):
     if image.size != (big, big):
         fail(f"rasteriser returned {image.size}, expected {big}x{big}")
     alpha = image.convert("RGBA").getchannel("A").reduce(SUPERSAMPLE)  # box filter
-    black = Image.new("L", (size, size), 0)
-    return Image.merge("RGBA", (black, black, black, alpha))
+    if color is None:
+        black = Image.new("L", (size, size), 0)
+        return Image.merge("RGBA", (black, black, black, alpha))
+    r, g, b = (Image.new("L", (size, size), int(color[i:i + 2], 16)) for i in (1, 3, 5))
+    return Image.merge("RGBA", (r, g, b, alpha))
 
 
 def png_bytes(image):
@@ -398,7 +423,18 @@ def main():
         size = entry.get("size")
         if not isinstance(size, int) or size <= 0 or size % 4 or size > 1024:
             fail(f"{target}: size {size!r} must be a positive multiple of 4, at most 1024")
-        image = render(load_shapes(source_path(repo, entry.get("source"))), size)
+        color = entry.get("color")
+        if color is not None:
+            if not isinstance(color, str) or not re.match(r"^#[0-9A-Fa-f]{6}$", color):
+                fail(f"{target}: color {color!r} must be #RRGGBB")
+            r, g, b = (int(color[i:i + 2], 16) for i in (1, 3, 5))
+            if max(r, g, b) - min(r, g, b) < 32:
+                fail(f"{target}: color {color} is too grey; GrayToColor would overwrite it")
+        glyph = entry.get("glyph")
+        if glyph is not None and (not isinstance(glyph, int) or glyph <= 0 or glyph % 4 or glyph >= size
+                                  or (size - glyph) % 8):
+            fail(f"{target}: glyph {glyph!r} must be a multiple of 4 below size, with size - glyph a multiple of 8")
+        image = render(load_shapes(source_path(repo, entry.get("source"))), size, color, glyph)
         check_edges(target, image)
         new_images[target] = image
         data = png_bytes(image)

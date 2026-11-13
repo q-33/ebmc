@@ -168,6 +168,24 @@ namespace MatterHackers.MatterControl.Library
                     { DateCreated = new DateTime(index++) },
             };
 
+            // EBMC Edition: exact solids made by the Open CASCADE kernel, only when solid modelling is switched on in the
+            // OEM settings and the kernel library loaded (stock builds and machines without the library never see them)
+            if (DesignTools.Solid.SolidModeling.IsEnabled)
+            {
+                libraryItems.Add(new GeneratorItem(
+                    "Solid Box".Localize(),
+                    async () => await DesignTools.Solid.SolidBoxObject3D.Create())
+                    { DateCreated = new DateTime(index++) });
+                libraryItems.Add(new GeneratorItem(
+                    "Solid Cylinder".Localize(),
+                    async () => await DesignTools.Solid.SolidCylinderObject3D.Create())
+                    { DateCreated = new DateTime(index++) });
+                libraryItems.Add(new GeneratorItem(
+                    "Plate with Hole".Localize(),
+                    async () => await DesignTools.Solid.SolidPlateObject3D.Create())
+                    { DateCreated = new DateTime(index++) });
+            }
+
 #if !DEBUG
             if (!SettingsManagement.OemSettings.Instance.UseShapesPalette)
             {

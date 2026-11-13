@@ -362,7 +362,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				Margin = theme.ButtonSpacing,
 			};
 
-			partSelectButton.MouseEnterBounds += (s, e) => partSelectButton.SetActiveUiHint("Ctrl + A = Select Alll, 'Space' = Clear Selection, 'ESC' = Cancel Drag".Localize());
+			partSelectButton.MouseEnterBounds += (s, e) => partSelectButton.SetActiveUiHint("Ctrl + A = Select All, Space = Clear Selection, Esc = Cancel Drag".Localize());
 			AddRoundButton(partSelectButton, RotatedMargin(partSelectButton, MathHelper.Tau * .15));
 			partSelectButton.Click += (s, e) => viewControls3D.ActiveButton = ViewControls3DButtons.PartSelect;
 			buttonGroupA.Add(partSelectButton);
@@ -466,7 +466,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				ToolTipText = "Reset View".Localize(),
 				Margin = theme.ButtonSpacing
 			};
-			homeButton.MouseEnterBounds += (s1, e1) => homeButton.SetActiveUiHint("W Key");
+			homeButton.MouseEnterBounds += (s1, e1) => homeButton.SetActiveUiHint("Reset View: W".Localize());
 			AddRoundButton(homeButton, RotatedMargin(homeButton, MathHelper.Tau * .3)).Click += (s, e) => viewControls3D.NotifyResetView();
 
 			var zoomToSelectionButton = new ThemedIconButton(StaticData.Instance.LoadIcon("select.png", 16, 16).GrayToColor(theme.TextColor), theme)
@@ -475,7 +475,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				ToolTipText = "Zoom to Selection".Localize(),
 				Margin = theme.ButtonSpacing
 			};
-			zoomToSelectionButton.MouseEnterBounds += (s1, e1) => zoomToSelectionButton.SetActiveUiHint("Z Key");
+			zoomToSelectionButton.MouseEnterBounds += (s1, e1) => zoomToSelectionButton.SetActiveUiHint("Zoom to Selection: Z".Localize());
 			void SetZoomEnabled(object s, EventArgs e)
 			{
 				zoomToSelectionButton.Enabled = this.Scene.SelectedItem != null
@@ -547,7 +547,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			cubeCenterFromRightTop.X -= bottomButtonOffset;
 
 			// put in the bed and build volume buttons
-			var bedButton = new ThemedRadioIconButton(StaticData.Instance.LoadIcon("bed.png", 16, 16).GrayToColor(theme.TextColor), theme)
+			var bedButton = new ThemedRadioIconButton(StaticData.Instance.LoadIcon(Path.Combine("Shapes", "view-bed.png"), 16, 16).GrayToColor(theme.TextColor), theme)
 			{
 				Name = "Bed Button",
 				ToolTipText = "Show Print Bed".Localize(),

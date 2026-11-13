@@ -1,0 +1,7 @@
+<!-- EBMC custom icon "turntable": turntable view mode: a round platter on a vertical axis with an arrow circling the axis (after the UX glyph sheet, arrow redrawn). Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <ellipse cx="12" cy="18" rx="9" ry="3" />
+  <path d="M12 4v11" />
+  <path d="M17.5 8.6A7 2.6 0 1 1 15 6.4" />
+  <path d="m13 4.5 2 2-2.3 1.6" />
+</svg>

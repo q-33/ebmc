@@ -106,8 +106,21 @@ namespace MatterHackers.MatterControl.DesignTools
 		[DisplayName("Text")]
 		public StringOrExpression MultiLineText { get; set; } = "MultiLine\nText";
 
+        // EBMC: what the size is given in. Files saved before this existed load as Points, so they keep their size.
+        [DisplayName("Size Unit")]
+        [EnumDisplay(Mode = EnumDisplayAttribute.PresentationMode.Buttons)]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public TextSizeUnits SizeUnit { get; set; } = TextSizeUnits.Points;
+
         [Slider(1, 48, snapDistance: 1)]
 		public DoubleOrExpression PointSize { get; set; } = 24;
+
+        // EBMC: used when Size Unit is Millimetres
+        [DisplayName("Letter Height")]
+        [Description("The height of a capital letter, in millimetres")]
+        [MaxDecimalPlaces(2)]
+        [Slider(1, 100, VectorMath.Easing.EaseType.Quadratic, useSnappingGrid: true)]
+        public DoubleOrExpression CapHeight { get; set; } = 8;
 
 		[MaxDecimalPlaces(2)]
 		[Slider(1, 400, VectorMath.Easing.EaseType.Quadratic, useSnappingGrid: true)]
@@ -213,6 +226,15 @@ namespace MatterHackers.MatterControl.DesignTools
 						: NameToWrite.Value(this).Replace("\\n", "\n").Replace("\r", "\n");
 
                     var pointSize = PointSize.Value(this);
+                    if (SizeUnit == TextSizeUnits.Millimetres)
+                    {
+                        // EBMC: the point size whose capital letters are CapHeight mm tall in this font
+                        var typeFace = ApplicationController.Instance.GetTypeFace(Font);
+                        var capHeightPerEm = typeFace == null
+                            ? TextSize.FallbackCapHeightPerEm
+                            : TextSize.CapHeightPerEm(typeFace.Cap_height, typeFace.UnitsPerEm);
+                        pointSize = TextSize.PointSizeForCapHeight(CapHeight.Value(this), capHeightPerEm);
+                    }
 
 					var mmPerInch = 25.4;
                     var mmPerPoint = mmPerInch / StyledTypeFace.PointsPerInch;
@@ -377,6 +399,8 @@ namespace MatterHackers.MatterControl.DesignTools
 			change.SetRowVisible(nameof(Alignment), () => MultiLine);
 			change.SetRowVisible(nameof(NameToWrite), () => !MultiLine);
 			change.SetRowVisible(nameof(Height), () => Output == OutputDimensions.Output3D);
+			change.SetRowVisible(nameof(PointSize), () => SizeUnit == TextSizeUnits.Points);
+			change.SetRowVisible(nameof(CapHeight), () => SizeUnit == TextSizeUnits.Millimetres);
 			change.SetRowVisible(nameof(WrappingWidth), () => WrapLines);
             change.SetRowVisible(nameof(WrappingIndent), () => MultiLine && WrapLines);
             if (change.PropertyChanged == nameof(Output))

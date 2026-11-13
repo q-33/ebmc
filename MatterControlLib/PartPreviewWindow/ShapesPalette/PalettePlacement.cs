@@ -62,6 +62,20 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		public const double StepMm = 5;
 
 		/// <summary>
+		/// True when a part of <paramref name="width"/> x <paramref name="depth"/> mm could lie on the bed at all (no bed:
+		/// always). When it cannot, an unplaced part is "bigger than the bed", not "the bed is full".
+		/// </summary>
+		public static bool FitsOnBed(double width, double depth, BedRect? bed)
+		{
+			if (bed is BedRect b)
+			{
+				return width <= b.MaxX - b.MinX && depth <= b.MaxY - b.MinY;
+			}
+
+			return true;
+		}
+
+		/// <summary>
 		/// The centre for a part of <paramref name="width"/> x <paramref name="depth"/> mm.
 		/// </summary>
 		/// <param name="centerX">Preferred centre X (the bed centre).</param>

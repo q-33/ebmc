@@ -291,6 +291,7 @@ namespace MatterHackers.MatterControl.OctoPrint
 		{
 			localize = localize ?? (s => s);
 			return localize("Is the bed empty and clean?")
+				+ "\n" + localize("Is the right material loaded?")
 				+ "\n\n" + localize("The printer will heat, home, and probe the bed before it prints.");
 		}
 

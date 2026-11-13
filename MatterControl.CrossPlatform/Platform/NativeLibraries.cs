@@ -7,7 +7,8 @@ using System.Runtime.InteropServices;
 namespace MatterHackers.MatterControl.CrossPlatform
 {
 	/// <summary>
-	/// Finds the native libraries the application needs: GLFW (window and input) and SQLite (local database).
+	/// Finds the native libraries the application needs: GLFW (window and input) and SQLite (local database), and the
+	/// optional solid modelling kernel (libebmc_occt).
 	/// </summary>
 	/// <remarks>
 	/// The bindings name these libraries differently depending on the machine they were compiled on
@@ -32,6 +33,11 @@ namespace MatterHackers.MatterControl.CrossPlatform
 		public static string SqlitePath { get; private set; }
 
 		/// <summary>
+		/// Gets the path the solid modelling kernel (libebmc_occt) was loaded from, for diagnostics; null if it was not
+		/// </summary>
+		public static string SolidKernelPath { get; private set; }
+
+		/// <summary>
 		/// Must be called before anything touches GLFW or the database
 		/// </summary>
 		public static void Register()
@@ -48,6 +54,9 @@ namespace MatterHackers.MatterControl.CrossPlatform
 
 			// The SQLite bindings are compiled into this assembly
 			NativeLibrary.SetDllImportResolver(typeof(NativeLibraries).Assembly, Resolve);
+
+			// EBMC: the solid modelling kernel's bindings are in MatterControlLib (DesignTools/Solid/EbmcOcct.cs)
+			NativeLibrary.SetDllImportResolver(typeof(MatterHackers.MatterControl.DesignTools.Solid.SolidKernel).Assembly, Resolve);
 		}
 
 		private static IntPtr Resolve(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
@@ -82,6 +91,13 @@ namespace MatterHackers.MatterControl.CrossPlatform
 							Program.AppName + " could not load the SQLite library (libsqlite3). "
 							+ "It is part of macOS; on Linux install it with: sudo apt install libsqlite3-0");
 					}
+				}
+
+				else if (libraryName == "ebmc_occt")
+				{
+					// Optional: when it is missing the app runs without solid modelling (SolidKernel reports why)
+					handle = LoadFirst(SolidKernelCandidates(), out string path);
+					SolidKernelPath = path;
 				}
 
 				if (handle != IntPtr.Zero)
@@ -179,6 +195,43 @@ namespace MatterHackers.MatterControl.CrossPlatform
 			{
 				yield return "libglfw.so";
 			}
+		}
+
+		/// <summary>True in DEBUG builds, or when the app is not running from inside a macOS .app bundle (dotnet run).</summary>
+		private static bool AllowDeveloperOverrides
+		{
+			get
+			{
+#if DEBUG
+				return true;
+#else
+				return !System.AppContext.BaseDirectory.Replace('\\', '/').Contains(".app/Contents/", StringComparison.Ordinal);
+#endif
+			}
+		}
+
+		private static IEnumerable<string> SolidKernelCandidates()
+		{
+			// A developer override, never honoured by a packaged app: whoever can set the user's environment could
+			// otherwise load their own native code into it
+			string overridePath = Environment.GetEnvironmentVariable("EBMC_OCCT_LIBRARY");
+			if (!string.IsNullOrEmpty(overridePath)
+				&& AllowDeveloperOverrides)
+			{
+				yield return overridePath;
+			}
+
+			string fileName = OperatingSystem.IsMacOS() ? "libebmc_occt.dylib"
+				: OperatingSystem.IsWindows() ? "ebmc_occt.dll"
+				: "libebmc_occt.so";
+
+			string appDirectory = System.AppContext.BaseDirectory;
+
+			// The copy this project ships for exactly this operating system and processor (see the project file)
+			yield return Path.Combine(appDirectory, "native", RuntimeFolder, fileName);
+
+			// Next to the application (a user who rebuilt the library with native/occt/build.sh may put it here)
+			yield return Path.Combine(appDirectory, fileName);
 		}
 
 		private static IEnumerable<string> SqliteCandidates()

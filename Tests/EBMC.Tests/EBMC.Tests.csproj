@@ -26,6 +26,23 @@
 		<Compile Include="..\..\MatterControlLib\PartPreviewWindow\ShapesPalette\PalettePlacement.cs" Link="ShapesPalette\%(Filename)%(Extension)" />
 		<!-- The locked-theme rule (OemSettings.LockedThemeSet) -->
 		<Compile Include="..\..\MatterControlLib\ApplicationView\Themes\ThemeLock.cs" Link="Themes\%(Filename)%(Extension)" />
+		<!-- Design-side rules: duplicate placement, text size in mm, subtract's hole default, model size prompt and the wording -->
+		<Compile Include="..\..\MatterControlLib\DesignTools\EBMC\*.cs" Link="DesignTools\%(Filename)%(Extension)" />
+		<!-- Exact solids: the rules (edge picking, limits, messages, mesh clean-up), the kernel bindings and the builders.
+		     None of these use agg-sharp or the GUI; the Object3D classes in the same folder are not linked -->
+		<Compile Include="..\..\MatterControlLib\DesignTools\Solid\SolidRules.cs" Link="Solid\%(Filename)%(Extension)" />
+		<Compile Include="..\..\MatterControlLib\DesignTools\Solid\EbmcOcct.cs" Link="Solid\%(Filename)%(Extension)" />
+		<Compile Include="..\..\MatterControlLib\DesignTools\Solid\SolidKernel.cs" Link="Solid\%(Filename)%(Extension)" />
+		<Compile Include="..\..\MatterControlLib\DesignTools\Solid\SolidBuilders.cs" Link="Solid\%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<!-- The solid kernel, when native/occt/build.sh has staged it for this machine; the kernel-backed tests are
+	     skipped (Assert.Ignore) when it is absent -->
+	<PropertyGroup>
+		<EbmcOcctStaged>$(MSBuildThisFileDirectory)..\..\native\occt\dist\osx-arm64\libebmc_occt.dylib</EbmcOcctStaged>
+	</PropertyGroup>
+	<ItemGroup Condition="Exists('$(EbmcOcctStaged)')">
+		<None Include="$(EbmcOcctStaged)" Link="libebmc_occt.dylib" CopyToOutputDirectory="PreserveNewest" Visible="false" />
 	</ItemGroup>
 
 	<ItemGroup>

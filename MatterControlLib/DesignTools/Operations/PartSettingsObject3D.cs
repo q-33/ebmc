@@ -209,7 +209,7 @@ namespace MatterHackers.MatterControl.DesignTools.Operations
                             }));
                         },
                         Name = "Add User Overrides".Localize(),
-                        HelpText = "Copy in all current user overides".Localize()
+                        HelpText = "Copy in all current user overrides".Localize()
                     };
                 }
 

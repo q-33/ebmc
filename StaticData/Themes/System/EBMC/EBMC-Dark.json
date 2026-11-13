@@ -22,11 +22,11 @@
   "AccentMimimalOverlay": "#FF3D1250",
   "EditFieldColors": {
     "Focused": {
-      "BackgroundColor": "#FFF7EA",
+      "BackgroundColor": "#262320",
       "ForegroundColor": "#00000000",
       "BorderColor": "#FF3D12",
-      "TextColor": "#050505",
-      "LightTextColor": "#71685E"
+      "TextColor": "#EDE6DA",
+      "LightTextColor": "#9A9186"
     },
     "Hovered": {
       "BackgroundColor": "#2B2723",
@@ -45,7 +45,6 @@
   "BedColor": "#625B53",
   "UnderBedColor": "#EEE5",
   "PrinterBedTextColor": "#161412",
-  "HotendLimitsBackgroundColor": "#00000050",
   "BedGridColors": {
     "Red": "#E10000",
     "Green": "#37BA00",
@@ -84,9 +83,10 @@
       "TextColor": "#EDE6DA"
     }
   },
-  "DisabledColor": "#5A534B",
+  "DisabledColor": "#7A7268",
   "SplashAccentColor": "#EDE6DA",
   "BedBackgroundColor": "#262320",
   "PrimaryAccentColor": "#FF3D12",
-  "SectionBackgroundColor": "#2B2723"
+  "SectionBackgroundColor": "#2B2723",
+  "ButtonRadius": 6
 }

@@ -503,6 +503,16 @@ namespace MatterHackers.Plugins.EditorTools
 				return scaleAmount;
 			}
 
+			// EBMC: Shift can be held while typing a size with no drag before it, so there is no mouse-down size yet;
+			// scale from the current size in that case
+			if (mouseDownSelectedBounds == null
+				|| mouseDownSelectedBounds.XSize <= 0
+				|| mouseDownSelectedBounds.YSize <= 0
+				|| mouseDownSelectedBounds.ZSize <= 0)
+			{
+				mouseDownSelectedBounds = originalSelectedBounds;
+			}
+
 			if (modifierKeys == Keys.Shift)
 			{
 				newSize.X = newSize.X <= minimumSize ? minimumSize : newSize.X;

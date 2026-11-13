@@ -74,6 +74,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		/// <summary>True when the item only exists in some builds (e.g. DEBUG-only); the palette leaves it out when missing.</summary>
 		public bool Optional { get; private set; }
 
+		/// <summary>One plain line for the tooltip saying what makes this member different; null for none.</summary>
+		public string Hint { get; private set; }
+
 		/// <summary>True when the size chips apply to this member.</summary>
 		public bool Scalable => ScaledProperties.Length > 0;
 
@@ -89,6 +92,12 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		internal PaletteMember Note(string sizeNote)
 		{
 			SizeNote = sizeNote;
+			return this;
+		}
+
+		internal PaletteMember Hinted(string hint)
+		{
+			Hint = hint;
 			return this;
 		}
 
@@ -274,6 +283,23 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				new PaletteFamily("planecut", "Plane Cut", Operation("Plane Cut", "plane-cut", "Plane Cut"))),
 		};
 
+		/// <summary>
+		/// EBMC Edition: exact solids made by the Open CASCADE kernel. Shown on design tabs between Shapes and Tools, only
+		/// when solid modelling is on and the kernel loaded (see <see cref="For(PaletteTab, bool)"/>). No size chips: the
+		/// default sizes are shown, and the objects' own size handles change them.
+		/// </summary>
+		public static PaletteSection Solids { get; } = new PaletteSection(
+			"Solids",
+			new PaletteFamily(
+				"solids",
+				"Solids",
+				Primitive("Solid Box", "solid-box").Sized("SolidBoxObject3D", "{0} × {1} × {2}", D20)
+					.Hinted("Exact solid: clean rounded or bevelled edges."),
+				Primitive("Solid Cylinder", "solid-cylinder").Sized("SolidCylinderObject3D", "Ø{0} × {1}", new double[] { 20, 20 })
+					.Hinted("Exact solid: a true circle with a rounded or bevelled rim."),
+				Primitive("Plate with Hole", "solid-plate").Sized("SolidPlateObject3D", "{0} × {1} × {2}", new double[] { 40, 40, 5 })
+					.Hinted("Exact solid: a plate with a clean round hole, countersunk if you like.")).Holes());
+
 		/// <summary>The printer tab: add a model, quick test shapes and calibration parts, then the print preparation tools.</summary>
 		/// <remarks>
 		/// No temperature towers: they are made of Set Temperature parts that write hotend temperatures into the print,
@@ -305,6 +331,21 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		};
 
 		public static IReadOnlyList<PaletteSection> For(PaletteTab tab) => tab == PaletteTab.Printer ? Printer : Design;
+
+		/// <summary>
+		/// The sections for a tab, with <see cref="Solids"/> after the design tab's first section (Shapes) when
+		/// <paramref name="withSolids"/> is true. Printer tabs never show solids.
+		/// </summary>
+		public static IReadOnlyList<PaletteSection> For(PaletteTab tab, bool withSolids)
+		{
+			var sections = For(tab);
+			if (!withSolids || tab != PaletteTab.Design)
+			{
+				return sections;
+			}
+
+			return sections.Take(1).Concat(new[] { Solids }).Concat(sections.Skip(1)).ToList();
+		}
 
 		/// <summary>True when the tab shows the Solid/Hole switch (design tabs only).</summary>
 		public static bool HasHoleSwitch(PaletteTab tab) => tab == PaletteTab.Design;

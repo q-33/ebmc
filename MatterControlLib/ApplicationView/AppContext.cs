@@ -165,17 +165,27 @@ namespace MatterHackers.MatterControl
 		{
 			var toolTipPopover = new ClickablePopover(ArrowDirection.Up, new BorderDouble(0, 0), 7, 0);
 
+            // EBMC Edition: a raised panel (the menu background) with a rounded line-coloured outline instead of a
+            // square black border, a little inner padding, and body text at the theme's default size (Markdown body
+            // text is 10 pt in agg-sharp)
             var markdownWidegt = new MarkdownWidget(Theme, false)
             {
                 HAnchor = HAnchor.Absolute,
                 VAnchor = VAnchor.Fit,
                 Width = 350 * GuiWidget.DeviceScale,
-                BackgroundColor = Theme.BackgroundColor,
-                Border = 1,
-                BorderColor = Color.Black,
+                BackgroundColor = MenuTheme.BackgroundColor,
+                BackgroundRadius = new RadiusCorners(6 * GuiWidget.DeviceScale),
+                BackgroundOutlineWidth = 1,
+                BorderColor = Theme.BorderColor20,
+                Padding = new BorderDouble(6, 4),
                 Markdown = toolTipText
             };
-            
+
+            foreach (var word in markdownWidegt.Descendants<TextWidget>().Where(t => t.PointSize == 10))
+            {
+                word.PointSize = Theme.DefaultFontSize;
+            }
+
             markdownWidegt.Width = 350 * GuiWidget.DeviceScale;
 			var maxLineWidth = 0.0;
 			if (markdownWidegt.Descendants<ParagraphX>().Any())
@@ -183,7 +193,7 @@ namespace MatterHackers.MatterControl
 				maxLineWidth = markdownWidegt.Descendants<ParagraphX>().Max(i => i.MaxLineWidth);
 			}
 
-			markdownWidegt.Width = maxLineWidth + 15;
+			markdownWidegt.Width = maxLineWidth + 15 + markdownWidegt.DevicePadding.Width;
 
 			return markdownWidegt;
 		}

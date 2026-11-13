@@ -390,8 +390,8 @@ namespace MatterHackers.MatterControl
 										break;
 								}
 							},
-							unsavedWorkspaces.Count == 1 ? "You have one unsave design ({0}). Wolud you like to save changes before closing?".Localize().FormatWith(unsavedWorkspaces[0].Name)
-							: "You have {0} unsave designs. Wolud you like to save changes before closing?".Localize().FormatWith(unsavedWorkspaces.Count),
+							unsavedWorkspaces.Count == 1 ? "You have one unsaved design ({0}). Would you like to save your changes before closing?".Localize().FormatWith(unsavedWorkspaces[0].Name)
+							: "You have {0} unsaved designs. Would you like to save your changes before closing?".Localize().FormatWith(unsavedWorkspaces.Count),
 							"Save Changes?".Localize(),
 							"Save Changes".Localize(),
 							"Discard Changes".Localize(),

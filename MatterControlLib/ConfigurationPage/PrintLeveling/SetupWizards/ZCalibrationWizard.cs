@@ -177,7 +177,7 @@ namespace MatterHackers.MatterControl.ConfigurationPage.PrintLeveling
 
 			if (printer.Settings.GetBool(SettingsKey.has_independent_z_motors))
 			{
-				var aligingString = "The printer is now aliging the z-axis. It will do the following:".Localize() +
+				var aligingString = "The printer is now aligning the z-axis. It will do the following:".Localize() +
 					"\n\n    • " + "Home the printer".Clone() +
 					"\n    • " + "Probe multiple times on the left and right".Clone() +
 					"\n    • " + "Save the collected data".Clone() +

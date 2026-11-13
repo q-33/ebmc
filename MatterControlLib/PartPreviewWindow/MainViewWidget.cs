@@ -892,7 +892,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			var moveButtons = new FlowLayoutWidget();
 
-			var textWidget = new TextWidget("Move Tab", pointSize: theme.DefaultFontSize, textColor: theme.TextColor)
+			var textWidget = new TextWidget("Move Tab".Localize(), pointSize: theme.DefaultFontSize, textColor: theme.TextColor)
 			{
 				Margin = PopupMenu.MenuPadding.Clone(PopupMenu.MenuPadding.Left - 5, right: 5),
 				VAnchor = VAnchor.Center,

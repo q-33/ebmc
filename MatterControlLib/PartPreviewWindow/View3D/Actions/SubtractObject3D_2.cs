@@ -102,15 +102,33 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
             }
         }
 
+        /// <summary>
+        /// EBMC: set when a new Subtract is made with nothing chosen; the build applies the default (see
+        /// <see cref="DefaultPartsToRemove"/>) on its own thread before it reads SelectedChildren, so the first build
+        /// always sees it and only the build thread writes the set.
+        /// </summary>
+        private volatile bool applyDefaultPartsToRemove;
+
         public override async void WrapSelectedItemAndSelect(InteractiveScene scene)
         {
+            // EBMC: parts marked as Holes are the ones to remove, whatever order they were selected in; with no Holes it
+            // is the last part, as before. The choice can still be changed in the properties.
+            applyDefaultPartsToRemove = SelectedChildren.Count == 0;
+
             // this will ask the subtract to do a rebuild
             base.WrapSelectedItemAndSelect(scene);
+        }
 
-            if (SelectedChildren.Count == 0)
-            {
-                SelectedChildren.Add(SourceContainer.FirstWithMultipleChildrenDescendantsAndSelf().Children.Last().ID);
-            }
+        /// <summary>
+        /// EBMC: the parts a new Subtract (or Subtract &amp; Replace) removes by default, see <see cref="SubtractDefaults"/>.
+        /// </summary>
+        public static IReadOnlyList<string> DefaultPartsToRemove(IObject3D sourceContainer, bool lastPartWhenNoHoles)
+        {
+            var parts = sourceContainer.FirstWithMultipleChildrenDescendantsAndSelf().Children
+                .Select(c => (c.ID, c.WorldOutputType(sourceContainer) == PrintOutputTypes.Hole))
+                .ToList();
+
+            return SubtractDefaults.PartsToRemove(parts, lastPartWhenNoHoles);
         }
 
         public void DrawEditor(Object3DControlsLayer layer, DrawEventArgs e)
@@ -183,8 +201,14 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
                     {
                         Subtract(cancellationTokenSource.Token, reporter);
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        // EBMC: show the original parts and say what happened instead of failing silently
+                        ShowSourceAfterFailure(this);
+                        if (!cancellationTokenSource.IsCancellationRequested)
+                        {
+                            DesignNotices.OperationFailed("Subtract".Localize(), e);
+                        }
                     }
 
                     if (!NameOverriden)
@@ -244,6 +268,18 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
             SourceContainer.Visible = true;
             RemoveAllButSource();
 
+            if (applyDefaultPartsToRemove)
+            {
+                applyDefaultPartsToRemove = false;
+                if (SelectedChildren.Count == 0)
+                {
+                    foreach (var id in DefaultPartsToRemove(SourceContainer, lastPartWhenNoHoles: true))
+                    {
+                        SelectedChildren.Add(id);
+                    }
+                }
+            }
+
             CleanUpSelectedChildrenIDs(this);
 
             var (keepItems, removeItems) = GetSubtractItems(SourceContainer, SelectedChildren);
@@ -299,6 +335,21 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
                         child.Visible = true;
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// EBMC: after a failed boolean, leave only the source parts, visible, so the scene shows what the user made.
+        /// </summary>
+        public static void ShowSourceAfterFailure(OperationSourceContainerObject3D item)
+        {
+            try
+            {
+                item.RemoveAllButSource();
+                item.SourceContainer.Visible = true;
+            }
+            catch
+            {
             }
         }
 

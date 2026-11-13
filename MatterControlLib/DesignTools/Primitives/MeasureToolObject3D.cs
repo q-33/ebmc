@@ -27,6 +27,7 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the FreeBSD Project.
 */
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -44,6 +45,7 @@ using MatterHackers.PolygonMesh;
 using MatterHackers.PolygonMesh.Processors;
 using MatterHackers.RenderOpenGl;
 using MatterHackers.VectorMath;
+using Newtonsoft.Json;
 
 namespace MatterHackers.MatterControl.DesignTools
 {
@@ -55,6 +57,7 @@ namespace MatterHackers.MatterControl.DesignTools
 		private List<IObject3DControl> editorControls = null;
 		private GuiWidget containerWidget;
 		private GuiWidget textWidget;
+		private GuiWidget axisTextWidget;
 		private Object3DControlsLayer controlLayer;
 
 		public MeasureToolObject3D()
@@ -121,6 +124,36 @@ namespace MatterHackers.MatterControl.DesignTools
 		[ReadOnly(true)]
 		public double Distance { get; set; } = 0;
 
+		// EBMC: the distance along each axis. Worked out from the two points whenever they move, so not saved.
+		[ReadOnly(true)]
+		[DisplayName("X Distance")]
+		[JsonIgnore]
+		public double DistanceX { get; set; } = 0;
+
+		[ReadOnly(true)]
+		[DisplayName("Y Distance")]
+		[JsonIgnore]
+		public double DistanceY { get; set; } = 0;
+
+		[ReadOnly(true)]
+		[DisplayName("Z Distance")]
+		[JsonIgnore]
+		public double DistanceZ { get; set; } = 0;
+
+		private void UpdateDistances(Vector3 start, Vector3 end)
+		{
+			var delta = end - start;
+			Distance = delta.Length;
+			DistanceX = Math.Abs(delta.X);
+			DistanceY = Math.Abs(delta.Y);
+			DistanceZ = Math.Abs(delta.Z);
+		}
+
+		private string AxisDistancesText()
+		{
+			return "X {0}   Y {1}   Z {2}".Localize().FormatWith(DistanceX.ToString("0.##"), DistanceY.ToString("0.##"), DistanceZ.ToString("0.##"));
+		}
+
 		[HideFromEditor]
 		public bool PositionsHaveBeenSet { get; set; } = false;
 
@@ -146,7 +179,7 @@ namespace MatterHackers.MatterControl.DesignTools
 							}
 
 						worldStartPosition = position;
-							Distance = (worldStartPosition - worldEndPosition).Length;
+							UpdateDistances(worldStartPosition, worldEndPosition);
 							UiThread.RunOnIdle(() => Invalidate(InvalidateType.DisplayValues));
 						},
 					// edit complete function
@@ -166,7 +199,7 @@ namespace MatterHackers.MatterControl.DesignTools
 							}
 
 						worldEndPosition = position;
-							Distance = (worldStartPosition - worldEndPosition).Length;
+							UpdateDistances(worldStartPosition, worldEndPosition);
 							UiThread.RunOnIdle(() => Invalidate(InvalidateType.DisplayValues));
 						},
 					// edit complete function
@@ -277,8 +310,9 @@ namespace MatterHackers.MatterControl.DesignTools
 				// always keep the displayed distance the actual world distance
 				var worldStartPosition = LocalStartPosition.Transform(this.WorldMatrix());
 				var worldEndPosition = LocalEndPosition.Transform(this.WorldMatrix());
-				Distance = (worldStartPosition - worldEndPosition).Length;
+				UpdateDistances(worldStartPosition, worldEndPosition);
 				textWidget.Text = Distance.ToString("0.##");
+				axisTextWidget.Text = AxisDistancesText();
 				containerWidget.Position = center - new Vector2(containerWidget.LocalBounds.Width / 2, containerWidget.LocalBounds.Height / 2);
 				containerWidget.Visible = true;
 			}
@@ -307,12 +341,30 @@ namespace MatterHackers.MatterControl.DesignTools
 					BackgroundOutlineWidth = 1,
 				};
 
-				containerWidget.AddChild(textWidget = new TextWidget(Distance.ToString("0.##"))
+				// EBMC: the distance, and under it the distance along X, Y and Z
+				var column = new FlowLayoutWidget(FlowDirection.TopToBottom)
+				{
+					HAnchor = HAnchor.Fit,
+					VAnchor = VAnchor.Fit,
+				};
+				containerWidget.AddChild(column);
+
+				column.AddChild(textWidget = new TextWidget(Distance.ToString("0.##"))
 				{
 					TextColor = theme.TextColor,
 					PointSize = 10,
 					Selectable = true,
 					AutoExpandBoundsToText = true,
+					HAnchor = HAnchor.Center,
+				});
+
+				column.AddChild(axisTextWidget = new TextWidget(AxisDistancesText())
+				{
+					TextColor = theme.TextColor,
+					PointSize = 8,
+					Selectable = true,
+					AutoExpandBoundsToText = true,
+					HAnchor = HAnchor.Center,
 				});
 
 				controlLayer.GuiSurface.AddChild(containerWidget);
@@ -347,6 +399,9 @@ namespace MatterHackers.MatterControl.DesignTools
 				Action = () =>
 				{
 					Distance = 0;
+					DistanceX = 0;
+					DistanceY = 0;
+					DistanceZ = 0;
 					if (containerWidget != null)
 					{
 						containerWidget.Visible = false;

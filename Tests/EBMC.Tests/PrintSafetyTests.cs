@@ -144,7 +144,7 @@ namespace EBMC.Tests
 		public void GenericConfirmationStatesNoNumbers()
 		{
 			string text = OctoPrintMessages.ConfirmPrintBodyGeneric(Identity);
-			Assert.That(text, Is.EqualTo("Is the bed empty and clean?\n\nThe printer will heat, home, and probe the bed before it prints."));
+			Assert.That(text, Is.EqualTo("Is the bed empty and clean?\nIs the right material loaded?\n\nThe printer will heat, home, and probe the bed before it prints."));
 			Assert.That(text, Does.Not.Match("[0-9]"));
 			Assert.That(text, Does.Not.Contain("°"));
 		}

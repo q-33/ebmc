@@ -26,6 +26,7 @@ by MatterHackers.
 | Toolbar and menu icons | The top-bar search, brand menu, printer action row and 3D-view toolbar icons are one outline family: 34 Lucide icons (2-unit stroke on a 24-unit grid), and 14 icons Lucide does not have that were drawn for EBMC in the same style; all are black on transparent at 64 px (56 px for the 14 pt ones) and tinted to the theme text colour; eight scene operations that drew their icons untinted are now tinted. `map.json` lists every replaced file and its source; licence in `StaticData/License/Lucide.txt` | `Tools/EBMC/build_icons.py`, `Tools/EBMC/icons/` (`map.json`, `lucide/`, `custom/`), `StaticData/Icons/*` (49 files), `MatterControlLib/ApplicationView/SceneOperations.cs`, `StaticData/License/` |
 | Sample parts | The astronaut, "MH Logo" and coin sample parts are removed; the default part on a new bed is a printable EBMC badge | `StaticData/OEMSettings/SampleParts/EBMC Badge.stl`, `MatterControlLib/PartPreviewWindow/View3D/SceneActions.cs` |
 | macOS and Linux | A second host that runs the application without WinForms | `MatterControl.CrossPlatform/`, see `MACOS.md` |
+| Exact solids | Design tabs get Solid Box, Solid Cylinder and Plate with Hole (a "Solids" palette family and the Primitives list): exact rounded or bevelled edges and a clean through-hole, made by Open CASCADE in a separate native library (`native/occt/`); STEP files open as parts and solids export as STEP. Controlled by `EnableSolidModeling` in the OEM settings, and only shown when the library is present. The objects reach the slicer as ordinary meshes | `MatterControlLib/DesignTools/Solid/`, `MatterControlLib/Library/Export/StepExport.cs`, `MatterControlLib/Library/ContentProviders/StepContentProvider.cs`, `native/occt/`, `StaticData/License/OpenCASCADE.txt` |
 | Slicing | Ordinary meshes are sent to the slicer again (upstream's pinned `agg-sharp` marks them not printable) | `MatterControlLib/DesignTools/PrintableExtensions.cs` |
 
 The data files are produced by `Tools/EBMC/generate_ebmc_files.py` from the stock S-232 profile
@@ -117,8 +118,10 @@ The dark theme uses warm near-black grounds built from the ink colours (`#1F1C19
 green are too dark to read on that ground, so its accent choices include lightened versions
 (`#6C9BFF`, `#35B98B`); those two are not from the website.
 
-Not done: the full "East Bay Makers Club" wordmark is not included (only the EBMC badge is), and
-the application font is unchanged (the website uses a monospace face).
+Not done: the full "East Bay Makers Club" wordmark is not included (only the EBMC badge is).
+
+The interface typeface is Nunito (`DefaultUiFont` in the OEM settings; empty restores Liberation Sans).
+Text parts keep their own font setting.
 
 ## Building
 

@@ -98,8 +98,14 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
                     {
                         Intersect(cancellationTokenSource.Token, reporter);
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        // EBMC: show the original parts and say what happened instead of failing silently
+                        SubtractObject3D_2.ShowSourceAfterFailure(this);
+                        if (!cancellationTokenSource.IsCancellationRequested)
+                        {
+                            DesignNotices.OperationFailed("Intersection".Localize(), e);
+                        }
                     }
 
                     if (!NameOverriden)

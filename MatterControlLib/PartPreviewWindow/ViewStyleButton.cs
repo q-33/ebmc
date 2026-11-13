@@ -58,12 +58,12 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			viewData = new Dictionary<RenderTypes, (ImageBuffer image, string toolTip)>
 			{
-				[RenderTypes.Shaded] = (StaticData.Instance.LoadIcon("view_shaded.png", 16, 16), "View Mode = Shaded".Localize()),
-				[RenderTypes.Outlines] = (StaticData.Instance.LoadIcon("view_outlines.png", 16, 16), "View Mode = Outlines".Localize()),
-				[RenderTypes.Polygons] = (StaticData.Instance.LoadIcon("view_polygons.png", 16, 16), "View Mode = Polygons".Localize()),
-				[RenderTypes.NonManifold] = (StaticData.Instance.LoadIcon("view_polygons.png", 16, 16), "View Mode = Non-Manifold".Localize()),
-				[RenderTypes.Materials] = (StaticData.Instance.LoadIcon("view_materials.png", 16, 16), "View Mode = Materials".Localize()),
-				[RenderTypes.Overhang] = (StaticData.Instance.LoadIcon("view_overhang.png", 16, 16), "View Mode = Overhangs".Localize()),
+				[RenderTypes.Shaded] = (StaticData.Instance.LoadIcon("view_shaded.png", 16, 16).GrayToColor(theme.TextColor), "View Mode = Shaded".Localize()),
+				[RenderTypes.Outlines] = (StaticData.Instance.LoadIcon("view_outlines.png", 16, 16).GrayToColor(theme.TextColor), "View Mode = Outlines".Localize()),
+				[RenderTypes.Polygons] = (StaticData.Instance.LoadIcon("view_polygons.png", 16, 16).GrayToColor(theme.TextColor), "View Mode = Polygons".Localize()),
+				[RenderTypes.NonManifold] = (StaticData.Instance.LoadIcon("view_polygons.png", 16, 16).GrayToColor(theme.TextColor), "View Mode = Non-Manifold".Localize()),
+				[RenderTypes.Materials] = (StaticData.Instance.LoadIcon("view_materials.png", 16, 16).GrayToColor(theme.TextColor), "View Mode = Materials".Localize()),
+				[RenderTypes.Overhang] = (StaticData.Instance.LoadIcon("view_overhang.png", 16, 16).GrayToColor(theme.TextColor), "View Mode = Overhangs".Localize()),
 			};
 
 			var renderType = sceneContext.ViewState.RenderType;

@@ -211,7 +211,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 						ButtonTooltip = exportPlugin.Enabled ? exportType : exportPlugin.DisabledReason,
 						ExtendPopupMenu = (popupMenu) =>
 						{
-							var operationMenu = popupMenu.CreateMenuItem("Options...");
+							var operationMenu = popupMenu.CreateMenuItem("Options…".Localize());
 							operationMenu.Click += (s, e) =>
 							{
 								ApplicationController.Instance.ExportLibraryItems(

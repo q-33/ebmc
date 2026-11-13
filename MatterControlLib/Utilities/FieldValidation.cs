@@ -93,7 +93,7 @@ namespace MatterHackers.MatterControl.FieldValidation
 			else
 			{
 				status.IsValid = false;
-				status.ErrorMessage = "Sorry!  Must be a valid U.S. or Canadian phone number.".Localize();
+				status.ErrorMessage = "Sorry! Must be a valid U.S. or Canadian phone number.".Localize();
 			}
 
 			return status;
@@ -112,7 +112,7 @@ namespace MatterHackers.MatterControl.FieldValidation
 			else
 			{
 				status.IsValid = false;
-				status.ErrorMessage = "Sorry!  Must be a valid email address.".Localize();
+				status.ErrorMessage = "Sorry! Must be a valid email address.".Localize();
 			}
 			return status;
 		}

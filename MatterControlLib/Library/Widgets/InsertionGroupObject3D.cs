@@ -29,9 +29,12 @@ either expressed or implied, of the FreeBSD Project.
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using MatterHackers.Agg.UI;
 using MatterHackers.DataConverters3D;
+using MatterHackers.MatterControl.DesignTools;
 using MatterHackers.MatterControl.DesignTools.Operations;
 using MatterHackers.MatterControl.PartPreviewWindow;
 using MatterHackers.PolygonMesh;
@@ -90,6 +93,11 @@ namespace MatterHackers.MatterControl.Library
 				this.Children.Add(placeholderItem);
 
 				var itemsToLoad = items.Where(item => item.IsContentFileType()).ToList();
+
+				// EBMC: files that could not be opened (they used to vanish without a word) and the model files that
+				// were added, for the size check
+				var failedNames = new List<string>();
+				var addedModelFiles = new List<IObject3D>();
 				// Filter to content file types only
 				foreach (var item in itemsToLoad)
 				{
@@ -101,7 +109,33 @@ namespace MatterHackers.MatterControl.Library
 					placeholderItem.Visible = true;
 					progressControl.TrackingObject = placeholderItem;
 
-					var loadedItem = await item.CreateContent(progressControl.ProgressReporter);
+					IObject3D loadedItem = null;
+					try
+					{
+						loadedItem = await item.CreateContent(progressControl.ProgressReporter);
+					}
+					catch
+					{
+						loadedItem = null;
+					}
+
+					// EBMC: a mesh file that loads with no faces is damaged or not a 3D model; say so rather than add
+					// an invisible part
+					bool isModelFile = IsModelFile(item);
+					if (loadedItem != null
+						&& isModelFile
+						&& !loadedItem.VisibleMeshes().Any(m => m.Mesh?.Faces.Count > 0))
+					{
+						loadedItem = null;
+					}
+
+					// a loader that already said why (for example a STEP file that is too large) is not reported twice
+					if (loadedItem == null
+						&& !DesignNotices.WasReported(item))
+					{
+						failedNames.Add(DisplayName(item));
+					}
+
 					if (loadedItem != null)
 					{
 						var aabb = loadedItem.GetAxisAlignedBoundingBox();
@@ -135,6 +169,11 @@ namespace MatterHackers.MatterControl.Library
 
 						loadedItem.MakeNameNonColliding();
 
+						if (isModelFile)
+						{
+							addedModelFiles.Add(loadedItem);
+						}
+
 						// Adjust next item position
 						newItemOffset.X = loadedItem.GetAxisAlignedBoundingBox().XSize / 2 + 10;
 					}
@@ -144,16 +183,61 @@ namespace MatterHackers.MatterControl.Library
 				}
 
 				this.Children.Remove(placeholderItem);
-				this.Collapse(addUndoCheckPoint);
+				var collapsedItems = this.Collapse(addUndoCheckPoint);
 
 				this.Invalidate(InvalidateType.Children);
+
+				// EBMC: report files that could not be opened, then offer to fix the size of a model that looks wrong
+				// (placement only; never anything about slicing)
+				var sceneContext = view3DWidget?.sceneContext;
+				UiThread.RunOnIdle(() =>
+				{
+					DesignNotices.CouldNotOpen(failedNames);
+
+					// a single mcx-style wrapper is collapsed into its children; check what is actually in the scene
+					var modelsInScene = addedModelFiles.Count == 1 && collapsedItems.Count == 1
+						? collapsedItems
+						: addedModelFiles.Where(m => collapsedItems.Contains(m)).ToList();
+					ModelSizeCheck.Offer(sceneContext, modelsInScene);
+				});
 			});
+		}
+
+		private static bool IsModelFile(ILibraryItem item)
+		{
+			if (item is ILibraryAssetStream assetStream)
+			{
+				var extension = Path.GetExtension(assetStream.FileName ?? "").ToLowerInvariant();
+				return extension == ".stl"
+					|| extension == ".obj"
+					|| extension == ".3mf"
+					|| extension == ".amf";
+			}
+
+			return false;
+		}
+
+		private static string DisplayName(ILibraryItem item)
+		{
+			if (item is FileSystemFileItem fileItem
+				&& !string.IsNullOrEmpty(fileItem.FilePath))
+			{
+				return Path.GetFileName(fileItem.FilePath);
+			}
+
+			if (item is ILibraryAssetStream assetStream
+				&& !string.IsNullOrEmpty(assetStream.FileName))
+			{
+				return assetStream.FileName;
+			}
+
+			return item?.Name;
 		}
 
 		/// <summary>
 		/// Collapse the InsertionGroup into the scene
 		/// </summary>
-		private void Collapse(bool addUndoCheckPoint)
+		private List<IObject3D> Collapse(bool addUndoCheckPoint)
 		{
 			// Drag operation has finished, we need to perform the collapse
 			var loadedItems = this.Children;
@@ -181,6 +265,9 @@ namespace MatterHackers.MatterControl.Library
 				item.Matrix *= this.Matrix;
 			}
 
+			// EBMC: what is being inserted, captured before the items move to the scene
+			var insertedItems = loadedItems.ToList();
+
 			view3DWidget.Scene.Children.Remove(this);
 
 			if (layoutParts != null)
@@ -202,6 +289,8 @@ namespace MatterHackers.MatterControl.Library
             {
 				new InsertCommand(view3DWidget.Scene, loadedItems).Do();
 			}
+
+			return insertedItems;
 		}
 	}
 }

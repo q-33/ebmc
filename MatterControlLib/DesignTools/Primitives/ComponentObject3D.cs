@@ -205,18 +205,23 @@ namespace MatterHackers.MatterControl.DesignTools
                 var componentLock = this.RebuildLock();
                 controledSheet.SheetData.Recalculate();
 
-                UiThread.RunOnIdle(() =>
+                // wait until the sheet is done rebuilding (or 30 seconds), then release our lock.
+                // EBMC: the old loop compared the times the wrong way round, so it never waited; it also slept on the
+                // UI thread, which would have frozen the app while waiting. Check again on idle instead.
+                var startTime = UiThread.CurrentTimerMs;
+                void ReleaseWhenSheetIsDone()
                 {
-                    // wait until the sheet is done rebuilding (or 30 seconds)
-                    var startTime = UiThread.CurrentTimerMs;
-                    while (controledSheet.RebuildLocked
-                        && startTime + 30000 < UiThread.CurrentTimerMs)
+                    if (controledSheet.RebuildLocked
+                        && UiThread.CurrentTimerMs < startTime + 30000)
                     {
-                        Thread.Sleep(1);
+                        UiThread.RunOnIdle(ReleaseWhenSheetIsDone, .05);
+                        return;
                     }
 
                     componentLock.Dispose();
-                });
+                }
+
+                UiThread.RunOnIdle(ReleaseWhenSheetIsDone);
             }
         }
 

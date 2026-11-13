@@ -1,0 +1,5 @@
+<!-- EBMC custom icon "view-shaded": shaded view style: a sphere whose shadow side is filled (drawn for EBMC; the UX sheet's highlight arcs merged into the outline at 16 px). Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="9" />
+  <path d="M12 3a9 9 0 0 1 0 18 3 9 0 0 1 0-18z" fill="#000" />
+</svg>

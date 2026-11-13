@@ -1,0 +1,7 @@
+<!-- EBMC custom icon "perspective": perspective projection: a floor grid receding to a vanishing point (UX glyph sheet). Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7 4h10l5 16H2z" />
+  <path d="M10.5 4 9 20" />
+  <path d="M13.5 4 15 20" />
+  <path d="M4.5 12h15" />
+</svg>

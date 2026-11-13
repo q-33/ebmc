@@ -657,7 +657,7 @@ namespace MatterHackers.MatterControl
 					errors.Add(new ValidationError(ValidationErrors.MaterialNotSelected)
 					{
 						Error = "A Material Should be Selected".Localize(),
-						Details = "You should select the 'Material' your are printing with under the 'Hotend Temperature' menu on the top right of your screen.".Localize(),
+						Details = "You should select the 'Material' you are printing with under the 'Hotend Temperature' menu on the top right of your screen.".Localize(),
 						ErrorLevel = ValidationErrorLevel.Warning,
 					});
 				}

@@ -145,6 +145,20 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
             }
         }
 
+        /// <summary>
+        /// Duplicate (xOffset null): the copy goes beside the original along +X, by the selection's X size plus a 5 mm
+        /// gap (EBMC; it used to be 5 mm, on top of the original). Paste passes its own offset.
+        /// </summary>
+        public static void DuplicateSelection(this ISceneContext sceneContext)
+        {
+            var selectedItem = sceneContext.Scene.SelectedItem;
+            if (selectedItem != null)
+            {
+                var xSize = selectedItem.GetAxisAlignedBoundingBox().XSize;
+                sceneContext.DuplicateItemAddToScene(DuplicatePlacement.XOffset(xSize), selectedItem);
+            }
+        }
+
         public static async void DuplicateItemAddToScene(this ISceneContext sceneContext, double xOffset, IObject3D sourceItem = null)
         {
             var scene = sceneContext.Scene;
@@ -157,61 +171,70 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
                 }
             }
 
-            if (sourceItem != null)
+            if (sourceItem == null)
             {
-                // Copy selected item
-                IObject3D newItem = await Task.Run(() =>
+                return;
+            }
+
+            if (sourceItem is SelectionGroupObject3D)
+            {
+                // EBMC: the selection is a group of objects that need to be copied. This used to run on a background
+                // thread, changing the scene off the UI thread with no undo step. It now runs here, on the UI thread,
+                // and the copies go in as one undoable insert, like a single copy.
+                var copyList = sourceItem.Children.ToList();
+                var namedItems = new HashSet<string>(scene.DescendantsAndSelf().Select((d) => d.Name));
+
+                // clearing the selection puts the group's own move into each child, so clone after it
+                scene.SelectedItem = null;
+
+                var clonedItems = new List<IObject3D>();
+                foreach (var item in copyList)
                 {
-                    var namedItems = new HashSet<string>(scene.DescendantsAndSelf().Select((d) => d.Name));
-                    if (sourceItem != null)
-                    {
-                        if (sourceItem is SelectionGroupObject3D)
-                        {
-                            // the selection is a group of objects that need to be copied
-                            var copyList = sourceItem.Children.ToList();
-                            scene.SelectedItem = null;
-                            foreach (var item in copyList)
-                            {
-                                var clonedItem = item.Clone();
-                                clonedItem.Translate(xOffset);
-                                // make the name unique
-                                var newName = Util.GetNonCollidingName(item.Name, namedItems);
-                                clonedItem.Name = newName;
-                                // add it to the scene
-                                scene.Children.Add(clonedItem);
-                                // add it to the selection
-                                scene.AddToSelection(clonedItem);
-                            }
-                        }
-                        else // the selection can be cloned easily
-                        {
-                            var clonedItem = sourceItem.Clone();
-
-                            clonedItem.Translate(xOffset);
-                            // an empty string is used to denote special name processing for some container types
-                            if (!string.IsNullOrWhiteSpace(sourceItem.Name))
-                            {
-                                // make the name unique
-                                var newName = Util.GetNonCollidingName(sourceItem.Name, namedItems);
-                                clonedItem.Name = newName;
-                            }
-
-                            // More useful if it creates the part in the exact position and then the user can move it.
-                            // Consistent with other software as well. LBB 2017-12-02
-                            // PlatingHelper.MoveToOpenPositionRelativeGroup(clonedItem, Scene.Children);
-
-                            return clonedItem;
-                        }
-                    }
-
-                    return null;
-                });
-
-                // it might come back null due to threading
-                if (newItem != null)
-                {
-                    sceneContext.InsertNewItem(newItem);
+                    var clonedItem = item.Clone();
+                    clonedItem.Translate(xOffset);
+                    // make the name unique
+                    var newName = Util.GetNonCollidingName(item.Name, namedItems);
+                    namedItems.Add(newName);
+                    clonedItem.Name = newName;
+                    clonedItems.Add(clonedItem);
                 }
+
+                if (clonedItems.Count > 0)
+                {
+                    // adds them to the scene and selects them all
+                    scene.UndoBuffer.AddAndDo(new InsertCommand(scene, clonedItems));
+                }
+
+                return;
+            }
+
+            // Copy selected item
+            IObject3D newItem = await Task.Run(() =>
+            {
+                var namedItems = new HashSet<string>(scene.DescendantsAndSelf().Select((d) => d.Name));
+                var clonedItem = sourceItem.Clone();
+
+                clonedItem.Translate(xOffset);
+                // an empty string is used to denote special name processing for some container types
+                if (!string.IsNullOrWhiteSpace(sourceItem.Name))
+                {
+                    // make the name unique
+                    var newName = Util.GetNonCollidingName(sourceItem.Name, namedItems);
+                    clonedItem.Name = newName;
+                }
+
+                // More useful if it creates the part in the exact position and then the user can move it.
+                // Consistent with other software as well. LBB 2017-12-02
+                // PlatingHelper.MoveToOpenPositionRelativeGroup(clonedItem, Scene.Children);
+
+                return clonedItem;
+            });
+
+            // it might come back null due to threading
+            if (newItem != null)
+            {
+                // EBMC: make sure the scene is changed on the UI thread
+                UiThread.RunOnIdle(() => sceneContext.InsertNewItem(newItem));
             }
         }
 
@@ -263,8 +286,10 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
             {
                 var meshToCheck = itemToCheck.Mesh.GetConvexHull(false);
 
+                // EBMC: was '&&', which dereferenced a null hull (a swallowed crash) and let degenerate hulls through
                 if (meshToCheck == null
-                    && meshToCheck.Vertices.Count < 3)
+                    || meshToCheck.Vertices.Count < 3
+                    || meshToCheck.Faces.Count == 0)
                 {
                     continue;
                 }
@@ -369,6 +394,12 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
                     largestAreaOfAnyFace = largestAreaFound;
                     faceToLayFlat = faceIndex;
                 }
+            }
+
+            if (faceToLayFlat < 0)
+            {
+                // EBMC: no face qualified (degenerate hull); leave the part as it is rather than index -1
+                return;
             }
 
             double maxDistFromLowestZ = 0;

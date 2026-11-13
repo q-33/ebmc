@@ -1,0 +1,7 @@
+<!-- EBMC custom icon "solid-plate": plate with hole: a flat plate in oblique view with a round hole through its top face. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M2 17l9-9h11l-9 9z" />
+  <path d="M2 17v3h11v-3" />
+  <path d="M13 20l9-9V8" />
+  <ellipse cx="12" cy="12.5" rx="3" ry="2" />
+</svg>

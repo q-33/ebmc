@@ -103,6 +103,21 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
             }
         }
 
+        /// <summary>
+        /// EBMC: set when a new Subtract &amp; Replace is made with nothing chosen; the build applies the Holes default on
+        /// its own thread before it reads SelectedChildren (first build sees it; only the build thread writes the set).
+        /// </summary>
+        private volatile bool applyDefaultPartsToRemove;
+
+        public override void WrapSelectedItemAndSelect(InteractiveScene scene)
+        {
+            // EBMC: like Subtract, parts marked as Holes are chosen by default. With no Holes nothing is chosen, as
+            // before, and the user picks the parts in the properties.
+            applyDefaultPartsToRemove = SelectedChildren.Count == 0;
+
+            base.WrapSelectedItemAndSelect(scene);
+        }
+
         public void DrawEditor(Object3DControlsLayer layer, DrawEventArgs e)
         {
             return;
@@ -169,8 +184,14 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
 
                         ComputedChildren = newComputedChildren;
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        // EBMC: show the original parts and say what happened instead of failing silently
+                        SubtractObject3D_2.ShowSourceAfterFailure(this);
+                        if (!cancellationTokenSource.IsCancellationRequested)
+                        {
+                            DesignNotices.OperationFailed("Subtract & Replace".Localize(), e);
+                        }
                     }
 
                     this.cancellationToken = null;
@@ -194,6 +215,18 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
         {
             SourceContainer.Visible = true;
             RemoveAllButSource();
+
+            if (applyDefaultPartsToRemove)
+            {
+                applyDefaultPartsToRemove = false;
+                if (SelectedChildren.Count == 0)
+                {
+                    foreach (var id in SubtractObject3D_2.DefaultPartsToRemove(SourceContainer, lastPartWhenNoHoles: false))
+                    {
+                        SelectedChildren.Add(id);
+                    }
+                }
+            }
 
             var parentOfPaintTargets = SourceContainer.FirstWithMultipleChildrenDescendantsAndSelf();
 

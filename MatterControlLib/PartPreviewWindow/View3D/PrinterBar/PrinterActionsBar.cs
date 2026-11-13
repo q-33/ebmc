@@ -72,6 +72,10 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			this.HAnchor = HAnchor.Stretch;
 			this.VAnchor = VAnchor.Fit;
 
+			// EBMC Edition (layout only): in a narrow window the temperature widgets on the right overflow before the
+			// print, send and view buttons, as in stock MatterControl
+			this.ReserveTrailingItems = false;
+
 			var defaultMargin = theme.ButtonSpacing;
 
 			var printerType = printer.Settings.Slicer.PrinterType;

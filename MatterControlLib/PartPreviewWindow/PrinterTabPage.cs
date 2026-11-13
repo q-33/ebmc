@@ -556,7 +556,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			{
 				Name = "DockingTabControl",
 				ControlIsPinned = Printer.ViewState.SliceSettingsTabPinned,
-				MinDockingWidth = 400 * (int)GuiWidget.DeviceScale
+				MinDockingWidth = (int)Math.Round(400 * GuiWidget.DeviceScale)
 			};
 			sideBar.PinStatusChanged += (s, e) =>
 			{

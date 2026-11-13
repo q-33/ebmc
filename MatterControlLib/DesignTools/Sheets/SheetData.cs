@@ -194,10 +194,8 @@ namespace MatterHackers.MatterControl.DesignTools
 			{
 				lock (locker)
 				{
-					if (cellId.Length == 2)
+					if (TryGetCellCoordinate(cellId, out int x, out int y))
 					{
-						var x = cellId.Substring(0, 1).ToUpper()[0] - 'A';
-						var y = cellId.Substring(1, 1)[0] - '1';
 						return Rows[y].Cells[x];
 					}
 					else
@@ -222,10 +220,8 @@ namespace MatterHackers.MatterControl.DesignTools
 			{
 				lock (locker)
 				{
-					if (cellId.Length == 2)
+					if (TryGetCellCoordinate(cellId, out int x, out int y))
 					{
-						var x = cellId.Substring(0, 1).ToUpper()[0] - 'A';
-						var y = cellId.Substring(1, 1)[0] - '1';
 						Rows[y].Cells[x] = value;
 					}
 					else
@@ -243,6 +239,37 @@ namespace MatterHackers.MatterControl.DesignTools
 					}
 				}
 			}
+		}
+
+		/// <summary>
+		/// EBMC: a two-character id such as "B3" names a cell by column letter and row number. Any other two-character
+		/// id (a short cell name such as "ab", or a coordinate outside the sheet) is not a coordinate and is looked up
+		/// by name instead of throwing.
+		/// </summary>
+		private bool TryGetCellCoordinate(string cellId, out int x, out int y)
+		{
+			x = -1;
+			y = -1;
+			if (cellId == null || cellId.Length != 2)
+			{
+				return false;
+			}
+
+			var letter = char.ToUpperInvariant(cellId[0]);
+			var digit = cellId[1];
+			if (letter < 'A' || letter > 'Z' || digit < '1' || digit > '9')
+			{
+				return false;
+			}
+
+			x = letter - 'A';
+			y = digit - '1';
+			if (Rows == null || y >= Rows.Count || Rows[y]?.Cells == null || x >= Rows[y].Cells.Count)
+			{
+				return false;
+			}
+
+			return true;
 		}
 
 		[JsonIgnore]

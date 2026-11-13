@@ -132,7 +132,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				Margin = theme.ButtonSpacing,
 				VAnchor = VAnchor.Center
 			};
-			undoButton.MouseEnterBounds += (s, e) => undoButton.SetActiveUiHint("Ctrl + z".Localize());
+			undoButton.MouseEnterBounds += (s, e) => undoButton.SetActiveUiHint("Undo: Ctrl + Z".Localize());
 			undoButton.Click += (sender, e) =>
 			{
 				sceneContext.Scene.Undo();
@@ -148,7 +148,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				Enabled = false,
 				VAnchor = VAnchor.Center
 			};
-			redoButton.MouseEnterBounds += (s, e) => redoButton.SetActiveUiHint("Ctrl + Y, Ctrl + Shift + Z".Localize());
+			redoButton.MouseEnterBounds += (s, e) => redoButton.SetActiveUiHint("Redo: Ctrl + Y, Ctrl + Shift + Z".Localize());
 			redoButton.Click += (sender, e) =>
 			{
 				sceneContext.Scene.Redo();
@@ -158,7 +158,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			if (showPrintButton)
 			{
-				var printButton = new ThemedTextButton("Print", theme)
+				var printButton = new ThemedTextButton("Print".Localize(), theme)
 				{
 					Name = "Print Button",
 					BackgroundColor = theme.AccentMimimalOverlay

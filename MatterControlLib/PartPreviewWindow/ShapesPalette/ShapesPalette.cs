@@ -175,7 +175,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			this.view3DWidget = view3DWidget;
 			this.tab = isPrinterTab ? PaletteTab.Printer : PaletteTab.Design;
 
-			// The interface tour's "Primitive Shapes" step points at the widget named LibraryView
+			// The interface tour's "Shapes" step (ProductTour.json) points at the widget named LibraryView
 			this.Name = "LibraryView";
 			this.HAnchor = HAnchor.Absolute;
 			this.VAnchor = VAnchor.Stretch;
@@ -218,7 +218,14 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			var scale = DeviceScale;
 			this.Width = (expanded ? ExpandedWidth : CompactWidth) * scale;
-			var buttonWidth = this.Width - 1; // the right border
+			// minus the right border in device pixels, scaled and rounded the way GuiWidget sizes its device border
+			var borderRight = this.Border.Right * scale;
+			if (this.EnforceIntegerBounds)
+			{
+				borderRight = Math.Round(borderRight);
+			}
+
+			var buttonWidth = this.Width - borderRight;
 
 			var top = new FlowLayoutWidget(FlowDirection.TopToBottom)
 			{
@@ -233,7 +240,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				top.AddChild(CreateHoleSwitch(buttonWidth));
 			}
 
-			foreach (var section in PaletteCatalog.For(tab))
+			// EBMC Edition: the Solids family only when solid modelling is on and the kernel loaded
+			foreach (var section in PaletteCatalog.For(tab, DesignTools.Solid.SolidModeling.IsEnabled))
 			{
 				if (section.Label != null)
 				{
@@ -397,6 +405,11 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			{
 				member.Title.Localize() + (string.IsNullOrEmpty(size) ? "" : "  (" + size + ")")
 			};
+
+			if (!string.IsNullOrEmpty(member.Hint))
+			{
+				lines.Add(member.Hint.Localize());
+			}
 
 			if (member.Source == PaletteSource.Primitives || member.Source == PaletteSource.CalibrationParts)
 			{
@@ -569,29 +582,48 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			previous.ContinueWith(_ => UiThread.RunOnIdle(() =>
 			{
-				if (this.HasBeenClosed)
+				// EBMC: 'done' must always complete, or the queue jams and every later click does nothing
+				bool waitingForLoad = false;
+				try
 				{
-					done.TrySetResult(true);
-					return;
-				}
+					if (this.HasBeenClosed)
+					{
+						return;
+					}
 
-				// Read on the UI thread; the layout callback then only uses these values and the loading task's own
-				// snapshot of the bed's parts
-				var center = sceneContext.BedCenter;
-				BedRect? bed = null;
-				if (sceneContext.Printer?.Settings.BedBounds is RectangleDouble bedBounds)
-				{
-					bed = new BedRect(bedBounds.Left, bedBounds.Bottom, bedBounds.Right, bedBounds.Top);
-				}
+					// AddToPlate inserts into the ACTIVE tab's scene (DragDropData), so after a tab switch a queued insert
+					// would land on another tab: skip it
+					if (ApplicationController.Instance.DragDropData.SceneContext != sceneContext)
+					{
+						return;
+					}
 
-				var insertion = sceneContext.AddToPlate(new[] { item }, center, (loaded, itemsOnBed) => PlaceNearBedCenter(loaded, itemsOnBed, center, bed));
-				if (insertion?.LoadingItemsTask is Task loading)
-				{
-					loading.ContinueWith(__ => done.TrySetResult(true));
+					// Read on the UI thread; the layout callback then only uses these values and the loading task's own
+					// snapshot of the bed's parts
+					var center = sceneContext.BedCenter;
+					BedRect? bed = null;
+					if (sceneContext.Printer?.Settings.BedBounds is RectangleDouble bedBounds)
+					{
+						bed = new BedRect(bedBounds.Left, bedBounds.Bottom, bedBounds.Right, bedBounds.Top);
+					}
+
+					var insertion = sceneContext.AddToPlate(new[] { item }, center, (loaded, itemsOnBed) => PlaceNearBedCenter(loaded, itemsOnBed, center, bed));
+					if (insertion?.LoadingItemsTask is Task loading)
+					{
+						waitingForLoad = true;
+						loading.ContinueWith(__ => done.TrySetResult(true));
+					}
 				}
-				else
+				catch
 				{
-					done.TrySetResult(true);
+					ShowHint("The part could not be added.".Localize());
+				}
+				finally
+				{
+					if (!waitingForLoad)
+					{
+						done.TrySetResult(true);
+					}
 				}
 			}));
 		}
@@ -622,7 +654,11 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			if (!found)
 			{
-				UiThread.RunOnIdle(() => ShowHint("The bed is full; the part was placed at the centre.".Localize()));
+				// a part larger than the bed can never find a free spot; say that rather than "the bed is full"
+				var text = PalettePlacement.FitsOnBed(bounds.XSize, bounds.YSize, bed)
+					? "The bed is full; the part was placed at the centre.".Localize()
+					: "This part is bigger than the bed.".Localize();
+				UiThread.RunOnIdle(() => ShowHint(text));
 			}
 		}
 

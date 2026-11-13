@@ -1,0 +1,6 @@
+<!-- EBMC custom icon "bed-plate": show the print bed: a flat build plate in oblique view, no heat waves (UX glyph sheet "plate"). Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M2 16l5-6h15l-5 6z" />
+  <path d="M2 16v3h15v-3" />
+  <path d="M17 19l5-6v-3" />
+</svg>

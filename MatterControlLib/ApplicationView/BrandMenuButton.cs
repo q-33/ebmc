@@ -111,7 +111,7 @@ namespace MatterHackers.MatterControl
 
 			PopupMenu.MenuItem menuItem;
 
-			menuItem = popupMenu.CreateMenuItem("Open System File", StaticData.Instance.LoadIcon("fa-folder-open_16.png", 16, 16).GrayToColor(menuTheme.TextColor));
+			menuItem = popupMenu.CreateMenuItem("Open file…".Localize(), StaticData.Instance.LoadIcon("fa-folder-open_16.png", 16, 16).GrayToColor(menuTheme.TextColor));
 			menuItem.Click += (s, e) => ApplicationController.OpenFileWithSystemDialog((fileNames) =>
 			{
 				if (fileNames != null && fileNames.Any())
@@ -154,13 +154,6 @@ namespace MatterHackers.MatterControl
 
 			popupMenu.CreateSeparator();
 
-			ImageBuffer indicatorIcon = null;
-
-			if (IntPtr.Size == 8)
-			{
-				indicatorIcon = StaticData.Instance.LoadIcon("x64.png", 16, 16).GrayToColor(menuTheme.TextColor);
-			}
-
 			// EBMC Edition: these all lead to MatterHackers' forums, support and issue tracker
 			if (SettingsManagement.OemSettings.Instance.ShowVendorServices)
 			{
@@ -187,16 +180,8 @@ namespace MatterHackers.MatterControl
 				popupMenu.CreateSeparator();
 			}
 
-			var imageBuffer = new ImageBuffer(18, 18);
-
-			// x64 indicator icon
-			if (IntPtr.Size == 8)
-			{
-				var graphics = imageBuffer.NewGraphics2D();
-				graphics.Clear(menuTheme.BackgroundColor);
-				graphics.Rectangle(imageBuffer.GetBoundingRect(), menuTheme.PrimaryAccentColor);
-				graphics.DrawString("64", imageBuffer.Width / 2, imageBuffer.Height / 2, 8, Agg.Font.Justification.Center, Agg.Font.Baseline.BoundsCenter, color: menuTheme.PrimaryAccentColor);
-			}
+			// EBMC Edition: no "64" (x64 build) badge beside About; an empty icon keeps the text aligned with the other items
+			var imageBuffer = new ImageBuffer(16, 16);
 
 			menuItem = popupMenu.CreateMenuItem("About".Localize() + " " + ApplicationController.Instance.ProductName, imageBuffer);
 			menuItem.Click += (s, e) => ApplicationController.Instance.ShowAboutPage();

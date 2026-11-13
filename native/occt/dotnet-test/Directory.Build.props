@@ -1,0 +1,6 @@
+<Project>
+	<!--
+		Deliberately empty. Its presence stops MSBuild from searching parent folders, so the repository-root
+		Directory.Build.props/targets (EBMC company name, ImageSharp pin) do not apply to this standalone spike.
+	-->
+</Project>

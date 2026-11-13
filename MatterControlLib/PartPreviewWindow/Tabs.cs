@@ -559,7 +559,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 									break;
 							}
 						},
-						"Wolud you like to save changes before closing?".Localize(),
+						"Would you like to save your changes before closing?".Localize(),
 						"Save Changes?".Localize(),
 						"Save Changes".Localize(),
 						"Discard Changes".Localize(),

@@ -27,7 +27,9 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the FreeBSD Project.
 */
 
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using ClipperLib;
@@ -35,14 +37,30 @@ using MatterHackers.Agg.UI;
 using MatterHackers.DataConverters3D;
 using MatterHackers.Localizations;
 using MatterHackers.MatterControl.DesignTools.Operations;
+using MatterHackers.MatterControl.PartPreviewWindow.View3D;
 using MatterHackers.PolygonMesh;
 using MatterHackers.PolygonMesh.Csg;
 using MatterHackers.PolygonMesh.Processors;
 using MatterHackers.VectorMath;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Polygons = System.Collections.Generic.List<System.Collections.Generic.List<ClipperLib.IntPoint>>;
 
 namespace MatterHackers.MatterControl.DesignTools
 {
+	/// <summary>EBMC Edition: which side of a Plane Cut is kept.</summary>
+	public enum PlaneCutKeep
+	{
+		/// <summary>Everything below the cut (the stock behaviour and the default).</summary>
+		Bottom,
+
+		/// <summary>Everything above the cut.</summary>
+		Top,
+
+		/// <summary>Both sides, as two separate parts.</summary>
+		Both,
+	}
+
 	public class PlaneCutObject3D : OperationSourceContainerObject3D, IPropertyGridModifier
 	{
 		public PlaneCutObject3D()
@@ -54,11 +72,44 @@ namespace MatterHackers.MatterControl.DesignTools
 		[Slider(1, 200, Easing.EaseType.Quadratic, useSnappingGrid: true)]
 		public DoubleOrExpression CutHeight { get; set; } = 10;
 
+		// EBMC: files saved before this existed have no value and load as Bottom, the old behaviour
+		[EnumDisplay(Mode = EnumDisplayAttribute.PresentationMode.Buttons)]
+		[Description("Which part to keep. Both makes two separate parts; use Apply then Ungroup to move them apart.")]
+		[JsonConverter(typeof(StringEnumConverter))]
+		public PlaneCutKeep Keep { get; set; } = PlaneCutKeep.Bottom;
+
+		/// <summary>
+		/// EBMC: a new cut starts at half the height of what it cuts instead of a fixed 10 mm (which can be above or
+		/// below the whole part). Only on first applying; saved cuts keep their height.
+		/// </summary>
+		public override void WrapSelectedItemAndSelect(InteractiveScene scene)
+		{
+			var selectedItem = scene?.SelectedItem;
+			if (selectedItem != null)
+			{
+				var bounds = selectedItem.GetAxisAlignedBoundingBox();
+				if (bounds.ZSize > 0
+					&& !double.IsInfinity(bounds.ZSize)
+					&& !double.IsNaN(bounds.ZSize))
+				{
+					CutHeight = Math.Round((bounds.MinXYZ.Z + bounds.MaxXYZ.Z) / 2, 2);
+				}
+			}
+
+			base.WrapSelectedItemAndSelect(scene);
+		}
+
 		private double cutMargin = .01;
 
 		public Mesh Cut(IObject3D item)
 		{
-			var mesh = new Mesh(item.Mesh.Vertices, item.Mesh.Faces);
+			return Cut(item, keepTop: false);
+		}
+
+		public Mesh Cut(IObject3D item, bool keepTop)
+		{
+			// EBMC: copy the faces so cutting never changes the source mesh (both sides are cut from the same source)
+			var mesh = new Mesh(item.Mesh.Vertices, new FaceList(item.Mesh.Faces.Select(f => new Face(f.v0, f.v1, f.v2, f.normal)).ToList()));
 
 			var itemMatrix = item.WorldMatrix(SourceContainer);
 			mesh.Transform(itemMatrix);
@@ -73,32 +124,54 @@ namespace MatterHackers.MatterControl.DesignTools
 			// cut the faces at the cut plane
 			mesh.Split(new Plane(Vector3.UnitZ, cutHeight), cutMargin, cleanAndMerge: false);
 
-			// remove every face above the cut plane
-			RemoveFacesAboveCut(mesh);
+			if (keepTop)
+			{
+				// remove every face below the cut plane
+				RemoveFacesBeyondCut(mesh, keepTop: true);
 
-			slice.AsVertices().TriangulateFaces(null, mesh, cutHeight);
+				// the cap faces down on the top part
+				var cap = slice.AsVertices().TriangulateFaces(null, null, cutHeight);
+				cap.ReverseFaces();
+				mesh.CopyFaces(cap);
+			}
+			else
+			{
+				// remove every face above the cut plane
+				RemoveFacesBeyondCut(mesh, keepTop: false);
+
+				slice.AsVertices().TriangulateFaces(null, mesh, cutHeight);
+			}
 
 			mesh.Transform(itemMatrix.Inverted);
 
 			return mesh;
 		}
 
-		private void RemoveFacesAboveCut(Mesh mesh)
+		private void RemoveFacesBeyondCut(Mesh mesh, bool keepTop)
 		{
 			var newVertices = new List<Vector3Float>();
 			var newFaces = new List<Face>();
 			var facesToRemove = new HashSet<int>();
 
 			var cutRemove = CutHeight.Value(this) - cutMargin;
+			var cutRemoveBelow = CutHeight.Value(this) + cutMargin;
 			for (int i = 0; i < mesh.Faces.Count; i++)
 			{
 				var face = mesh.Faces[i];
 
-				if (mesh.Vertices[face.v0].Z >= cutRemove
+				if (!keepTop
+					&& mesh.Vertices[face.v0].Z >= cutRemove
 					&& mesh.Vertices[face.v1].Z >= cutRemove
 					&& mesh.Vertices[face.v2].Z >= cutRemove)
 				{
 					// record the face for removal
+					facesToRemove.Add(i);
+				}
+				else if (keepTop
+					&& mesh.Vertices[face.v0].Z <= cutRemoveBelow
+					&& mesh.Vertices[face.v1].Z <= cutRemoveBelow
+					&& mesh.Vertices[face.v2].Z <= cutRemoveBelow)
+				{
 					facesToRemove.Add(i);
 				}
 			}
@@ -149,41 +222,67 @@ namespace MatterHackers.MatterControl.DesignTools
 				"Plane Cut".Localize(),
 				(reporter, cancellationToken) =>
 				{
-					var newChildren = new List<Object3D>();
-					var root = SourceContainer.Children.First();
-					root = root == null ? SourceContainer : root;
-					foreach (var sourceItem in SourceContainer.VisibleMeshes())
+					// EBMC: an empty source used to throw here (First() on nothing) and the rebuild locks were never
+					// released, leaving the object stuck; always release them
+					try
 					{
-						var cutMesh = Cut(sourceItem);
-
-						var newMesh = new Object3D()
+						var newChildren = new List<Object3D>();
+						var root = SourceContainer.Children.FirstOrDefault();
+						root = root == null ? SourceContainer : root;
+						foreach (var sourceItem in SourceContainer.VisibleMeshes())
 						{
-							Mesh = cutMesh,
-							OwnerID = sourceItem.ID
-						};
-						newMesh.CopyWorldProperties(sourceItem, root, Object3DPropertyFlags.All);
-						newChildren.Add(newMesh);
-					}
+							void AddPart(bool keepTop)
+							{
+								var newMesh = new Object3D()
+								{
+									Mesh = Cut(sourceItem, keepTop),
+									OwnerID = sourceItem.ID
+								};
+								newMesh.CopyWorldProperties(sourceItem, root, Object3DPropertyFlags.All);
+								newChildren.Add(newMesh);
+							}
 
-					var sourceContainer = SourceContainer;
-					this.Children.Modify(list =>
-					{
-						list.Clear();
-						list.Add(sourceContainer);
-						foreach (var child in newChildren)
-						{
-							list.Add(child);
+							if (Keep != PlaneCutKeep.Top)
+							{
+								AddPart(keepTop: false);
+							}
+
+							if (Keep != PlaneCutKeep.Bottom)
+							{
+								AddPart(keepTop: true);
+							}
 						}
-						sourceContainer.Visible = false;
-					});
 
-					UiThread.RunOnIdle(() =>
+						var sourceContainer = SourceContainer;
+						this.Children.Modify(list =>
+						{
+							list.Clear();
+							list.Add(sourceContainer);
+							foreach (var child in newChildren)
+							{
+								list.Add(child);
+							}
+							sourceContainer.Visible = newChildren.Count == 0;
+						});
+					}
+					catch (Exception e)
 					{
-						rebuildLocks.Dispose();
-						Invalidate(InvalidateType.DisplayValues);
-						this.CancelAllParentBuilding();
-						Parent?.Invalidate(new InvalidateArgs(this, InvalidateType.Children));
-					});
+						SubtractObject3D_2.ShowSourceAfterFailure(this);
+						if (!cancellationToken.IsCancellationRequested)
+						{
+							DesignNotices.OperationFailed("Plane Cut".Localize(), e);
+						}
+					}
+					finally
+					{
+						UiThread.RunOnIdle(() =>
+						{
+							rebuildLocks.Dispose();
+							Invalidate(InvalidateType.DisplayValues);
+							this.CancelAllParentBuilding();
+							Parent?.Invalidate(new InvalidateArgs(this, InvalidateType.Children));
+						});
+					}
 
 					return Task.CompletedTask;
 				});

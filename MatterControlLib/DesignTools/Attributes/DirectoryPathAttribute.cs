@@ -35,7 +35,7 @@ namespace MatterHackers.MatterControl.DesignTools
     [AttributeUsage(AttributeTargets.Property)]
     public class DirectoryPathAttribute : Attribute
     {
-        public string Message { get; set; } = "Selecte a directory".Localize();
+        public string Message { get; set; } = "Select a directory".Localize();
         public string ActionLabel { get; set; } = "Select".Localize();
     }
 }

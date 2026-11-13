@@ -79,5 +79,29 @@ namespace EBMC.Tests
 			var (x, y, found) = PalettePlacement.FindOpenCenter(20, 20, 30, 30, new[] { bed }, bed);
 			Assert.That((x, y, found), Is.EqualTo((20.0, 20.0, false)));
 		}
+
+		[TestCase(220, 220, true)]
+		[TestCase(100, 50, true)]
+		[TestCase(221, 10, false)]
+		[TestCase(10, 230, false)]
+		public void FitsOnBedChecksTheFootprintAgainstTheBed(double width, double depth, bool expected)
+		{
+			Assert.That(PalettePlacement.FitsOnBed(width, depth, Bed), Is.EqualTo(expected));
+		}
+
+		[Test]
+		public void AnythingFitsWithNoBed()
+		{
+			Assert.That(PalettePlacement.FitsOnBed(5000, 5000, null), Is.True);
+		}
+
+		[Test]
+		public void PartBiggerThanTheBedIsNotFound()
+		{
+			// it can never be placed, so the caller must say "bigger than the bed", not "the bed is full"
+			var (_, _, found) = PalettePlacement.FindOpenCenter(CenterX, CenterY, 300, 20, Enumerable.Empty<BedRect>(), Bed);
+			Assert.That(found, Is.False);
+			Assert.That(PalettePlacement.FitsOnBed(300, 20, Bed), Is.False);
+		}
 	}
 }

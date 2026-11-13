@@ -1,5 +1,5 @@
 {
-  "_about": "Icon refresh map read by Tools/EBMC/build_icons.py. Keys are paths under StaticData/Icons and must name existing .png files there, except directly inside Shapes/ (the shapes palette's own glyphs), where build_icons.py creates them. source is lucide:<name> (Tools/EBMC/icons/lucide/<name>.svg, 46 vendored files) or custom:<name> (Tools/EBMC/icons/custom/<name>.svg, 22 EBMC drawings). size is the output PNG edge in pixels: 64 for icons the code loads at 16x16, 56 for 14x14 (4x the logical size). At device scale 1 the app's loader halves these exactly (64->32->16). At device scale 2 it first resamples the source up by 2 (64->128, bilinear) and then halves it twice to 32 px, so the result is close to, but slightly softer than, an exact 2x box reduction. previously_untinted marks icons whose code did not tint them before the refresh (used only by the preview sheet). Shapes/ glyphs are 80 px masters for 20 px palette buttons; the palette loads them with its own loader, which box-halves straight to the device size, so 1x and 2x are both exact.",
+  "_about": "Icon refresh map read by Tools/EBMC/build_icons.py. Keys are paths under StaticData/Icons and must name existing .png files there, except directly inside Shapes/ (the shapes palette's own glyphs), where build_icons.py creates them. source is lucide:<name> (Tools/EBMC/icons/lucide/<name>.svg, 74 vendored files) or custom:<name> (Tools/EBMC/icons/custom/<name>.svg, 32 EBMC drawings). size is the output PNG edge in pixels: 4x the logical size the code loads (64 for 16x16, 56 for 14x14, 48 for 12x12, 96 for 24x24, 128 for 32x32; Library/folder.png is loaded at its own size and stays 256). color (optional, #RRGGBB, saturated) bakes that colour into the pixels instead of black, for status icons whose colour carries meaning; GrayToColor tinting leaves saturated pixels alone. glyph (optional, px) renders the drawing at that size centred on the size x size canvas, for callers that load the icon into a larger box than the glyph should fill. At device scale 1 the app's loader halves these exactly (64->32->16). At device scale 2 it first resamples the source up by 2 (64->128, bilinear) and then halves it twice to 32 px, so the result is close to, but slightly softer than, an exact 2x box reduction. previously_untinted marks icons whose code did not tint them before the refresh (used only by the preview sheet). Shapes/ glyphs are 80 px masters for 20 px palette buttons; the palette loads them with its own loader, which box-halves straight to the device size, so 1x and 2x are both exact.",
   "lucide_version": "1.72.0",
   "icons": {
     "icon_search_24x24.png": {
@@ -434,6 +434,232 @@
       "source": "custom:hole",
       "size": 80,
       "notes": "Shapes palette: Hole button of the Solid/Hole switch"
+    },
+    "Shapes/solid-box.png": {
+      "source": "custom:solid-box",
+      "size": 80,
+      "notes": "Shapes palette: Solid Box (exact solid; Solids family, shown only when solid modelling is on)"
+    },
+    "Shapes/solid-cylinder.png": {
+      "source": "custom:solid-cylinder",
+      "size": 80,
+      "notes": "Shapes palette: Solid Cylinder (exact solid)"
+    },
+    "Shapes/solid-plate.png": {
+      "source": "custom:solid-plate",
+      "size": 80,
+      "notes": "Shapes palette: Plate with Hole (exact solid)"
+    },
+    "fa-angle-right_12.png": {
+      "source": "lucide:chevron-right",
+      "size": 48,
+      "notes": "Tree expanders (agg-sharp TreeNode, ExpandCheckboxButton, 3D view tree) at 12 px; also the tab-strip move buttons (14 px, mirrored for left) and the tour arrow (10 px)"
+    },
+    "fa-angle-down_12.png": {
+      "source": "lucide:chevron-down",
+      "size": 48,
+      "notes": "Expanded tree nodes (agg-sharp TreeNode, ExpandCheckboxButton) at 12 px"
+    },
+    "fa-check_16.png": {
+      "source": "lucide:check",
+      "size": 64,
+      "notes": "Checked menu items (agg-sharp PopupMenu), completed wizard stages, colour swatch and calibration tab check marks (those two invert it to white)"
+    },
+    "426.png": {
+      "source": "lucide:check",
+      "size": 64,
+      "notes": "Check mark; only referenced by the stray, uncompiled ConfigurationPage/ApplicationSettings/ThemeColorPanel.cs at the repo root"
+    },
+    "ViewTransformControls/overflow.png": {
+      "source": "lucide:ellipsis",
+      "size": 128,
+      "glyph": 64,
+      "notes": "Overflow (more) button of every OverflowBar and list items; loaded at 32x32. glyph 64: drawn at 16 px in the 32 px box, the weight of the toolbar icons beside it (the old art left the same margin)"
+    },
+    "ViewTransformControls/partSelect.png": {
+      "source": "lucide:mouse-pointer-2",
+      "size": 64,
+      "notes": "View controls: select mode"
+    },
+    "ViewTransformControls/scale.png": {
+      "source": "lucide:zoom-in",
+      "size": 64,
+      "notes": "View controls: zoom mode (the file name is upstream's)"
+    },
+    "fa-home_16.png": {
+      "source": "lucide:house",
+      "size": 64,
+      "notes": "View controls Reset View; jog Home; path editor home"
+    },
+    "select.png": {
+      "source": "lucide:scan",
+      "size": 64,
+      "notes": "View controls Zoom to Selection"
+    },
+    "spin.png": {
+      "source": "custom:turntable",
+      "size": 64,
+      "notes": "View controls Turntable Mode"
+    },
+    "perspective.png": {
+      "source": "custom:perspective",
+      "size": 64,
+      "notes": "View controls Perspective Mode (one image; the toggle shows its state by the checked background, the code does not swap images)"
+    },
+    "print_area.png": {
+      "source": "custom:build-volume",
+      "size": 64,
+      "notes": "View controls Show Print Area"
+    },
+    "Shapes/view-bed.png": {
+      "source": "custom:bed-plate",
+      "size": 64,
+      "notes": "View controls Show Print Bed (new file so bed.png keeps the heated-bed glyph for temperature uses); loaded through StaticData.LoadIcon at 16x16, so 64 px"
+    },
+    "view_shaded.png": {
+      "source": "custom:view-shaded",
+      "size": 64,
+      "notes": "View style Shaded (button and menu). Was untinted: ViewStyleButton now tints it"
+    },
+    "view_outlines.png": {
+      "source": "lucide:box",
+      "size": 64,
+      "notes": "View style Outlines. Was untinted"
+    },
+    "view_polygons.png": {
+      "source": "custom:view-polygons",
+      "size": 64,
+      "notes": "View style Polygons and Non-Manifold. Was untinted"
+    },
+    "view_materials.png": {
+      "source": "lucide:palette",
+      "size": 64,
+      "notes": "View style Materials. Was untinted"
+    },
+    "view_overhang.png": {
+      "source": "custom:view-overhang",
+      "size": 64,
+      "notes": "View style Overhangs. Was untinted"
+    },
+    "web.png": {
+      "source": "lucide:sliders-horizontal",
+      "size": 64,
+      "notes": "Render options button by the view style button. Was untinted: RenderOptionsButton now tints it"
+    },
+    "apply.png": {
+      "source": "lucide:check",
+      "size": 64,
+      "notes": "Properties panel header: apply"
+    },
+    "cancel.png": {
+      "source": "lucide:x",
+      "size": 64,
+      "notes": "Properties panel header: cancel"
+    },
+    "icon_edit.png": {
+      "source": "lucide:pencil",
+      "size": 64,
+      "notes": "Edit buttons: presets, macros, movement, calibration, help article, inline names, library rename, markdown field"
+    },
+    "fa-refresh_14.png": {
+      "source": "lucide:refresh-cw",
+      "size": 64,
+      "notes": "Refresh buttons: Save As, printer action menu, update check and IP address field (16 and 14 px)"
+    },
+    "icon_plus.png": {
+      "source": "lucide:plus",
+      "size": 64,
+      "notes": "New preset"
+    },
+    "SettingsGroupError_16x.png": {
+      "source": "lucide:circle-x",
+      "size": 64,
+      "notes": "Validation error and wizard 'setup needed'; baked club danger colour (callers tint with GrayToColor, which keeps saturated pixels)",
+      "color": "#FF7A5C"
+    },
+    "SettingsGroupWarning_16x.png": {
+      "source": "lucide:triangle-alert",
+      "size": 64,
+      "notes": "Validation warning and wizard 'recommended'; baked club yellow",
+      "color": "#FFDF69"
+    },
+    "StatusInfoTip_16x.png": {
+      "source": "lucide:info",
+      "size": 64,
+      "notes": "Information marker (validation panel, search 'No results'); callers do not tint, baked club sky blue",
+      "color": "#6C9BFF"
+    },
+    "cube.png": {
+      "source": "lucide:box",
+      "size": 64,
+      "notes": "Design tab icon, library 'Add part', default thumbnail"
+    },
+    "Library/folder.png": {
+      "source": "lucide:folder",
+      "size": 256,
+      "notes": "Every library folder tile; callers recolour it with AlphaToPrimaryAccent (or GrayToColor in the property editor browse button). Loaded at its own size, so 256"
+    },
+    "collapse.png": {
+      "source": "lucide:chevrons-left",
+      "size": 64,
+      "notes": "Design tab favourites bar: Reduced Width (shown while expanded)"
+    },
+    "expand.png": {
+      "source": "lucide:chevrons-right",
+      "size": 64,
+      "notes": "Design tab favourites bar: Expand Width; also the wizard stage row hover arrow"
+    },
+    "Pushpin.png": {
+      "source": "lucide:pin",
+      "size": 64,
+      "notes": "Docked settings panel, shown while pinned (tooltip Unpin)"
+    },
+    "PushpinUnpin.png": {
+      "source": "lucide:pin-off",
+      "size": 64,
+      "notes": "Docked settings panel, shown while floating (tooltip Pin)"
+    },
+    "fa-pause_12.png": {
+      "source": "custom:media-pause",
+      "size": 48,
+      "notes": "Running task row: pause. Filled copy of the Lucide glyph: outlines did not read at 12 px and the outline square looked like a checkbox"
+    },
+    "fa-play_12.png": {
+      "source": "custom:media-play",
+      "size": 48,
+      "notes": "Running task row: resume. Filled copy of the Lucide glyph: outlines did not read at 12 px and the outline square looked like a checkbox"
+    },
+    "fa-stop_12.png": {
+      "source": "custom:media-stop",
+      "size": 48,
+      "notes": "Running task row: stop. Filled copy of the Lucide glyph: outlines did not read at 12 px and the outline square looked like a checkbox"
+    },
+    "Up Arrow.png": {
+      "source": "lucide:chevron-up",
+      "size": 128,
+      "glyph": 96,
+      "notes": "Print panel Z offset (baby-step) up; loaded at 32x32. glyph 96: 24 px chevron in the 32 px button box"
+    },
+    "Down Arrow.png": {
+      "source": "lucide:chevron-down",
+      "size": 128,
+      "glyph": 96,
+      "notes": "Print panel Z offset (baby-step) down; loaded at 32x32. glyph 96: 24 px chevron in the 32 px button box"
+    },
+    "fa-clock_24.png": {
+      "source": "lucide:clock",
+      "size": 96,
+      "notes": "Print panel time remaining; loaded at 24x24"
+    },
+    "eye_dropper.png": {
+      "source": "lucide:pipette",
+      "size": 64,
+      "notes": "Colour button Select (pick a colour from the scene)"
+    },
+    "locked.png": {
+      "source": "lucide:lock",
+      "size": 64,
+      "notes": "Locked object properties: Unlock"
     }
   }
 }
