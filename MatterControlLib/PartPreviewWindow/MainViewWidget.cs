@@ -99,6 +99,12 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				Padding = new BorderDouble(left: 8)
 			};
 
+			// EBMC Edition: the Simple · Advanced switch, just before search (only when the OEM settings turn it on)
+			if (UiModes.SwitchEnabled)
+			{
+				extensionArea.AddChild(new UiModeSwitch(theme));
+			}
+
 			SearchPanel searchPanel = null;
 
 			bool searchPanelOpenOnMouseDown = false;
@@ -374,6 +380,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				else
 				{
 					newTab = this.CreateDesignTab(workspace, false);
+
+					// EBMC Edition: a still-empty new design tab gets its start card back after a window rebuild
+					DesignStartCard.RestoreAfterRebuild(newTab);
 				}
 
 				if (newTab.Key == ApplicationController.Instance.MainTabKey)
@@ -857,7 +866,21 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			var menuTheme = ApplicationController.Instance.MenuTheme;
 			var popupMenu = new PopupMenu(menuTheme);
 			
-			var renameMenuItem = popupMenu.CreateMenuItem("Rename".Localize());
+			// EBMC Edition: club menu style (OemSettings.ClubDialogsAndMenus): Rename, Close, then the move buttons
+			bool clubMenu = ClubUi.ClubStyle.On;
+			if (clubMenu)
+			{
+				ClubUi.ClubMenuBuilder.StyleMenu(popupMenu);
+			}
+
+			var renameMenuItem = clubMenu
+				? ClubUi.ClubMenuBuilder.CreateItem(popupMenu, ClubUi.ClubMenuText.WithEllipsis("Rename".Localize(), true), null, null, false)
+				: popupMenu.CreateMenuItem("Rename".Localize());
+			if (clubMenu)
+			{
+				// the stock item's automation name (CreateItem names it after the title with the ellipsis)
+				renameMenuItem.Name = "Rename Menu Item";
+			}
 
 			// EBMC Edition: renaming a printer (not a design) needs a club maintainer
 			if (workspace == null
@@ -866,6 +889,10 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			{
 				renameMenuItem.Enabled = false;
 				renameMenuItem.ToolTipText = Maintainer.LockedText;
+				if (clubMenu)
+				{
+					ClubUi.ClubMenuBuilder.SetDisabled(renameMenuItem, menuTheme);
+				}
 			}
 			renameMenuItem.Click += (s, e) =>
 			{
@@ -889,6 +916,16 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				}
 			};
 
+
+			if (clubMenu
+				&& printerTab.HasCloseButton)
+			{
+				ClubUi.ClubMenuBuilder.AddSeparator(popupMenu);
+				var closeMenuItem = ClubUi.ClubMenuBuilder.CreateItem(popupMenu, "Close".Localize(), null, null, false);
+				closeMenuItem.Name = "Close Tab Menu Item";
+				closeMenuItem.Click += (s, e) => printerTab.CloseFromMenu();
+				ClubUi.ClubMenuBuilder.AddSeparator(popupMenu);
+			}
 
 			var moveButtons = new FlowLayoutWidget();
 
@@ -950,7 +987,10 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			var newTab = CreateDesignTab(workspace, true);
 			tabControl.ActiveTab = newTab;
 
-			if (addPhilToBed)
+			// EBMC Edition: with NewDesignStartsEmpty a new design tab opens empty with the start card (the badge is one
+			// of its starters); files opened into a new tab and restored tabs never come through here with addPhilToBed
+			if (addPhilToBed
+				&& !DesignStartCard.StartEmpty(newTab))
 			{
 				workspace.SceneContext.AddPhilToBed();
 			}

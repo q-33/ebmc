@@ -242,7 +242,9 @@ namespace MatterHackers.MatterControl.DesignTools
 
                     if (WrapLines && wrappingWidth_mm > 0)
 					{
-						var wrapper = new EnglishTextWrapping(pointSize);
+						// EBMC Edition: measure with Liberation Sans, the font this always used (it was agg-sharp's default
+						// font before the interface switched to Nunito), so wrapped text parts keep their line breaks
+						var wrapper = new EnglishTextWrapping(new StyledTypeFace(LiberationSansFont.Instance, pointSize));
 						var wrappingPoints = wrappingWidth_mm / mmPerPoint;
                         var wrappingPixels = wrappingPoints * pixelsPerPoint;
                         textToWrite = wrapper.InsertCRs(textToWrite, wrappingPixels, MultiLine ? wrappingIndent : 0);

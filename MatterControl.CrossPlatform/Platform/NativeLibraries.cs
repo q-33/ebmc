@@ -98,6 +98,13 @@ namespace MatterHackers.MatterControl.CrossPlatform
 					// Optional: when it is missing the app runs without solid modelling (SolidKernel reports why)
 					handle = LoadFirst(SolidKernelCandidates(), out string path);
 					SolidKernelPath = path;
+
+					// never fall back to the runtime's own search (DYLD_LIBRARY_PATH, /usr/local/lib, ...): only the
+					// copy shipped with the app is used. SolidKernel catches this and turns solid modelling off.
+					if (handle == IntPtr.Zero)
+					{
+						throw new DllNotFoundException("The solid modelling library (libebmc_occt) is not in the app's native/" + RuntimeFolder + " folder.");
+					}
 				}
 
 				if (handle != IntPtr.Zero)
@@ -205,7 +212,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 #if DEBUG
 				return true;
 #else
-				return !System.AppContext.BaseDirectory.Replace('\\', '/').Contains(".app/Contents/", StringComparison.Ordinal);
+				return !System.AppContext.BaseDirectory.Replace('\\', '/').Contains(".app/Contents/", StringComparison.OrdinalIgnoreCase);
 #endif
 			}
 		}

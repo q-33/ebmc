@@ -144,6 +144,25 @@ namespace MatterHackers.MatterControl
 					rootSystemWindow.Invalidate();
 				}
 
+				// EBMC Edition: Cmd/Ctrl + K opens command search ("Find a tool") from anywhere in the main window
+				// (OemSettings.EnableAdvancedTools; a focused text field keeps Ctrl keys to itself)
+				// (no Shift: a text field lets Ctrl + Shift combinations through)
+				if (!keyEvent.Handled
+					&& keyEvent.Control
+					&& !keyEvent.Shift
+					&& keyEvent.KeyCode == Keys.K
+					&& AdvancedTools.IsEnabled)
+				{
+					switch (keyEvent.KeyCode)
+					{
+						case Keys.K:
+							CommandSearchPopup.Toggle();
+							keyEvent.Handled = true;
+							keyEvent.SuppressKeyPress = true;
+							break;
+					}
+				}
+
 				if (!keyEvent.Handled
 					&& gcode2D != null)
 				{
@@ -411,6 +430,23 @@ namespace MatterHackers.MatterControl
 							keyEvent.SuppressKeyPress = true;
 							break;
 
+						case Keys.D:
+							// EBMC Edition: Cmd/Ctrl + D duplicates the selection (OemSettings.EnableAdvancedTools), in the model view
+							// (no Shift: a text field lets Ctrl + Shift combinations through, so Cmd + Shift + D while typing
+							// must not duplicate)
+							if (keyEvent.Control
+								&& !keyEvent.Shift
+								&& AdvancedTools.IsEnabled
+								&& (view3D.Printer == null || view3D.Printer.ViewState.ViewMode == PartViewMode.Model)
+								&& view3D.sceneContext.Scene.SelectedItem != null)
+							{
+								view3D.sceneContext.DuplicateSelection();
+								keyEvent.Handled = true;
+								keyEvent.SuppressKeyPress = true;
+							}
+
+							break;
+
 						case Keys.F2:
 							if (view3D.Printer == null
 								|| (view3D.Printer != null && view3D.Printer.ViewState.ViewMode == PartViewMode.Model))
@@ -527,6 +563,15 @@ namespace MatterHackers.MatterControl
 			return rootSystemWindow;
 		}
 
+		/// <summary>
+		/// EBMC Edition: whether a text field (editable or read-only) has the keyboard focus, so single-key shortcuts (S, ?)
+		/// stay out of the way.
+		/// </summary>
+		private static bool TextFieldHasFocus(GuiWidget root)
+		{
+			return root.Descendants<InternalTextEditWidget>().Any(w => w.Focused);
+		}
+
 		private static void SystemWindow_KeyPressed(object sender, KeyPressEventArgs keyEvent)
 		{
 			if (sender is SystemWindow systemWindow)
@@ -534,11 +579,43 @@ namespace MatterHackers.MatterControl
 				var view3D = systemWindow.Descendants<View3DWidget>().Where((v) => v.ActuallyVisibleOnScreen()).FirstOrDefault();
 				var printerTabPage = systemWindow.Descendants<PrinterTabPage>().Where((v) => v.ActuallyVisibleOnScreen()).FirstOrDefault();
 
+				// EBMC Edition: "?" shows the keyboard shortcuts sheet (Advanced mode, OemSettings.EnableAdvancedTools). A
+				// focused text field has already taken the character (Handled)
+				// A read-only text field does not take characters, so no text field may have the focus either
+				bool textFieldFocused = TextFieldHasFocus(systemWindow);
+
+				if (!keyEvent.Handled
+					&& AdvancedTools.InAdvancedMode
+					&& !textFieldFocused)
+				{
+					switch (keyEvent.KeyChar)
+					{
+						case '?':
+							ShortcutsPage.Show();
+							keyEvent.Handled = true;
+							break;
+					}
+				}
+
 				if (!keyEvent.Handled
 					&& view3D != null)
 				{
 					switch (keyEvent.KeyChar)
 					{
+						case 's':
+						case 'S':
+							// EBMC Edition: S in the 3D view opens command search (Advanced mode, OemSettings.EnableAdvancedTools)
+							if (AdvancedTools.InAdvancedMode
+								&& !textFieldFocused
+								&& !Keyboard.IsKeyDown(Keys.Control)
+								&& !Keyboard.IsKeyDown(Keys.Alt))
+							{
+								CommandSearchPopup.Toggle();
+								keyEvent.Handled = true;
+							}
+
+							break;
+
 						case 'g':
 						case 'G':
 							if (view3D.Printer == null
@@ -684,6 +761,10 @@ namespace MatterHackers.MatterControl
 
 			reporter?.Invoke(0.3, (loading != null) ? loading : "Plugins");
 			ApplicationController.Plugins.InitializePlugins(systemWindow);
+
+			// EBMC Edition: bring the Slice Settings detail level in line with the Simple · Advanced mode, once, before
+			// anything reads the mode
+			UiModes.InitializeAtStartup();
 
 			reporter?.Invoke(0.4, (loading != null) ? loading : "MainView");
 			applicationController.MainView = new MainViewWidget(applicationController.Theme);

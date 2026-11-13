@@ -23,5 +23,11 @@
   "LockedThemeSet": "EBMC-Dark",
   "OfferModelSizeFix": true,
   "EnableSolidModeling": true,
-  "DefaultUiFont": "Nunito"
+  "DefaultUiFont": "Nunito",
+  "ShowUiModeSwitch": true,
+  "DefaultUiMode": "Simple",
+  "EnableClubShapes": true,
+  "NewDesignStartsEmpty": true,
+  "EnableAdvancedTools": true,
+  "ClubDialogsAndMenus": true
 }

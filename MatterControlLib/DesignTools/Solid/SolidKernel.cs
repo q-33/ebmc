@@ -13,8 +13,8 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 	/// </summary>
 	public static class SolidKernel
 	{
-		/// <summary>Oldest shim version with everything the app calls (edge geometry, transform, compound).</summary>
-		public static readonly Version RequiredVersion = new Version(0, 2);
+		/// <summary>Oldest shim version with everything the app calls (edge geometry, transform, compound; 0.3: the triangle cap in ebmc_tessellate).</summary>
+		public static readonly Version RequiredVersion = new Version(0, 3);
 
 		private static readonly object Gate = new object();
 
@@ -37,7 +37,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 			}
 		}
 
-		/// <summary>The library's version string, e.g. "ebmc_occt 0.2; OCCT 8.0.1", or "" when not available.</summary>
+		/// <summary>The library's version string, e.g. "ebmc_occt 0.3; OCCT 8.0.1", or "" when not available.</summary>
 		public static string Version
 		{
 			get
@@ -57,7 +57,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 			}
 		}
 
-		/// <summary>Parses "ebmc_occt 0.2; OCCT 8.0.1" into 0.2; null when the text has no shim version.</summary>
+		/// <summary>Parses "ebmc_occt 0.3; OCCT 8.0.1" into 0.3; null when the text has no shim version.</summary>
 		public static Version ParseShimVersion(string versionText)
 		{
 			if (string.IsNullOrEmpty(versionText))

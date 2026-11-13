@@ -78,9 +78,9 @@ namespace EBMC.Tests
 				Assert.That(member.Hint + member.Title + member.SizeText(), Does.Not.Contain("MatterControl"));
 			}
 
-			// the palette asks for the solids section through the same switch
+			// the palette asks for the solids section through the same switch (and the Simple · Advanced mode)
 			Assert.That(Read("MatterControlLib/PartPreviewWindow/ShapesPalette/ShapesPalette.cs"),
-				Does.Contain("PaletteCatalog.For(tab, DesignTools.Solid.SolidModeling.IsEnabled)"));
+				Does.Contain("PaletteCatalog.For(tab, DesignTools.Solid.SolidModeling.IsEnabled, mode, DesignTools.ClubShapes.ClubShapesFeature.IsEnabled)"));
 		}
 
 		[Test]
@@ -126,8 +126,11 @@ namespace EBMC.Tests
 			Assert.That(notice, Does.Contain("b8f597c677811d1f9f4d8a97f5ae2825c0353a42"));
 			Assert.That(notice, Does.Contain("Open CASCADE exception (version 1.0) to GNU LGPL version 2.1."));
 			Assert.That(notice, Does.Contain("GNU LESSER GENERAL PUBLIC LICENSE"));
-			Assert.That(notice, Does.Contain("Contact: (club to fill in)"));
-			Assert.That(notice, Does.Contain("https://github.com/q-33/ebmc/releases"));
+			Assert.That(notice, Does.Contain("Contact: (to be filled in before this app is distributed)"));
+			Assert.That(notice, Does.Contain("https://github.com/Open-Cascade-SAS/OCCT"));
+			// nothing is claimed to be on a releases page that does not exist yet
+			Assert.That(notice, Does.Not.Contain("/releases"));
+			Assert.That(Read("native/occt/README.md"), Does.Contain("Release checklist (before any binary is given to anyone)"));
 			Assert.That(notice, Does.Not.Contain("MatterControl"));
 			Assert.That(Read("NOTICE.md"), Does.Contain("Open CASCADE Technology 8.0.1"));
 		}

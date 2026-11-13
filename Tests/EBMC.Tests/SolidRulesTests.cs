@@ -164,6 +164,8 @@ namespace EBMC.Tests
 		[TestCase(8, SolidStep.ReadStep, SolidProblem.StepUnreadable)]
 		[TestCase(4, SolidStep.ReadStep, SolidProblem.StepUnreadable)]
 		[TestCase(8, SolidStep.WriteStep, SolidProblem.StepNotWritten)]
+		[TestCase(9, SolidStep.Tessellate, SolidProblem.TooDetailed)]
+		[TestCase(9, SolidStep.ReadStep, SolidProblem.TooDetailed)]
 		[TestCase(4, SolidStep.Cut, SolidProblem.KernelRefused)]
 		[TestCase(0, SolidStep.Cut, SolidProblem.None)]
 		public void KernelCodesBecomeProblems(int code, SolidStep step, SolidProblem expected)
@@ -206,7 +208,8 @@ namespace EBMC.Tests
 			Assert.That(SolidKernel.ParseShimVersion("ebmc_occt 1.12; OCCT 9"), Is.EqualTo(new Version(1, 12)));
 			Assert.That(SolidKernel.ParseShimVersion("OCCT 8.0.1"), Is.Null);
 			Assert.That(SolidKernel.ParseShimVersion(null), Is.Null);
-			Assert.That(SolidKernel.ParseShimVersion("ebmc_occt 0.1; OCCT 8.0.1") < SolidKernel.RequiredVersion, Is.True);
+			Assert.That(SolidKernel.IsCompatible(SolidKernel.ParseShimVersion("ebmc_occt 0.2; OCCT 8.0.1")), Is.False, "0.2 has no triangle cap");
+			Assert.That(SolidKernel.IsCompatible(SolidKernel.ParseShimVersion("ebmc_occt 0.3; OCCT 8.0.1")), Is.True);
 		}
 
 		[Test]

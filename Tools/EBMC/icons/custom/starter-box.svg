@@ -1,0 +1,6 @@
+<!-- EBMC custom icon "starter-box": Club Starter box with lid: an open box with its lid lifted above it. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 11h18v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />
+  <path d="M2 6h20v4H2z" />
+  <path d="M10 14h4" />
+</svg>

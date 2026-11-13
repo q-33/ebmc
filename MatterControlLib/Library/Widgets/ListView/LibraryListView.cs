@@ -727,7 +727,23 @@ namespace MatterHackers.MatterControl.CustomWidgets
 			{
 				var popupMenu = new PopupMenu(ApplicationController.Instance.MenuTheme);
 
-				foreach (var menuAction in this.MenuActions.Where(m => m.Scope == ActionScope.ListView))
+				// EBMC Edition: club menu style; the separators now render (stock filtered them out by scope)
+				if (ClubUi.ClubStyle.On)
+				{
+					ClubUi.ClubMenuBuilder.BuildLibraryMenu(
+						popupMenu,
+						this.MenuActions,
+						inScope: (a) => a.Scope == ActionScope.ListView,
+						isEnabled: (a) => a.IsEnabled(this.SelectedItems, this),
+						hideDisabled: false,
+						invoke: (a) =>
+						{
+							popupMenu.Close();
+							a.Action.Invoke(this.SelectedItems.Select(o => o.Model), this);
+						});
+				}
+
+				foreach (var menuAction in this.MenuActions.Where(m => !ClubUi.ClubStyle.On && m.Scope == ActionScope.ListView))
 				{
 					if (menuAction is MenuSeparator)
 					{

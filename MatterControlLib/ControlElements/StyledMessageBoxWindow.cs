@@ -32,10 +32,33 @@ using Markdig.Agg;
 using MatterHackers.Agg.Font;
 using MatterHackers.Agg.UI;
 using MatterHackers.Localizations;
+using MatterHackers.MatterControl.ClubUi;
 using MatterHackers.VectorMath;
 
 namespace MatterHackers.MatterControl
 {
+	/// <summary>
+	/// EBMC Edition (ClubDialogsAndMenus): how a message box reads in the club dialog template. Everything here is
+	/// ignored with the switch off, so callers keep their stock labels and default there.
+	/// </summary>
+	public class ClubMessageOptions
+	{
+		/// <summary>The tile before the title; Auto shows a question for a yes/no box and info for an OK box.</summary>
+		public DialogSeverity Severity { get; set; } = DialogSeverity.Auto;
+
+		/// <summary>The affirmative button's label (a verb); null keeps the caller's label.</summary>
+		public string YesLabel { get; set; }
+
+		/// <summary>The negative (cancel) button's label; null keeps the caller's label.</summary>
+		public string NoLabel { get; set; }
+
+		/// <summary>The affirmative button is destructive: red, and Enter presses the negative button instead.</summary>
+		public bool Destructive { get; set; }
+
+		/// <summary>Enter presses the negative button even though the affirmative one is not destructive.</summary>
+		public bool SafeDefault { get; set; }
+	}
+
 	public static class StyledMessageBox
 	{
 		public enum MessageType
@@ -71,6 +94,23 @@ namespace MatterHackers.MatterControl
 			ShowMessageBox(callback, message, caption, null, messageType, yesOk, noCancel, useMarkdown, instanceIndex, width, height);
 		}
 
+		/// <summary>
+		/// EBMC Edition: a message box with club template options (labels, severity, safe default). With
+		/// ClubDialogsAndMenus off it is exactly the stock box with <paramref name="yesOk"/> and <paramref name="noCancel"/>.
+		/// </summary>
+		public static void ShowMessageBox(Action<bool> callback,
+			string message,
+			string caption,
+			MessageType messageType,
+			string yesOk,
+			string noCancel,
+			ClubMessageOptions clubOptions)
+		{
+			DialogWindow.Show(
+				new MessageBoxPage(callback, message, caption, messageType, null, 400, 300, yesOk, noCancel, ApplicationController.Instance.Theme, false, clubOptions),
+				0);
+		}
+
 		public static void ShowMessageBox(Action<bool> callback,
 			string message,
 			string caption,
@@ -95,10 +135,18 @@ namespace MatterHackers.MatterControl
 			private Action<bool> responseCallback;
 			private bool haveResponded = false;
 
-			public MessageBoxPage(Action<bool> callback, string message, string caption, MessageType messageType, GuiWidget[] extraWidgetsToAdd, double width, double height, string yesOk, string noCancel, ThemeConfig theme, bool useMarkdown = false)
-				: base((noCancel == "") ? "No".Localize() : noCancel)
+			public MessageBoxPage(Action<bool> callback, string message, string caption, MessageType messageType, GuiWidget[] extraWidgetsToAdd, double width, double height, string yesOk, string noCancel, ThemeConfig theme, bool useMarkdown = false, ClubMessageOptions clubOptions = null)
+				: base(ClubNoLabel(noCancel, clubOptions))
 			{
 				this.WindowSize = new Vector2(width * GuiWidget.DeviceScale, height * GuiWidget.DeviceScale);
+
+				// EBMC Edition: the club template's verb labels (ClubDialogsAndMenus)
+				bool club = ClubStyle.On;
+				if (club
+					&& !string.IsNullOrEmpty(clubOptions?.YesLabel))
+				{
+					yesOk = clubOptions.YesLabel;
+				}
 
 				if (yesOk == "")
 				{
@@ -150,7 +198,25 @@ namespace MatterHackers.MatterControl
 					this.DialogWindow.Close();
 				};
 
-				this.AddPageAction(affirmativeButton, messageType != MessageType.YES_NO_WITHOUT_HIGHLIGHT);
+				if (club
+					&& clubOptions?.Destructive == true)
+				{
+					this.AddPageAction(affirmativeButton, PageActionStyle.Destructive);
+				}
+				else if (club
+					&& clubOptions?.SafeDefault == true)
+				{
+					this.AddPageAction(affirmativeButton, PageActionStyle.Secondary);
+				}
+				else
+				{
+					this.AddPageAction(affirmativeButton, messageType != MessageType.YES_NO_WITHOUT_HIGHLIGHT);
+				}
+
+				if (club)
+				{
+					this.SafeDefault = clubOptions?.SafeDefault == true;
+				}
 
 				switch (messageType)
 				{
@@ -171,7 +237,28 @@ namespace MatterHackers.MatterControl
 						throw new NotImplementedException();
 				}
 
+				// EBMC Edition: the window shows the dialog's own title and a severity tile (ClubDialogsAndMenus)
+				if (club)
+				{
+					this.WindowTitle = ClubDialogRules.WindowTitle(caption, ApplicationController.Instance.ProductName);
+					this.Severity = ClubDialogRules.MessageBoxSeverity(
+						clubOptions?.Severity ?? DialogSeverity.Auto,
+						isQuestion: messageType != MessageType.OK,
+						destructive: clubOptions?.Destructive == true);
+				}
+
 				this.AdjustTextWrap();
+			}
+
+			private static string ClubNoLabel(string noCancel, ClubMessageOptions clubOptions)
+			{
+				if (ClubStyle.On
+					&& !string.IsNullOrEmpty(clubOptions?.NoLabel))
+				{
+					return clubOptions.NoLabel;
+				}
+
+				return (noCancel == "") ? "No".Localize() : noCancel;
 			}
 
 			public override void OnBoundsChanged(EventArgs e)
@@ -331,6 +418,13 @@ namespace MatterHackers.MatterControl
 
 				this.WindowTitle = ApplicationController.Instance.ProductName + " - " + "Please Confirm".Localize();
 				this.SetCancelButtonName("Cancel Button");
+
+				// EBMC Edition: the dialog's own title and a question tile (ClubDialogsAndMenus)
+				if (ClubStyle.On)
+				{
+					this.WindowTitle = ClubDialogRules.WindowTitle(caption, ApplicationController.Instance.ProductName);
+					this.Severity = DialogSeverity.Question;
+				}
 
 				this.AdjustTextWrap();
 			}

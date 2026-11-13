@@ -107,6 +107,8 @@ W('StaticData/Themes/System/EBMC/EBMC-Paper.themeset', {
 D_BG, D_TAB, D_RAISED, D_LINE = '#1F1C19', '#151311', '#2B2723', '#3D3731'
 D_TEXT, D_MUTED = '#EDE6DA', '#9A9186'
 D_FIELD = '#262320'
+# a focused field is a little lighter than an idle one (and than a hovered one, #2B2723), so focus is not mistaken for hover
+D_FIELD_FOCUS = '#2E2A26'
 # Disabled text: 3.6:1 on the workspace and 3.1:1 on menus (#5A534B was 2.2:1), still well below the
 # muted text (#9A9186, 5.5:1) so it reads as disabled. Used for disabled text, borders and palette glyphs.
 D_DISABLED = '#7A7268'
@@ -133,7 +135,7 @@ def recolor_dark(t):
     })
     # a focused field stays dark (stock: cream #FFF7EA), marked by the accent border
     t['EditFieldColors'] = {
-        'Focused': dfield(D_FIELD, ORANGE, light=D_MUTED),
+        'Focused': dfield(D_FIELD_FOCUS, ORANGE, light=D_MUTED),
         'Hovered': dfield(D_RAISED, ORANGE, text='#FFFFFF'),
         'Inactive': dfield(D_FIELD, D_TAB, light=D_MUTED)}
     t['DropList'] = {
@@ -163,7 +165,7 @@ menu.update({'TextColor': D_TEXT, 'BackgroundColor': D_RAISED,
              'SectionBackgroundColor': D_BG, 'BedBackgroundColor': D_BG,
              'ButtonRadius': 6})
 menu['EditFieldColors'] = {
-    'Focused': dfield(D_FIELD, ORANGE, light=D_MUTED),
+    'Focused': dfield(D_FIELD_FOCUS, ORANGE, light=D_MUTED),
     'Hovered': dfield(D_FIELD, ORANGE, light=D_MUTED),
     'Inactive': dfield(D_FIELD, D_LINE, light=D_MUTED)}
 menu['DropList'] = {
@@ -208,6 +210,21 @@ s.update({'ShowShopButton': False, 'UnregisteredProductName': 'EBMC',
           # Interface typeface: Nunito (StaticData/Fonts/Nunito_*.ttf, SIL OFL) instead of Liberation Sans;
           # empty keeps the stock font. Text parts (3D text objects) keep their own font setting
           'DefaultUiFont': 'Nunito',
+          # The "Simple · Advanced" switch in the top bar; a new user starts in Simple. A mode only changes which
+          # tools, panels and settings rows are shown, never a setting value or how a print is sliced or sent
+          'ShowUiModeSwitch': True,
+          'DefaultUiMode': 'Simple',
+          # Club shapes (Rounded Box, Tube, Polygon Prism, Star, Heart, Slot Plate, Gear) and the Club Starters
+          # (fill-in designs) on design tabs; ordinary parts whose output is a normal mesh
+          'EnableClubShapes': True,
+          # A new design tab opens empty with a "Start a design" card; the club badge becomes one of the starters
+          'NewDesignStartsEmpty': True,
+          # Advanced-mode design tools: command search (Cmd/Ctrl + K), typed Transform fields, Mirror Copy and the
+          # keyboard shortcuts sheet. They only change the design through the undo buffer; nothing prints or slices
+          'EnableAdvancedTools': True,
+          # Club dialog template (verb buttons, Enter never picks a destructive one) and menu style (sections, shortcut
+          # hints, danger items last), and toasts for short notices. Same actions and gating as the stock menus
+          'ClubDialogsAndMenus': True,
           # No MatterHackers affiliate/referral code added to links
           'AffiliateCode': ''})
 # Drop upstream's branded sample parts from the preloaded list (no C# code reads this key;

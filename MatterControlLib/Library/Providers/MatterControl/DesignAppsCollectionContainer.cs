@@ -73,6 +73,20 @@ namespace MatterHackers.MatterControl.Library
                     IsReadOnly = true
                 });
 
+            // EBMC Edition: the Club Starters folder, only when EnableClubShapes is on
+            if (DesignTools.ClubShapes.ClubShapesFeature.IsEnabled)
+            {
+                this.ChildContainers.Add(
+                    new DynamicContainerLink(
+                        "Club Starters".Localize(),
+                        StaticData.Instance.LoadIcon(Path.Combine("Library", "folder.png")),
+                        StaticData.Instance.LoadIcon(Path.Combine("Library", "primitives_library_icon.png")),
+                        () => new ClubStartersContainer())
+                    {
+                        IsReadOnly = true
+                    });
+            }
+
             this.ChildContainers.Add(
                 new DynamicContainerLink(
                     "Primitives 2D".Localize(),

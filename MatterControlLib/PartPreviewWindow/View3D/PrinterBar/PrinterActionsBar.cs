@@ -31,11 +31,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using MatterHackers.Agg;
 using MatterHackers.Agg.Platform;
 using MatterHackers.Agg.UI;
 using MatterHackers.ImageProcessing;
 using MatterHackers.Localizations;
+using MatterHackers.MatterControl.ClubUi;
 using MatterHackers.MatterControl.ActionBar;
 using MatterHackers.MatterControl.CustomWidgets;
 using MatterHackers.MatterControl.EeProm;
@@ -88,7 +90,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				{
 					Margin = theme.ButtonSpacing
 				};
-				this.AddChild(sendButton);
+				// EBMC Edition: the print, send, connect and slice buttons never go to the overflow menu (they would be
+				// blank or dead rows there); other items overflow first
+				this.AddChild(this.NeverOverflow(sendButton));
 
 				theme.ApplyPrimaryActionStyle(sendButton);
 			}
@@ -112,14 +116,14 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					this.AddChild(resetConnectionButton);
 				}
 
-				this.AddChild(new PrinterConnectButton(printer, theme));
+				this.AddChild(this.NeverOverflow(new PrinterConnectButton(printer, theme)));
 
 				// add the start print button
 				GuiWidget startPrintButton;
-				this.AddChild(startPrintButton = new PrintPopupMenu(printer, theme)
+				this.AddChild(startPrintButton = this.NeverOverflow(new PrintPopupMenu(printer, theme)
 				{
 					Margin = theme.ButtonSpacing
-				});
+				}));
 
 				void SetPrintButtonStyle(object s, EventArgs e)
 				{
@@ -150,16 +154,16 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					Margin = theme.ButtonSpacing
 				};
 				// add the SLA export button
-				this.AddChild(exportButton);
+				this.AddChild(this.NeverOverflow(exportButton));
 
 				theme.ApplyPrimaryActionStyle(exportButton);
 			}
 
-			this.AddChild(new SliceButton(printer, printerTabPage, theme)
+			this.AddChild(this.NeverOverflow(new SliceButton(printer, printerTabPage, theme)
 			{
 				Name = "Generate Gcode Button",
 				Margin = theme.ButtonSpacing,
-			});
+			}));
 
 			// Add vertical separator
 			this.AddChild(new ToolbarSeparator(theme.GetBorderColor(50), theme.SeparatorMargin)
@@ -329,6 +333,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			{
 				new NamedAction()
 				{
+					ID = ClubMenus.Eeprom,
 					Icon = StaticData.Instance.LoadIcon("memory_16x16.png", 16, 16).GrayToColor(theme.TextColor),
 					Title = "Configure EEProm".Localize(),
 					Action = configureEePromButton_Click,
@@ -337,6 +342,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			};
 			menuActions.Add(new NamedBoolAction()
 			{
+				ID = ClubMenus.ShowPrinter,
 				Title = "Show Printer".Localize(),
 				Action = () => { },
 				GetIsActive = () => printer.ViewState.ConfigurePrinterVisible,
@@ -347,6 +353,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			{
 				menuActions.Add(new NamedBoolAction()
 				{
+					ID = ClubMenus.ShowControls,
 					Title = "Show Controls".Localize(),
 					Action = () => { },
 					GetIsActive = () => printer.ViewState.ControlsVisible && Maintainer.CanManagePrinter,
@@ -355,6 +362,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				});
 				menuActions.Add(new NamedBoolAction()
 				{
+					ID = ClubMenus.ShowTerminal,
 					Title = "Show Terminal".Localize(),
 					Action = () => { },
 					GetIsActive = () => printer.ViewState.TerminalVisible && Maintainer.CanManagePrinter,
@@ -365,6 +373,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			menuActions.Add(new ActionSeparator());
 			menuActions.Add(new NamedAction()
 			{
+				ID = ClubMenus.ImportSettings,
 				Title = "Import Presets".Localize(),
 				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () =>
@@ -406,6 +415,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			});
 			menuActions.Add(new NamedAction()
 			{
+				ID = ClubMenus.ExportSettings,
 				Title = "Export Printer".Localize(),
 				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () => UiThread.RunOnIdle(() =>
@@ -417,6 +427,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			menuActions.Add(new ActionSeparator());
 			menuActions.Add(new NamedAction()
 			{
+				ID = ClubMenus.Calibrate,
 				Title = "Calibrate Printer".Localize(),
 				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () => UiThread.RunOnIdle(() =>
@@ -431,6 +442,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			menuActions.Add(new ActionSeparator());
 			menuActions.Add(new NamedAction()
 			{
+				ID = ClubMenus.UpdateSettings,
 				Title = "Update Settings...".Localize(),
 				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () =>
@@ -441,6 +453,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			});
 			menuActions.Add(new NamedAction()
 			{
+				ID = ClubMenus.RestoreSettings,
 				Title = "Restore Settings...".Localize(),
 				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () =>
@@ -450,6 +463,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			});
 			menuActions.Add(new NamedAction()
 			{
+				ID = ClubMenus.ResetSettings,
 				Title = "Reset to Defaults...".Localize(),
 				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () =>
@@ -470,12 +484,22 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 						},
 						"Resetting to default values will remove your current overrides and restore your original printer settings.\nAre you sure you want to continue?".Localize(),
 						"Revert Settings".Localize(),
-						StyledMessageBox.MessageType.YES_NO);
+						StyledMessageBox.MessageType.YES_NO,
+						"",
+						"",
+						// EBMC Edition: club template labels; Enter keeps the settings (ClubDialogsAndMenus)
+						new ClubMessageOptions()
+						{
+							YesLabel = "Reset to club defaults".Localize(),
+							NoLabel = "Cancel".Localize(),
+							Destructive = true,
+						});
 				}
 			});
 			menuActions.Add(new ActionSeparator());
 			menuActions.Add(new NamedAction()
 			{
+				ID = ClubMenus.DeletePrinter,
 				Title = "Delete Printer".Localize(),
 				IsEnabled = () => Maintainer.CanManagePrinter,
 				Action = () =>
@@ -491,7 +515,15 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 						"Are you sure you want to delete printer '{0}'?".Localize().FormatWith(printer.PrinterName),
 						"Delete Printer?".Localize(),
 						StyledMessageBox.MessageType.YES_NO,
-						"Delete Printer".Localize());
+						"Delete Printer".Localize(),
+						"",
+						// EBMC Edition: club template labels; Enter keeps the printer (ClubDialogsAndMenus)
+						new ClubMessageOptions()
+						{
+							YesLabel = "Delete printer".Localize(),
+							NoLabel = "Keep".Localize(),
+							Destructive = true,
+						});
 				},
 			});
 
@@ -501,6 +533,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				menuActions.Add(new ActionSeparator());
 				menuActions.Add(new NamedAction()
 				{
+					ID = ClubMenus.MaintainerLock,
 					Title = Maintainer.IsUnlocked ? "Lock maintainer settings".Localize() : "Unlock maintainer settings...".Localize(),
 					Action = () => UiThread.RunOnIdle(() =>
 					{
@@ -514,6 +547,34 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 						}
 					}),
 				});
+			}
+
+			// EBMC Edition: the club menu style and grouping (OemSettings.ClubDialogsAndMenus): the same actions with the
+			// same enable rules, laid out by ClubMenus.PrinterOptions; locked items stay visible with the lock reason
+			if (ClubStyle.On)
+			{
+				var sources = new Dictionary<string, ClubMenuSource>();
+				foreach (var action in menuActions.Where(a => a.ID != null))
+				{
+					if (action.ID != ClubMenus.ShowPrinter
+						&& action.ID != ClubMenus.MaintainerLock)
+					{
+						action.IsBlockedByLock = () => !Maintainer.CanManagePrinter;
+					}
+
+					sources[action.ID] = action.ID == ClubMenus.Eeprom
+						? new ClubMenuSource(action, () => "Connect to the printer first".Localize())
+						: new ClubMenuSource(action);
+				}
+
+				// "Unlock maintainer settings..." opens the PIN dialog: one ellipsis character
+				if (sources.TryGetValue(ClubMenus.MaintainerLock, out var lockSource))
+				{
+					lockSource.Action.Title = ClubMenuText.WithEllipsis(lockSource.Action.Title, !Maintainer.IsUnlocked);
+				}
+
+				ClubMenuBuilder.Build(popupMenu, ClubMenus.PrinterOptions, sources);
+				return;
 			}
 
 			theme.CreateMenuItems(popupMenu, menuActions);

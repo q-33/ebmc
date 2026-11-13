@@ -263,7 +263,14 @@ namespace MatterHackers.MatterControl.OctoPrint
 				"Forget API Key".Localize(),
 				StyledMessageBox.MessageType.YES_NO,
 				"Forget".Localize(),
-				"Cancel".Localize());
+				"Cancel".Localize(),
+				// EBMC Edition: club template labels; Enter keeps the key (ClubDialogsAndMenus)
+				new ClubMessageOptions()
+				{
+					YesLabel = "Forget key".Localize(),
+					NoLabel = "Keep key".Localize(),
+					Destructive = true,
+				});
 		}
 	}
 }

@@ -104,15 +104,206 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		/// </summary>
 		public bool ReserveTrailingItems { get; set; } = true;
 
-		public override void OnBoundsChanged(EventArgs e)
-		{
-			base.OnBoundsChanged(e);
+		/// <summary>
+		/// EBMC Edition: items that never overflow (the printer row's Print/Send popups, Slice and Connect, which make no
+		/// sense as plain menu rows). Their room is reserved first, so the other items overflow before them.
+		/// </summary>
+		private readonly HashSet<GuiWidget> neverOverflow = new HashSet<GuiWidget>();
 
-			if (this.RightAnchorItem == null)
+		/// <summary>
+		/// EBMC Edition: true for the item that is currently selected (the active tab of a tab strip). It is kept visible
+		/// like a <see cref="NeverOverflow"/> item, and marked as checked if it ever has to go in the overflow menu.
+		/// </summary>
+		public Func<GuiWidget, bool> IsActiveItem { get; set; }
+
+		/// <summary>
+		/// EBMC Edition: action-area children hidden by their owner (for example the library breadcrumb while searching),
+		/// as opposed to hidden here because they did not fit. The fit leaves them hidden and the menu leaves them out.
+		/// </summary>
+		private readonly HashSet<GuiWidget> hiddenByOwner = new HashSet<GuiWidget>();
+
+		/// <summary>Children whose size and visibility changes are watched, with what removes the handlers again.</summary>
+		private readonly Dictionary<GuiWidget, Action> watched = new Dictionary<GuiWidget, Action>();
+
+		/// <summary>Loop guard: true while the fit itself changes visibility.</summary>
+		private bool fitting;
+
+		/// <summary>True while a re-fit is queued for the next idle.</summary>
+		private bool fitQueued;
+
+		/// <summary>
+		/// EBMC Edition: keeps <paramref name="widget"/> (a child of the action area) out of the overflow menu; other items
+		/// overflow first.
+		/// </summary>
+		public T NeverOverflow<T>(T widget)
+			where T : GuiWidget
+		{
+			neverOverflow.Add(widget);
+			return widget;
+		}
+
+		/// <summary>
+		/// EBMC Edition: runs the fit again on the next idle (once, however many times it is asked for), for changes the
+		/// bar's own bounds do not show: a child getting wider, a child shown or hidden by its owner, the active tab.
+		/// </summary>
+		public void RequestFit()
+		{
+			if (fitQueued)
 			{
 				return;
 			}
 
+			fitQueued = true;
+			UiThread.RunOnIdle(() =>
+			{
+				fitQueued = false;
+				FitItems();
+			});
+		}
+
+		/// <summary>
+		/// EBMC Edition: the owner of an action-area child shows or hides it (for example the library breadcrumb while
+		/// searching). Use this rather than setting Visible: an item the fit had already hidden raises no VisibleChanged
+		/// when its owner hides it too, so only this records the owner's intent reliably. Shown items still overflow when
+		/// they do not fit.
+		/// </summary>
+		public void SetOwnerVisible(GuiWidget widget, bool visible)
+		{
+			if (visible)
+			{
+				hiddenByOwner.Remove(widget);
+			}
+			else
+			{
+				hiddenByOwner.Add(widget);
+			}
+
+			// the owner's decision is recorded above; the VisibleChanged this causes must not be read as one again
+			var wasFitting = fitting;
+			fitting = true;
+			try
+			{
+				widget.Visible = visible;
+			}
+			finally
+			{
+				fitting = wasFitting;
+			}
+
+			RequestFit();
+		}
+
+		private void Watch(GuiWidget widget)
+		{
+			if (watched.ContainsKey(widget))
+			{
+				return;
+			}
+
+			// A child that is already hidden when it is first seen was hidden by its owner
+			if (!widget.Visible)
+			{
+				hiddenByOwner.Add(widget);
+			}
+
+			double lastWidth = widget.Width;
+			void BoundsChangedHandler(object s, EventArgs e)
+			{
+				// only a change of size matters (a label widening); moves caused by the fit do not
+				if (!fitting
+					&& widget.Width != lastWidth)
+				{
+					lastWidth = widget.Width;
+					RequestFit();
+				}
+			}
+
+			void VisibleChangedHandler(object s, EventArgs e)
+			{
+				if (fitting)
+				{
+					return;
+				}
+
+				// Not the fit: the owner showed or hid it (owners that do not use SetOwnerVisible)
+				if (widget.Visible)
+				{
+					hiddenByOwner.Remove(widget);
+				}
+				else
+				{
+					hiddenByOwner.Add(widget);
+				}
+
+				RequestFit();
+			}
+
+			void ClosedHandler(object s, EventArgs e) => Forget(widget);
+
+			widget.BoundsChanged += BoundsChangedHandler;
+			widget.VisibleChanged += VisibleChangedHandler;
+			widget.Closed += ClosedHandler;
+			watched[widget] = () =>
+			{
+				widget.BoundsChanged -= BoundsChangedHandler;
+				widget.VisibleChanged -= VisibleChangedHandler;
+				widget.Closed -= ClosedHandler;
+			};
+		}
+
+		/// <summary>Stops watching a child (closed, or removed from the action area without being closed).</summary>
+		private void Forget(GuiWidget widget)
+		{
+			if (watched.TryGetValue(widget, out var unhook))
+			{
+				unhook();
+				watched.Remove(widget);
+			}
+
+			hiddenByOwner.Remove(widget);
+			neverOverflow.Remove(widget);
+		}
+
+		public override void OnClosed(EventArgs e)
+		{
+			foreach (var widget in watched.Keys.ToList())
+			{
+				Forget(widget);
+			}
+
+			base.OnClosed(e);
+		}
+
+		private bool KeepVisible(GuiWidget widget) => neverOverflow.Contains(widget) || IsActiveItem?.Invoke(widget) == true;
+
+		public override void OnBoundsChanged(EventArgs e)
+		{
+			base.OnBoundsChanged(e);
+
+			FitItems();
+		}
+
+		private void FitItems()
+		{
+			if (this.RightAnchorItem == null
+				|| fitting)
+			{
+				return;
+			}
+
+			fitting = true;
+			try
+			{
+				Fit();
+			}
+			finally
+			{
+				fitting = false;
+			}
+		}
+
+		private void Fit()
+		{
 			// EBMC Edition: an item is shown only when all of it fits (stock showed it when half of it fitted, so the last
 			// tab was clipped and never offered in the overflow menu), measured against the room the action area really
 			// has: the bar less its padding, the action area's margins and padding, and the overflow button with its margins
@@ -126,7 +317,21 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				- reservedRight
 				- actionArea.DevicePadding.Width;
 
-			var items = actionArea.Children.Where(c => !ignoredTypes.Contains(c.GetType())).ToList();
+			var children = actionArea.Children.Where(c => !ignoredTypes.Contains(c.GetType())).ToList();
+
+			// children removed from the action area without being closed: drop their handlers (no leak)
+			foreach (var gone in watched.Keys.Where(w => !actionArea.Children.Contains(w)).ToList())
+			{
+				Forget(gone);
+			}
+
+			foreach (var child in children)
+			{
+				Watch(child);
+			}
+
+			// Items their owner has hidden stay hidden and take no room
+			var items = children.Where(c => !hiddenByOwner.Contains(c)).ToList();
 
 			// Stretched widgets take what is left, so only their minimum size counts
 			double ItemWidth(GuiWidget widget)
@@ -149,13 +354,23 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				}
 			}
 
-			// Reserve the right-aligned group first; if even that does not fit, its last items overflow
+			// Items that must stay (the active tab, the print and slice buttons) are reserved first
+			double keptWidth = leading.Concat(trailing).Where(KeepVisible).Sum(ItemWidth);
+			double room = available - keptWidth;
+
+			// Then the right-aligned group; if even that does not fit, its last items overflow
 			double trailingWidth = 0;
 			bool withinLimits = true;
 			foreach (var widget in trailing)
 			{
+				if (KeepVisible(widget))
+				{
+					widget.Visible = true;
+					continue;
+				}
+
 				var width = ItemWidth(widget);
-				withinLimits &= trailingWidth + width <= available;
+				withinLimits &= trailingWidth + width <= room;
 				widget.Visible = withinLimits;
 				if (withinLimits)
 				{
@@ -163,12 +378,19 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				}
 			}
 
-			// Then the leading items, left to right; once one does not fit, it and all after it overflow
+			// Then the leading items, left to right; once one does not fit, it and all after it overflow (the kept items
+			// stay, so it is the last items that are not kept that go to the menu)
 			double accumulatedX = 0;
-			double room = available - trailingWidth;
+			room -= trailingWidth;
 			withinLimits = true;
 			foreach (var widget in leading)
 			{
+				if (KeepVisible(widget))
+				{
+					widget.Visible = true;
+					continue;
+				}
+
 				var width = ItemWidth(widget);
 				withinLimits &= accumulatedX + width <= room;
 				widget.Visible = withinLimits;
@@ -185,7 +407,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 				// Perform overflow
 				bool hasOverflowItems = false;
-				foreach (var widget in this.ActionArea.Children.Where(c => !c.Visible && !ignoredInMenuTypes.Contains(c.GetType())))
+				// EBMC Edition: only what the fit hid; never what the owner hid on purpose
+				foreach (var widget in this.ActionArea.Children.Where(c => !c.Visible && !hiddenByOwner.Contains(c) && !ignoredInMenuTypes.Contains(c.GetType())))
 				{
 					if (widget is ToolbarSeparator)
 					{
@@ -202,8 +425,17 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					var iconImage = iconButton?.IconImage;
 
 					// EBMC Edition: tabs have no tooltip, so fall back to their label when the tooltip is empty as well as null
+					var menuText = string.IsNullOrEmpty(widget.ToolTipText) ? widget.Text : widget.ToolTipText;
+					if (IsActiveItem?.Invoke(widget) == true)
+					{
+						// the selected tab, if even it had to overflow: shown checked
+						menuItem = popupMenu.CreateBoolMenuItem(menuText, () => true, (value) => widget.InvokeClick());
+						menuItem.Enabled = widget.Enabled;
+						continue;
+					}
+
 					menuItem = popupMenu.CreateMenuItem(
-						string.IsNullOrEmpty(widget.ToolTipText) ? widget.Text : widget.ToolTipText,
+						menuText,
 						iconImage);
 
 					menuItem.Enabled = widget.Enabled;

@@ -181,11 +181,15 @@ namespace MatterHackers.MatterControl
                 Markdown = toolTipText
             };
 
-            foreach (var word in markdownWidegt.Descendants<TextWidget>().Where(t => t.PointSize == 10))
+            // PointSize is stored scaled by DeviceScale and read back divided, so compare with a tolerance
+            foreach (var word in markdownWidegt.Descendants<TextWidget>().Where(t => Math.Abs(t.PointSize - 10) < 0.05))
             {
                 word.PointSize = Theme.DefaultFontSize;
             }
 
+            // The paragraphs were wrapped at 10 pt; they re-wrap only when their width changes, so nudge the width and
+            // set it back to wrap the larger words before reading the line widths
+            markdownWidegt.Width = 350 * GuiWidget.DeviceScale + 1;
             markdownWidegt.Width = 350 * GuiWidget.DeviceScale;
 			var maxLineWidth = 0.0;
 			if (markdownWidegt.Descendants<ParagraphX>().Any())

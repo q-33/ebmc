@@ -94,7 +94,7 @@ namespace MatterHackers.MatterControl.DesignTools
 
 			using (RebuildLock())
 			{
-				Temperature = Util.Clamp(Temperature, 140, 400, ref valuesChanged);
+				Temperature = Util.Clamp(Temperature, 140, 300, ref valuesChanged);
 
 				using (new CenterAndHeightMaintainer(this))
 				{

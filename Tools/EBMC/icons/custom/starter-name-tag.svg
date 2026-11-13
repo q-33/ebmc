@@ -1,0 +1,7 @@
+<!-- EBMC custom icon "starter-name-tag": Club Starter name tag: a rounded tag with a ring hole at the left and two lines of text. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="2" y="7" width="20" height="10" rx="3" />
+  <circle cx="5.5" cy="12" r="1.2" />
+  <path d="M9 10.5h9" />
+  <path d="M9 13.5h6" />
+</svg>

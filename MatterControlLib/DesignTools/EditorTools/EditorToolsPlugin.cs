@@ -48,6 +48,17 @@ namespace MatterHackers.Plugins.EditorTools
 				applicationController.Library.RegisterCreator(item);
 			}
 
+			// EBMC Edition: the Club Starters join the root items (the shapes palette, the classic rail) when EnableClubShapes is on
+			if (MatterHackers.MatterControl.DesignTools.ClubShapes.ClubShapesFeature.IsEnabled)
+			{
+				var starters = new ClubStartersContainer();
+				starters.Load();
+				foreach (var item in starters.Items.OfType<GeneratorItem>())
+				{
+					applicationController.Library.RegisterCreator(item);
+				}
+			}
+
 			applicationController.EditorExtensions.RegisterFactory((theme, undoBuffer) => new OpenSCADBuilder());
 			// applicationController.Extensions.Register(new PrimitivesEditor());
 		}

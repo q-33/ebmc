@@ -83,6 +83,14 @@ namespace MatterHackers.MatterControl
 		public const string ThumbnailRenderingMode = nameof(ThumbnailRenderingMode);
 		public const string TurntableMode = nameof(TurntableMode);
 		public const string UpdateFeedType = nameof(UpdateFeedType);
+		/// <summary>EBMC Edition: the app-wide Simple · Advanced mode ("Simple" or "Advanced"; see UiModes).</summary>
+		public const string UiMode = nameof(UiMode);
+		/// <summary>EBMC Edition: the last Slice Settings detail level picked while in Advanced mode (Intermediate or Advanced).</summary>
+		public const string UiModeLastAdvancedDetail = nameof(UiModeLastAdvancedDetail);
+		/// <summary>EBMC Edition: "true" once the one-time "Advanced shows every tool" hint has been shown.</summary>
+		public const string UiModeAdvancedHintShown = nameof(UiModeAdvancedHintShown);
+		/// <summary>EBMC Edition: "true" once the user chose "Don't show this again" on a new design tab's start card.</summary>
+		public const string HideDesignStartCard = nameof(HideDesignStartCard);
 		public const string MainTabKey = nameof(MainTabKey);
 	}
 

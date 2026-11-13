@@ -75,6 +75,13 @@ namespace MatterHackers.Agg.UI
 		/// turn on TrimPrinterTabToolbar. Design tabs always show it.
 		/// </summary>
 		public bool ShowOnPrinterTabs { get; set; } = true;
+
+		/// <summary>
+		/// EBMC Edition: true keeps this operation on the toolbar and in the Modify and Action menus in Simple mode (see
+		/// UiModes). False by default: groups are hidden in Simple; an operation marked true inside a hidden group is
+		/// shown on its own on design tabs only (Align). Advanced and the stock build (switch off) ignore it.
+		/// </summary>
+		public bool ShowInSimpleMode { get; set; } = false;
 	}
 
 	public class SceneSelectionSeparator : SceneOperation

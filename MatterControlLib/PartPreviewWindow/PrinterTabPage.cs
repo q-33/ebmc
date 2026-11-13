@@ -335,7 +335,14 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 							"Resume".Localize(),
 							"OK".Localize(),
 							ApplicationController.Instance.Theme,
-							false);
+							false,
+							// EBMC Edition: "OK" says what it does; Enter still presses Unload Filament, added below (the first
+							// highlighted action, as in the stock dialog) (ClubDialogsAndMenus)
+							new ClubMessageOptions()
+							{
+								Severity = ClubUi.DialogSeverity.Warning,
+								NoLabel = "Stay paused".Localize(),
+							});
 
 						messageBox.AddPageAction(unloadFilamentButton);
 
@@ -356,7 +363,13 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					pauseCaption,
 					StyledMessageBox.MessageType.YES_NO,
 					"Resume".Localize(),
-					"OK".Localize()));
+					"OK".Localize(),
+					// EBMC Edition: "OK" says what it does; Resume stays the Enter default (ClubDialogsAndMenus)
+					new ClubMessageOptions()
+					{
+						Severity = ClubUi.DialogSeverity.Info,
+						NoLabel = "Stay paused".Localize(),
+					}));
 			}
 		}
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,7 +28,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 	/// shown. The Task returned by Rebuild completes after the mesh is in place, which the size handles rely on to
 	/// keep the opposite side still.
 	/// </remarks>
-	public abstract class SolidObject3D : Object3D, ISolidShapeSource
+	public abstract class SolidObject3D : Object3D, ISolidShapeSource, IRestoresMissingMesh
 	{
 		private readonly object buildGate = new object();
 
@@ -53,16 +54,72 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 		/// Reads and clamps the parameters on the calling thread and returns the build to run on the worker (which must
 		/// only use the captured values), or null when the parameters cannot be built (after reporting why).
 		/// </summary>
-		private protected abstract Func<OcctShape> PrepareBuild(ref bool valuesChanged, out SolidProblem problem);
+		/// <param name="clampStored">
+		/// True (UI thread, Rebuild) writes clamped values back into the properties, as the other primitives do; false
+		/// (export, any thread) only reads them and clamps a copy.
+		/// </param>
+		private protected abstract Func<OcctShape> PrepareBuild(bool clampStored, ref bool valuesChanged, out SolidProblem problem);
+
+		// once per session, not once per part
+		private static bool unavailableShown;
+
+		/// <summary>
+		/// With solid modelling off (switch off or no kernel) the parameters cannot be turned into a new mesh, so their
+		/// rows are shown but not editable (nobody saves values that do not match the mesh), with one plain notice per
+		/// session.
+		/// Call from UpdateControls.
+		/// </summary>
+		protected void LockRowsWhenUnavailable(PublicPropertyChange change)
+		{
+			if (SolidModeling.IsEnabled)
+			{
+				return;
+			}
+
+			foreach (var property in GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly))
+			{
+				if (change?.EditorContext?.GetEditRow(property.Name) is GuiWidget row)
+				{
+					row.Enabled = false;
+				}
+			}
+
+			if (!unavailableShown)
+			{
+				unavailableShown = true;
+				Report(SolidProblem.KernelUnavailable);
+			}
+		}
+
+		/// <summary>True when the size handles may change the parameters (solid modelling on).</summary>
+		protected static bool CanEditSize => SolidModeling.IsEnabled;
+
+		/// <summary>A parameter's value limited to [min, max]; stored back only when clampStored.</summary>
+		protected double Read(DoubleOrExpression value, double min, double max, bool clampStored, ref bool valuesChanged)
+		{
+			if (clampStored)
+			{
+				return value.ClampIfNotCalculated(this, min, max, ref valuesChanged);
+			}
+
+			// DoubleOrExpression.Value() would store ExpressionValueAtLastRebuild while the part is rebuild-locked, so
+			// evaluate the expression directly: nothing on the part is written. A value that cannot be a number comes
+			// back as NaN, which every spec's Check() reports as an invalid size (never quietly the minimum).
+			var v = Expressions.EvaluateExpression<double>(this, value?.Expression ?? "");
+			return SolidLimits.ClampOrNaN(v, min, max);
+		}
 
 		/// <summary>
 		/// The exact shape for STEP export, made from the current values, in this object's own coordinates (the same
-		/// ones as its mesh). Null when the values cannot be built. Run the returned function off the UI thread.
+		/// ones as its mesh). Null when the values cannot be built, with the same plain message the part shows. Reads the
+		/// values without writing anything to the part, so it may run on the export's worker thread.
 		/// </summary>
-		Func<OcctShape> ISolidShapeSource.ExportShape()
+		Func<OcctShape> ISolidShapeSource.ExportShape(out string problemMessage)
 		{
 			bool valuesChanged = false;
-			return PrepareBuild(ref valuesChanged, out _);
+			var build = PrepareBuild(false, ref valuesChanged, out var problem);
+			problemMessage = build == null ? SolidMessages.For(problem == SolidProblem.None ? SolidProblem.InvalidSize : problem, Kind, s => s.Localize()) : null;
+			return build;
 		}
 
 		/// <summary>The face id per triangle and edge polylines of the current mesh (memory only; null until built here).</summary>
@@ -108,10 +165,55 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 				return;
 			}
 
+			// only for a part in an open tab's scene: not for library thumbnails, off-scene clones or undo copies. A part
+			// not in an open scene yet (a slow start restoring several tabs) is looked at again when a scene gains parts,
+			// with no time limit and no polling (MissingMeshWatch); one that never arrives is left alone.
+			if (!IsInOpenScene())
+			{
+				MissingMeshWatch.Add(this);
+				return;
+			}
+
 			if (SolidModeling.IsEnabled && !IsBuilding)
 			{
 				Rebuild();
 			}
+		}
+
+		bool IRestoresMissingMesh.TryRestoreMissingMesh()
+		{
+			var mesh = base.Mesh;
+			if (mesh != null && mesh != Object3D.FileMissingMesh)
+			{
+				return true;
+			}
+
+			if (!IsInOpenScene())
+			{
+				return false;
+			}
+
+			if (SolidModeling.IsEnabled && !IsBuilding)
+			{
+				Rebuild();
+			}
+
+			return true;
+		}
+
+		/// <summary>True when this object's root is the scene of an open design or printer tab.</summary>
+		private bool IsInOpenScene()
+		{
+			// a scene's children hang under a private source item, so look for the top-level part (the ancestor just
+			// below the root) among the children of an open tab's scene
+			var chain = this.AncestorsAndSelf().ToList();
+			if (chain.Count < 2)
+			{
+				return false;
+			}
+
+			var topLevel = chain[chain.Count - 2];
+			return ApplicationController.Instance?.Workspaces?.Any(w => w.SceneContext?.Scene?.Children.Contains(topLevel) == true) == true;
 		}
 
 		public override async void OnInvalidate(InvalidateArgs invalidateArgs)
@@ -135,7 +237,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 			this.DebugDepth("Rebuild");
 
 			bool valuesChanged = false;
-			var build = PrepareBuild(ref valuesChanged, out var problem);
+			var build = PrepareBuild(true, ref valuesChanged, out var problem);
 			Invalidate(InvalidateType.DisplayValues);
 
 			// One gate for everything (OEM switch first, so a stock build never loads the native library): without it a
@@ -172,7 +274,26 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 
 		private void StartWorker()
 		{
-			ApplicationController.Instance.Tasks.Execute(BuildTitle, this, (reporter, cancellationTokenSource) => Work(reporter, cancellationTokenSource));
+			try
+			{
+				ApplicationController.Instance.Tasks.Execute(BuildTitle, this, (reporter, cancellationTokenSource) => Work(reporter, cancellationTokenSource));
+			}
+			catch (Exception ex)
+			{
+				// the worker never started: let later Rebuilds start one, and finish everyone waiting
+				Trace.WriteLine(BuildTitle + ": could not start a build: " + ex.Message);
+				List<TaskCompletionSource<bool>> leftover;
+				lock (buildGate)
+				{
+					leftover = waiting;
+					waiting = new List<TaskCompletionSource<bool>>();
+					pendingBuild = null;
+					workerRunning = false;
+				}
+
+				UiThread.RunOnIdle(() => Complete(leftover));
+				Report(SolidProblem.KernelRefused);
+			}
 		}
 
 		/// <summary>
@@ -182,7 +303,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 		protected async Task BuildDetached()
 		{
 			bool valuesChanged = false;
-			var build = PrepareBuild(ref valuesChanged, out _);
+			var build = PrepareBuild(true, ref valuesChanged, out _);
 			if (build == null || !SolidModeling.IsEnabled)
 			{
 				return;
@@ -287,8 +408,9 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 				bool restart;
 				lock (buildGate)
 				{
-					// after a cancel, values set during the cancelled build still need a build; after a failure, stop
-					restart = !failed && pendingBuild != null;
+					// values set during the build (also a cancelled or failed one) still need a build: a slider dragged
+					// through a value that cannot be built must end with the newest values (ClubBuildRules.Restart)
+					restart = ClubShapes.ClubBuildRules.Restart(failed, pendingBuild != null);
 					if (restart)
 					{
 						leftover = current ?? new List<TaskCompletionSource<bool>>();
@@ -338,24 +460,46 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 				return;
 			}
 
-			using (RebuildLock())
+			// The new mesh always goes onto the part: a part deleted while it was building can come back with Undo (the same
+			// object, re-added), and must then show the shape that matches its values. Only telling the parents is skipped
+			// while it is out of the scene (agg-sharp never clears Parent on removal).
+			var (assignMesh, notifyParents) = SolidApplyRule.ForFinishedBuild(
+				succeeded: true,
+				hasParent: Parent != null,
+				inParentsChildren: Parent?.Children.Contains(this) == true);
+
+			if (assignMesh)
 			{
-				using (new CenterAndHeightMaintainer(this))
+				using (RebuildLock())
 				{
-					Mesh = solidMesh.Mesh;
+					using (new CenterAndHeightMaintainer(this))
+					{
+						Mesh = solidMesh.Mesh;
+					}
 				}
+
+				SolidMesh = solidMesh;
+				lastNotice = null;
 			}
 
-			SolidMesh = solidMesh;
-			lastNotice = null;
-
-			// if any of our parents are rebuilding cancel it as we just changed and they need to start over
-			this.CancelAllParentBuilding();
-			Parent?.Invalidate(new InvalidateArgs(this, InvalidateType.Mesh));
+			if (notifyParents)
+			{
+				// if any of our parents are rebuilding cancel it as we just changed and they need to start over
+				this.CancelAllParentBuilding();
+				Parent?.Invalidate(new InvalidateArgs(this, InvalidateType.Mesh));
+			}
 		}
 
-		/// <summary>Shows the plain message for a problem; the same message is not repeated within a few seconds (dragging a handle).</summary>
+		/// <summary>
+		/// Shows the plain message for a problem; the same message is not repeated within a few seconds (dragging a
+		/// handle). Safe from any thread: the decision runs on the UI thread.
+		/// </summary>
 		private void Report(SolidProblem problem)
+		{
+			UiThread.RunOnIdle(() => ReportOnUiThread(problem));
+		}
+
+		private void ReportOnUiThread(SolidProblem problem)
 		{
 			var message = SolidMessages.For(problem, Kind, s => s.Localize());
 			if (message == null)

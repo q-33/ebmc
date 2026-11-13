@@ -108,7 +108,8 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			};
 			searchPanel.ResetButton.Click += (s, e) =>
 			{
-				breadCrumbWidget.Visible = true;
+				// EBMC Edition: through the bar, so it knows the owner (not the fit) hid or showed it
+				navBar.SetOwnerVisible(breadCrumbWidget, true);
 				searchPanel.Visible = false;
 
 				searchPanel.TextEditWidget.Text = "";
@@ -134,7 +135,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 				{
 					searchContainer = libraryContext.ActiveContainer;
 
-					breadCrumbWidget.Visible = false;
+					navBar.SetOwnerVisible(breadCrumbWidget, false);
 					searchPanel.Visible = true;
 					searchInput.Focus();
 				}
@@ -575,6 +576,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			menuActions.Add(new LibraryAction(ActionScope.ListView)
 			{
 				Icon = StaticData.Instance.LoadIcon("cube.png", 16, 16).GrayToColor(theme.TextColor),
+				Id = ClubUi.ClubMenus.LibAdd,
 				Title = "Add".Localize(),
 				ToolTipText = "Add an .stl, .obj, .3mf, .amf, .gcode or .zip file to the Library".Localize(),
 				Action = (selectedLibraryItems, listView) =>
@@ -601,6 +603,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 
 			menuActions.Add(new LibraryAction(ActionScope.ListView)
 			{
+				Id = ClubUi.ClubMenus.LibCreateFolder,
 				Title = "Create Folder".Localize() + "...",
 				Icon = StaticData.Instance.LoadIcon("fa-folder-new_16.png", 16, 16).GrayToColor(theme.TextColor),
 				Action = (selectedLibraryItems, listView) =>
@@ -633,6 +636,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 
 			menuActions.Add(new LibraryAction(ActionScope.ListView)
 			{
+				Id = ClubUi.ClubMenus.LibShareCode,
 				Title = "Enter Share Code".Localize() + "...",
 				Icon = StaticData.Instance.LoadIcon("enter-code.png", 16, 16).GrayToColor(theme.TextColor),
 				Action = (selectedLibraryItems, listView) =>
@@ -653,6 +657,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			{
 				menuActions.Add(new LibraryAction(ActionScope.ListItem)
 				{
+					Id = ClubUi.ClubMenus.LibPrint,
 					Title = "Print".Localize(),
 					Action = (selectedLibraryItems, listView) =>
 					{
@@ -711,6 +716,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			// open menu item
 			menuActions.Add(new LibraryAction(ActionScope.ListItem)
 			{
+				Id = ClubUi.ClubMenus.LibOpen,
 				Title = "Open".Localize(),
 				Icon = StaticData.Instance.LoadIcon("cube.png", 16, 16).GrayToColor(theme.TextColor),
 				Action = (selectedLibraryItems, listView) =>
@@ -745,6 +751,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			// Open a copy menu item
 			menuActions.Add(new LibraryAction(ActionScope.ListItem)
 			{
+				Id = ClubUi.ClubMenus.LibOpenCopy,
 				Title = "Open a copy".Localize(),
 				Icon = StaticData.Instance.LoadIcon("cube_add.png", 16, 16).GrayToColor(theme.TextColor),
 				Action = (selectedLibraryItems, listView) =>
@@ -770,6 +777,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			// edit menu item
 			menuActions.Add(new LibraryAction(ActionScope.ListItem)
 			{
+				Id = ClubUi.ClubMenus.LibAddToBed,
 				Title = "Add to Bed".Localize(),
 				Icon = StaticData.Instance.LoadIcon("bed_add.png", 16, 16).GrayToColor(theme.TextColor),
 				Action = async (selectedLibraryItems, listView) =>
@@ -826,6 +834,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			// export menu item
 			menuActions.Add(new LibraryAction(ActionScope.ListItem)
 			{
+				Id = ClubUi.ClubMenus.LibExport,
 				Title = "Export".Localize(),
 				Icon = StaticData.Instance.LoadIcon("cube_export.png", 16, 16).GrayToColor(theme.TextColor),
 				Action = (selectedLibraryItems, listView) =>
@@ -843,6 +852,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			// share menu item
 			menuActions.Add(new LibraryAction(ActionScope.ListItem)
 			{
+				Id = ClubUi.ClubMenus.LibShare,
 				Title = "Share".Localize() + "...",
 				Icon = StaticData.Instance.LoadIcon("share.png", 16, 16).GrayToColor(theme.TextColor),
 				Action = (selectedLibraryItems, listView) =>
@@ -867,6 +877,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			// rename menu item
 			menuActions.Add(new LibraryAction(ActionScope.ListItem)
 			{
+				Id = ClubUi.ClubMenus.LibRename,
 				Title = "Rename".Localize(),
 				Icon = StaticData.Instance.LoadIcon("icon_edit.png", 16, 16).GrayToColor(theme.TextColor),
 				Action = (selectedLibraryItems, listView) =>
@@ -896,6 +907,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			// move menu item
 			menuActions.Add(new LibraryAction(ActionScope.ListItem)
 			{
+				Id = ClubUi.ClubMenus.LibMove,
 				Title = "Move".Localize(),
 				Action = (selectedLibraryItems, listView) =>
 				{
@@ -931,6 +943,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			// show on disk menu item
 			menuActions.Add(new LibraryAction(ActionScope.ListItem)
 			{
+				Id = ClubUi.ClubMenus.LibShowOnDisk,
 				Title = "Show in Explorer".Localize(),
 				// Icon = StaticData.Instance.LoadIcon("remove.png", 16, 16).SetToColor(theme.TextColor),
 				Action = (selectedLibraryItems, listView) =>
@@ -971,6 +984,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			// remove menu item
 			menuActions.Add(new LibraryAction(ActionScope.ListItem)
 			{
+				Id = ClubUi.ClubMenus.LibRemove,
 				Title = "Remove".Localize(),
 				Icon = StaticData.Instance.LoadIcon("remove.png", 16, 16).GrayToColor(theme.TextColor),
 				Action = (selectedLibraryItems, listView) =>
@@ -995,7 +1009,15 @@ namespace MatterHackers.MatterControl.Library.Widgets
 								"Are you sure you want to remove the currently selected items?".Localize(),
 								"Remove Items?".Localize(),
 								StyledMessageBox.MessageType.YES_NO,
-								"Remove".Localize());
+								"Remove".Localize(),
+								"",
+								// EBMC Edition: club template labels; Enter keeps the items (ClubDialogsAndMenus)
+								new ClubMessageOptions()
+								{
+									YesLabel = "Remove".Localize(),
+									NoLabel = "Keep".Localize(),
+									Destructive = true,
+								});
 						}
 					}
 				},
@@ -1044,6 +1066,14 @@ namespace MatterHackers.MatterControl.Library.Widgets
 					&& libraryAsset.ContentType == "mcx";
 				}
 			});
+
+			// EBMC Edition: the club order and wording (OemSettings.ClubDialogsAndMenus); same actions, Remove last
+			if (ClubUi.ClubStyle.On)
+			{
+				var arranged = ClubUi.ClubLibraryMenus.Arrange(menuActions);
+				menuActions.Clear();
+				menuActions.AddRange(arranged);
+			}
 
 			libraryView.MenuActions = menuActions;
 		}
@@ -1125,6 +1155,19 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			navBar.OverflowButton.Name = "Print Library Overflow Menu";
 			navBar.ExtendOverflowMenu = (popupMenu) =>
 			{
+				// EBMC Edition: club menu style; separators collapse and disabled items show dimmed, as before
+				if (ClubUi.ClubStyle.On)
+				{
+					ClubUi.ClubMenuBuilder.BuildLibraryMenu(
+						popupMenu,
+						menuActions,
+						inScope: (a) => true,
+						isEnabled: (a) => a.Action != null && a.IsEnabled(libraryView.SelectedItems, libraryView),
+						hideDisabled: false,
+						invoke: (a) => a.Action?.Invoke(libraryView.SelectedItems.Select(i => i.Model), libraryView));
+					return;
+				}
+
 				// Create menu items in the DropList for each element in this.menuActions
 				foreach (var menuAction in menuActions)
 				{

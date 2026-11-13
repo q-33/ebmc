@@ -70,18 +70,18 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 			return item;
 		}
 
-		private protected override Func<OcctShape> PrepareBuild(ref bool valuesChanged, out SolidProblem problem)
+		private protected override Func<OcctShape> PrepareBuild(bool clampStored, ref bool valuesChanged, out SolidProblem problem)
 		{
 			var spec = new SolidPlateSpec
 			{
-				Width = Width.ClampIfNotCalculated(this, SolidLimits.MinSize, SolidLimits.MaxSize, ref valuesChanged),
-				Depth = Depth.ClampIfNotCalculated(this, SolidLimits.MinSize, SolidLimits.MaxSize, ref valuesChanged),
-				Height = Height.ClampIfNotCalculated(this, SolidLimits.MinSize, SolidLimits.MaxSize, ref valuesChanged),
-				HoleDiameter = HoleDiameter.ClampIfNotCalculated(this, SolidLimits.MinSize, SolidLimits.MaxSize, ref valuesChanged),
-				HoleX = HoleX.ClampIfNotCalculated(this, -SolidLimits.MaxSize, SolidLimits.MaxSize, ref valuesChanged),
-				HoleY = HoleY.ClampIfNotCalculated(this, -SolidLimits.MaxSize, SolidLimits.MaxSize, ref valuesChanged),
+				Width = Read(Width, SolidLimits.MinSize, SolidLimits.MaxSize, clampStored, ref valuesChanged),
+				Depth = Read(Depth, SolidLimits.MinSize, SolidLimits.MaxSize, clampStored, ref valuesChanged),
+				Height = Read(Height, SolidLimits.MinSize, SolidLimits.MaxSize, clampStored, ref valuesChanged),
+				HoleDiameter = Read(HoleDiameter, SolidLimits.MinSize, SolidLimits.MaxSize, clampStored, ref valuesChanged),
+				HoleX = Read(HoleX, -SolidLimits.MaxSize, SolidLimits.MaxSize, clampStored, ref valuesChanged),
+				HoleY = Read(HoleY, -SolidLimits.MaxSize, SolidLimits.MaxSize, clampStored, ref valuesChanged),
 				Rim = Rim,
-				RimSize = RimSize.ClampIfNotCalculated(this, 0, SolidLimits.MaxSize, ref valuesChanged),
+				RimSize = Read(RimSize, 0, SolidLimits.MaxSize, clampStored, ref valuesChanged),
 			};
 
 			problem = spec.Check();
@@ -90,6 +90,14 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 
 		public void AddObject3DControls(Object3DControlsLayer object3DControlsLayer)
 		{
+			if (!CanEditSize)
+			{
+				// solid modelling off: the shape cannot be rebuilt, so no size handles (move and rotate still work)
+				object3DControlsLayer.AddControls(ControlTypes.MoveInZ);
+				object3DControlsLayer.AddControls(ControlTypes.RotateXYZ);
+				return;
+			}
+
 			object3DControlsLayer.AddHeightControl(this, Width, Depth, Height);
 			object3DControlsLayer.AddWidthDepthControls(this, Width, Depth, Height);
 
@@ -99,6 +107,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 
 		public void UpdateControls(PublicPropertyChange change)
 		{
+			LockRowsWhenUnavailable(change);
 			change.SetRowVisible(nameof(RimSize), () => Rim == SolidHoleRim.Countersink);
 		}
 	}

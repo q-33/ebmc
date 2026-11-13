@@ -303,7 +303,15 @@ namespace MatterHackers.MatterControl.PrintHistory
 				"Are you sure you want to clear your print history?".Localize(),
 				"Clear History?".Localize(),
 				StyledMessageBox.MessageType.YES_NO,
-				"Clear History".Localize());
+				"Clear History".Localize(),
+				"",
+				// EBMC Edition: club template labels; Enter keeps the history (ClubDialogsAndMenus)
+				new ClubMessageOptions()
+				{
+					YesLabel = "Clear history".Localize(),
+					NoLabel = "Keep history".Localize(),
+					Destructive = true,
+				});
 			};
 		}
 

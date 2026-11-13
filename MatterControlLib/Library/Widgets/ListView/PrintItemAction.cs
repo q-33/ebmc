@@ -59,6 +59,12 @@ namespace MatterHackers.MatterControl.PrintQueue
 
 		public ActionScope Scope { get; }
 
+		/// <summary>
+		/// EBMC Edition: a stable key for the standard actions (ClubUi.ClubMenus.Lib*), used to order the club menus
+		/// without matching display text. Null for actions added by extensions.
+		/// </summary>
+		public string Id { get; set; }
+
 		public string Title { get; set; }
 
 		public string ToolTipText { get; internal set; }

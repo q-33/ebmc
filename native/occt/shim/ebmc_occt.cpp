@@ -220,7 +220,7 @@ extern "C" {
 
 EBMC_API const char* ebmc_occt_version(void)
 {
-  static const std::string v = std::string("ebmc_occt 0.2; OCCT ") + OCCT_Version_String_Complete();
+  static const std::string v = std::string("ebmc_occt 0.3; OCCT ") + OCCT_Version_String_Complete();
   return v.c_str();
 }
 
@@ -428,7 +428,7 @@ EBMC_API int ebmc_is_valid(const ebmc_shape* shape, int32_t* is_valid)
 // ---------------------------------------------------------------------------------------------------------
 
 EBMC_API int ebmc_tessellate(const ebmc_shape* shape, double linear_deflection, double angular_deflection,
-                             ebmc_mesh** out)
+                             int32_t max_triangles, ebmc_mesh** out)
 {
   return guard(__func__, [&] {
     need(shape, "shape");
@@ -454,6 +454,21 @@ EBMC_API int ebmc_tessellate(const ebmc_shape* shape, double linear_deflection, 
                                     /*isInParallel*/ false);
     if (!mesher.IsDone())
       fail(EBMC_ERR_NOT_DONE, "meshing failed");
+
+    // Size check before any output is built, so a huge mesh is never copied into our arrays or the caller's.
+    if (max_triangles > 0)
+    {
+      int64_t total = 0;
+      for (int fi = 1; fi <= faces.Extent(); ++fi)
+      {
+        TopLoc_Location                        loc;
+        const occ::handle<Poly_Triangulation>& tri = BRep_Tool::Triangulation(TopoDS::Face(faces.FindKey(fi)), loc);
+        if (!tri.IsNull())
+          total += tri->NbTriangles();
+        if (total > max_triangles)
+          fail(EBMC_ERR_TOO_BIG, "more than " + std::to_string(max_triangles) + " triangles");
+      }
+    }
 
     std::vector<double>  verts;
     std::vector<int32_t> tris, triFaces;
@@ -546,7 +561,10 @@ EBMC_API int ebmc_tessellate(const ebmc_shape* shape, double linear_deflection, 
       const gp_Trsf trsf = loc.Transformation();
       for (int j = 1; j <= pol->NbNodes(); ++j)
       {
-        gp_Pnt p = tri->Node(pol->Node(j)).Transformed(trsf);
+        const int n = pol->Node(j);
+        if (n < 1 || n > tri->NbNodes())
+          continue;
+        gp_Pnt p = tri->Node(n).Transformed(trsf);
         edgePts.push_back(p.X()); edgePts.push_back(p.Y()); edgePts.push_back(p.Z());
       }
       edgeIds.push_back(ei - 1);

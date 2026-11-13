@@ -59,7 +59,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
                 if (internalTextEditWidget != null
                     && double.TryParse(internalTextEditWidget.Text, out double value))
                 {
-                    guiWidget.SetActiveUiHint("Up Arrow = +1, Down Arrow = -1, (Shift * 10, Ctrl / 10)".Localize());
+                    guiWidget.SetActiveUiHint(KeyHints.ForThisComputer("Up Arrow = +1, Down Arrow = -1, (Shift * 10, Ctrl / 10)".Localize()));
                 }
             };
         }

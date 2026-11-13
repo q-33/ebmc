@@ -186,6 +186,39 @@ namespace MatterHackers.MatterControl.Library
                     { DateCreated = new DateTime(index++) });
             }
 
+            // EBMC Edition: the club shapes, only when EnableClubShapes is on in the OEM settings (stock builds never see them)
+            if (DesignTools.ClubShapes.ClubShapesFeature.IsEnabled)
+            {
+                libraryItems.Add(new GeneratorItem(
+                    "Rounded Box".Localize(),
+                    async () => await RoundedBoxObject3D.Create())
+                    { DateCreated = new DateTime(index++) });
+                libraryItems.Add(new GeneratorItem(
+                    "Slot Plate".Localize(),
+                    async () => await SlotPlateObject3D.Create())
+                    { DateCreated = new DateTime(index++) });
+                libraryItems.Add(new GeneratorItem(
+                    "Tube".Localize(),
+                    async () => await TubeObject3D.Create())
+                    { DateCreated = new DateTime(index++) });
+                libraryItems.Add(new GeneratorItem(
+                    "Polygon Prism".Localize(),
+                    async () => await PolygonPrismObject3D.Create())
+                    { DateCreated = new DateTime(index++) });
+                libraryItems.Add(new GeneratorItem(
+                    "Star".Localize(),
+                    async () => await StarObject3D.Create())
+                    { DateCreated = new DateTime(index++) });
+                libraryItems.Add(new GeneratorItem(
+                    "Heart".Localize(),
+                    async () => await HeartObject3D.Create())
+                    { DateCreated = new DateTime(index++) });
+                libraryItems.Add(new GeneratorItem(
+                    "Gear".Localize(),
+                    async () => await GearObject3D.Create())
+                    { DateCreated = new DateTime(index++) });
+            }
+
 #if !DEBUG
             if (!SettingsManagement.OemSettings.Instance.UseShapesPalette)
             {

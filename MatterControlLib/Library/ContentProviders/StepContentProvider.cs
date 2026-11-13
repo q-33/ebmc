@@ -52,6 +52,7 @@ namespace MatterHackers.MatterControl
 						{
 							if (contentStream?.Stream == null)
 							{
+								Fail(SolidProblem.StepUnreadable);
 								return null;
 							}
 

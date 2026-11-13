@@ -133,84 +133,126 @@ namespace MatterHackers.MatterControl.Library.Export
 			}).ToList();
 		}
 
-		public Task<List<ValidationError>> Generate(IEnumerable<ILibraryItem> libraryItems, string outputPath, Action<double, string> progress, CancellationToken cancellationToken)
+		/// <summary>
+		/// Writes the STEP file. The export dialog calls this on a worker thread: the scene is only read here (each
+		/// solid's values are read without writing anything back), and the kernel work follows on the same thread.
+		/// Never throws; every failure, and a cancel, comes back as a message for the dialog to show.
+		/// </summary>
+		public async Task<List<ValidationError>> Generate(IEnumerable<ILibraryItem> libraryItems, string outputPath, Action<double, string> progress, CancellationToken cancellationToken)
 		{
-			// gather on the calling thread (reads the scene), then do the kernel work off it
-			var roots = Roots(libraryItems);
-			var parts = roots?.Select(Collect).ToList();
-			if (!Enabled || parts == null || parts.Count == 0 || parts.Any(p => p == null))
+			try
 			{
-				return Task.FromResult(Error("Only exact solids (Solid Box, Solid Cylinder, Plate with Hole, STEP parts) can be saved as STEP.".Localize(), ""));
+				var roots = Roots(libraryItems);
+				var parts = roots?.Select(Collect).ToList();
+				if (!Enabled || parts == null || parts.Count == 0 || parts.Any(p => p == null))
+				{
+					return Error("Only exact solids (Solid Box, Solid Cylinder, Plate with Hole, STEP parts) can be saved as STEP.".Localize(), "");
+				}
+
+				var all = parts.SelectMany(p => p).ToList();
+				var builds = new List<(Part part, Func<OcctShape> make, double[] matrix)>();
+				var missing = new List<string>();
+				foreach (var part in all)
+				{
+					var make = part.Source.ExportShape(out var problemMessage);
+					if (make == null)
+					{
+						// the same plain message the part itself shows
+						missing.Add(part.Name + ": " + problemMessage);
+					}
+					else
+					{
+						builds.Add((part, make, SolidMesher.ToKernelMatrix(part.Matrix)));
+					}
+				}
+
+				if (missing.Count > 0)
+				{
+					return Error("These parts could not be made as exact solids, so nothing was saved.".Localize(), string.Join("\n", missing));
+				}
+
+				return await Task.Run(() => Write(builds, outputPath, progress, cancellationToken));
 			}
-
-			var all = parts.SelectMany(p => p).ToList();
-			var builds = all.Select(p => (part: p, make: p.Source.ExportShape(), matrix: SolidMesher.ToKernelMatrix(p.Matrix))).ToList();
-			var missing = builds.Where(b => b.make == null).Select(b => b.part.Name).ToList();
-			if (missing.Count > 0)
+			catch (OperationCanceledException)
 			{
-				return Task.FromResult(Error("These parts could not be made as exact solids. Check their sizes, or for a STEP part whether its original file is on this computer.".Localize(), string.Join("\n", missing)));
+				return Cancelled();
 			}
-
-			return Task.Run(() =>
+			catch (Exception ex)
 			{
-				var solids = new List<OcctShape>();
-				var holes = new List<OcctShape>();
-				try
-				{
-					int done = 0;
-					foreach (var (part, make, kernelMatrix) in builds)
-					{
-						cancellationToken.ThrowIfCancellationRequested();
-						using (var local = make())
-						{
-							(part.IsHole ? holes : solids).Add(SolidBuilders.Transform(local, kernelMatrix));
-						}
+				System.Diagnostics.Trace.WriteLine("STEP export: " + ex);
+				return Error(SolidMessages.For(SolidProblem.StepNotWritten, SolidShapeKind.Box, s => s.Localize(), Path.GetFileName(outputPath ?? "")), "");
+			}
+		}
 
-						progress?.Invoke(0.8 * ++done / builds.Count, "Exporting".Localize());
+		private static List<ValidationError> Write(List<(Part part, Func<OcctShape> make, double[] matrix)> builds, string outputPath, Action<double, string> progress, CancellationToken cancellationToken)
+		{
+			var solids = new List<OcctShape>();
+			var holes = new List<OcctShape>();
+			try
+			{
+				int done = 0;
+				foreach (var (part, make, kernelMatrix) in builds)
+				{
+					cancellationToken.ThrowIfCancellationRequested();
+					using (var local = make())
+					{
+						(part.IsHole ? holes : solids).Add(SolidBuilders.Transform(local, kernelMatrix));
 					}
 
-					if (solids.Count == 0)
-					{
-						return Error("There is no solid to save: every part is set to Hole.".Localize(), "");
-					}
+					progress?.Invoke(0.8 * ++done / builds.Count, "Exporting".Localize());
+				}
 
-					using (var assembled = SolidBuilders.Assemble(solids, holes))
-					{
-						SolidBuilders.WriteStep(assembled, outputPath);
-					}
+				if (solids.Count == 0)
+				{
+					return Error("There is no solid to save: every part is set to Hole.".Localize(), "");
+				}
 
-					progress?.Invoke(1, "Exporting".Localize());
-					return null;
-				}
-				catch (OperationCanceledException)
+				cancellationToken.ThrowIfCancellationRequested();
+				using (var assembled = SolidBuilders.Assemble(solids, holes))
 				{
-					return null;
+					SolidBuilders.WriteStep(assembled, outputPath);
 				}
-				catch (SolidBuildException ex)
+
+				progress?.Invoke(1, "Exporting".Localize());
+				return null;
+			}
+			catch (OperationCanceledException)
+			{
+				return Cancelled();
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Trace.WriteLine("STEP export: " + ex.Message);
+				return Error(SolidMessages.For(SolidProblem.StepNotWritten, SolidShapeKind.Box, s => s.Localize(), Path.GetFileName(outputPath ?? "")), "");
+			}
+			finally
+			{
+				foreach (var shape in solids.Concat(holes))
 				{
-					System.Diagnostics.Trace.WriteLine("STEP export: " + ex.Message);
-					return Error(SolidMessages.For(ex.Problem == SolidProblem.StepNotWritten ? ex.Problem : SolidProblem.StepNotWritten, SolidShapeKind.Box, s => s.Localize(), Path.GetFileName(outputPath)), "");
+					shape.Dispose();
 				}
-				catch (Exception ex)
+			}
+		}
+
+		/// <summary>Not an error, but not a success either: the dialog says no file was written.</summary>
+		private static List<ValidationError> Cancelled()
+		{
+			return new List<ValidationError>
+			{
+				new ValidationError(StepExportRules.CancelledId)
 				{
-					System.Diagnostics.Trace.WriteLine("STEP export: " + ex.Message);
-					return Error(SolidMessages.For(SolidProblem.StepNotWritten, SolidShapeKind.Box, s => s.Localize(), Path.GetFileName(outputPath)), "");
+					Error = "STEP export cancelled. No file was written.".Localize(),
+					Details = "",
+					ErrorLevel = ValidationErrorLevel.Warning,
 				}
-				finally
-				{
-					foreach (var shape in solids.Concat(holes))
-					{
-						shape.Dispose();
-					}
-				}
-			});
+			};
 		}
 
 		private static List<ValidationError> Error(string message, string details)
 		{
 			return new List<ValidationError>
 			{
-				new ValidationError("ItemToSTEPExportInvalid")
+				new ValidationError(StepExportRules.FailedId)
 				{
 					Error = message,
 					Details = details,

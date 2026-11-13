@@ -242,9 +242,10 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 			}
 		}
 
-		public static SolidTessellation Tessellate(OcctShape shape, double linearDeflection, double angularDeflectionRadians)
+		/// <summary>maxTriangles &gt; 0: throws SolidBuildException with SolidProblem.TooDetailed above that many, before anything is copied.</summary>
+		public static SolidTessellation Tessellate(OcctShape shape, double linearDeflection, double angularDeflectionRadians, int maxTriangles = 0)
 		{
-			var mesh = Call(SolidStep.Tessellate, () => EbmcOcct.Tessellate(shape, linearDeflection, angularDeflectionRadians));
+			var mesh = Call(SolidStep.Tessellate, () => EbmcOcct.Tessellate(shape, linearDeflection, angularDeflectionRadians, maxTriangles));
 			return new SolidTessellation
 			{
 				Vertices = mesh.Vertices,
@@ -282,17 +283,12 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 						(bounds[3] - bounds[0]) * (bounds[3] - bounds[0])
 						+ (bounds[4] - bounds[1]) * (bounds[4] - bounds[1])
 						+ (bounds[5] - bounds[2]) * (bounds[5] - bounds[2]));
-					for (int attempt = 0; attempt < SolidTolerance.Attempts; attempt++)
-					{
-						cancellationToken.ThrowIfCancellationRequested();
-						var (linear, degrees) = SolidTolerance.For(diagonal, attempt);
-						var tessellation = Tessellate(shape, linear, degrees * Math.PI / 180);
-						if (tessellation.TriangleCount <= SolidTolerance.MaxTriangles)
-						{
-							result.Tessellation = tessellation;
-							break;
-						}
-					}
+					// the kernel refuses past the cap before building any output, so no huge mesh is copied
+					result.Tessellation = SolidTolerance.TessellateWithRetry(
+						diagonal,
+						(linear, degrees) => Tessellate(shape, linear, degrees * Math.PI / 180, SolidTolerance.MaxTriangles),
+						ex => ex is SolidBuildException sbe && sbe.Problem == SolidProblem.TooDetailed,
+						cancellationToken);
 
 					result.TessellateMilliseconds = timer.Elapsed.TotalMilliseconds;
 					if (result.Tessellation == null)

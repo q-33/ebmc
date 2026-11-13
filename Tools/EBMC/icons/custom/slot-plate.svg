@@ -1,0 +1,6 @@
+<!-- EBMC custom icon "slot-plate": slot plate: a flat plate with fully rounded ends and a slot through the middle, in oblique view. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="2" y="7" width="20" height="9" rx="4.5" />
+  <path d="M2 11.5v4a4.5 4.5 0 0 0 4.5 4.5h11a4.5 4.5 0 0 0 4.5-4.5v-4" />
+  <rect x="8" y="10.5" width="8" height="2" rx="1" />
+</svg>

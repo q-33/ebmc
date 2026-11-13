@@ -78,8 +78,17 @@ int main(void)
     CHECK(fabs(v - expect) / expect < 1e-6, "cut volume %.9f (expected %.9f)", v, expect);
 
     ebmc_mesh* m = NULL;
-    CALL(ebmc_tessellate(cut, 0.05, 0.5 * M_PI / 180, &m));
+    CALL(ebmc_tessellate(cut, 0.05, 0.5 * M_PI / 180, 0, &m));
     CHECK(m->triangle_count > 0, "mesh: %d vertices, %d triangles, %d edge polylines", m->vertex_count, m->triangle_count, m->edge_count);
+    {
+        /* 0.3: the cap stops before any output is made */
+        ebmc_mesh* capped = NULL;
+        int rcCap = ebmc_tessellate(cut, 0.05, 0.5 * M_PI / 180, m->triangle_count - 1, &capped);
+        CHECK(rcCap == EBMC_ERR_TOO_BIG && capped == NULL, "cap %d -> rc %d, '%s'", m->triangle_count - 1, rcCap, ebmc_occt_last_error());
+        CALL(ebmc_tessellate(cut, 0.05, 0.5 * M_PI / 180, m->triangle_count, &capped));
+        CHECK(capped->triangle_count == m->triangle_count, "cap equal to the count is allowed");
+        ebmc_mesh_free(capped);
+    }
     ebmc_mesh_free(m);
 
     CALL(ebmc_write_step(cut, "smoke_test.step"));

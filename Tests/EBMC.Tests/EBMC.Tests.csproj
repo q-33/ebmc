@@ -21,9 +21,19 @@
 		<Compile Include="..\..\MatterControl.Printing\Settings\SettingsLock.cs" Link="Settings\%(Filename)%(Extension)" />
 		<Compile Include="..\..\MatterControl.Printing\Settings\MaintainerPin.cs" Link="Settings\%(Filename)%(Extension)" />
 		<Compile Include="..\..\MatterControl.Printing\Settings\MaintainerMessages.cs" Link="Settings\%(Filename)%(Extension)" />
+		<!-- The Simple · Advanced mode rules (default, slice-settings detail mapping); used by the palette catalog too -->
+		<Compile Include="..\..\MatterControl.Printing\Settings\UiMode.cs" Link="Settings\%(Filename)%(Extension)" />
 		<!-- The shapes palette's catalog (families, members, tabs, size chips) and click placement rule; no UI dependencies -->
 		<Compile Include="..\..\MatterControlLib\PartPreviewWindow\ShapesPalette\PaletteCatalog.cs" Link="ShapesPalette\%(Filename)%(Extension)" />
 		<Compile Include="..\..\MatterControlLib\PartPreviewWindow\ShapesPalette\PalettePlacement.cs" Link="ShapesPalette\%(Filename)%(Extension)" />
+		<!-- The shortcut wording in hints and menus (Cmd/Option on a Mac, "Ctrl + P" notation) -->
+		<Compile Include="..\..\MatterControlLib\ApplicationView\KeyHintRules.cs" Link="ApplicationView\%(Filename)%(Extension)" />
+		<!-- The club dialog template and menu rules (Enter default, footer order, menu descriptions, toasts); no UI dependencies -->
+		<Compile Include="..\..\MatterControlLib\ApplicationView\ClubUi\Rules\*.cs" Link="ClubUi\%(Filename)%(Extension)" />
+		<!-- The keyboard shortcuts sheet's table (checked against the handlers in Application.cs and View3DWidget.cs) -->
+		<Compile Include="..\..\MatterControlLib\ApplicationView\ShortcutTable.cs" Link="ApplicationView\%(Filename)%(Extension)" />
+		<!-- When the Simple · Advanced switch waits, and its hint -->
+		<Compile Include="..\..\MatterControlLib\ApplicationView\UiModeBusyRules.cs" Link="ApplicationView\%(Filename)%(Extension)" />
 		<!-- The locked-theme rule (OemSettings.LockedThemeSet) -->
 		<Compile Include="..\..\MatterControlLib\ApplicationView\Themes\ThemeLock.cs" Link="Themes\%(Filename)%(Extension)" />
 		<!-- Design-side rules: duplicate placement, text size in mm, subtract's hole default, model size prompt and the wording -->

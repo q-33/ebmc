@@ -24,7 +24,7 @@ Inputs (repo-relative):
                                    output size in px, notes
     Tools/EBMC/icons/lucide/*.svg  74 Lucide icons, vendored unmodified (version and URL in
                                    VERSION, licence in LICENSE)
-    Tools/EBMC/icons/custom/*.svg  32 glyphs drawn for EBMC on the same 24-unit grid and 2-unit stroke
+    Tools/EBMC/icons/custom/*.svg  37 glyphs drawn for EBMC on the same 24-unit grid and 2-unit stroke
 
 Safety: every map.json target must be a relative path ending in .png that resolves (after
 symlinks) to a file inside StaticData/Icons. Outside the folders in NEW_TARGET_DIRS that file
@@ -98,6 +98,9 @@ SOURCE_DIR = os.path.join("Tools", "EBMC", "icons")
 SUPERSAMPLE = 4
 # Folders under StaticData/Icons whose targets may be created (EBMC's own icons, not upstream ones)
 NEW_TARGET_DIRS = ("Shapes",)
+
+# The keys a map.json entry may have; any other key is an error
+ENTRY_KEYS = {"source", "size", "color", "glyph", "notes", "previously_untinted"}
 
 ROOT_REQUIRED = {
     "viewBox": "0 0 24 24",
@@ -416,6 +419,10 @@ def main():
     for target, entry in entries:
         if not isinstance(entry, dict):
             fail(f"{target!r}: entry must be an object")
+        unknown = sorted(set(entry) - ENTRY_KEYS)
+        if unknown:
+            # a typo such as "colour" would otherwise be ignored and its effect silently lost
+            fail(f"{target}: unknown key(s) {', '.join(unknown)}; allowed: {', '.join(sorted(ENTRY_KEYS))}")
         dest = resolve_target(repo, target)
         if dest in seen:
             fail(f"{target!r}: maps to the same file as another target")
@@ -425,7 +432,7 @@ def main():
             fail(f"{target}: size {size!r} must be a positive multiple of 4, at most 1024")
         color = entry.get("color")
         if color is not None:
-            if not isinstance(color, str) or not re.match(r"^#[0-9A-Fa-f]{6}$", color):
+            if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{6}", color):
                 fail(f"{target}: color {color!r} must be #RRGGBB")
             r, g, b = (int(color[i:i + 2], 16) for i in (1, 3, 5))
             if max(r, g, b) - min(r, g, b) < 32:

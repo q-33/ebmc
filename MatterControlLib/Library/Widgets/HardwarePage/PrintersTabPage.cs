@@ -128,7 +128,15 @@ namespace MatterHackers.MatterControl.Library.Widgets
 								"Are you sure you want to delete printer '{0}'?".Localize().FormatWith(printerInfo.Name),
 								"Delete Printer?".Localize(),
 								StyledMessageBox.MessageType.YES_NO,
-								"Delete Printer".Localize());
+								"Delete Printer".Localize(),
+								"",
+								// EBMC Edition: club template labels; Enter keeps the printer (ClubDialogsAndMenus)
+								new ClubMessageOptions()
+								{
+									YesLabel = "Delete printer".Localize(),
+									NoLabel = "Keep".Localize(),
+									Destructive = true,
+								});
 							}
 						};
 

@@ -36,6 +36,7 @@ using MatterHackers.Agg.Transform;
 using MatterHackers.Agg.UI;
 using MatterHackers.ImageProcessing;
 using MatterHackers.Localizations;
+using MatterHackers.MatterControl.ClubUi;
 using MatterHackers.MatterControl.ConfigurationPage;
 using MatterHackers.MatterControl.CustomWidgets;
 using MatterHackers.MatterControl.PartPreviewWindow;
@@ -109,6 +110,12 @@ namespace MatterHackers.MatterControl
 
 			var linkIcon = StaticData.Instance.LoadIcon("fa-link_16.png", 16, 16).GrayToColor(menuTheme.TextColor);
 
+			// EBMC Edition: the club menu style and order (OemSettings.ClubDialogsAndMenus), same items and actions
+			if (ClubStyle.On)
+			{
+				return CreateClubPopupMenu(popupMenu, menuTheme, linkIcon);
+			}
+
 			PopupMenu.MenuItem menuItem;
 
 			menuItem = popupMenu.CreateMenuItem("Open file…".Localize(), StaticData.Instance.LoadIcon("fa-folder-open_16.png", 16, 16).GrayToColor(menuTheme.TextColor));
@@ -124,6 +131,23 @@ namespace MatterHackers.MatterControl
 	
 			menuItem = popupMenu.CreateMenuItem("Help".Localize(), StaticData.Instance.LoadIcon("help_page.png", 16, 16).GrayToColor(menuTheme.TextColor));
 			menuItem.Click += (s, e) => ApplicationController.Instance.ShowApplicationHelp("Docs");
+
+			// EBMC Edition: command search, "Find a tool" (OemSettings.EnableAdvancedTools), a mouse route to Cmd/Ctrl + K;
+			// opened after this menu has closed and given the focus back, so the search keeps the focus
+			if (AdvancedTools.IsEnabled)
+			{
+				menuItem = popupMenu.CreateMenuItem("Find a tool…".Localize(), StaticData.Instance.LoadIcon("icon_search_24x24.png", 16, 16).GrayToColor(menuTheme.TextColor), KeyHints.ForThisComputer("Ctrl + K"));
+				menuItem.Name = "Find a Tool MenuItem";
+				menuItem.Click += (s, e) => UiThread.RunOnIdle(CommandSearchPopup.Toggle, .2);
+			}
+
+			// EBMC Edition: the keyboard shortcuts sheet (Advanced mode, OemSettings.EnableAdvancedTools)
+			if (AdvancedTools.InAdvancedMode)
+			{
+				menuItem = popupMenu.CreateMenuItem("Keyboard shortcuts".Localize(), new ImageBuffer(16, 16), "?");
+				menuItem.Name = "Keyboard Shortcuts MenuItem";
+				menuItem.Click += (s, e) => ShortcutsPage.Show();
+			}
 
 			menuItem = popupMenu.CreateMenuItem("Interface Tour".Localize(), StaticData.Instance.LoadIcon("tour.png", 16, 16).GrayToColor(menuTheme.TextColor));
 			menuItem.Click += (s, e) =>
@@ -185,6 +209,124 @@ namespace MatterHackers.MatterControl
 
 			menuItem = popupMenu.CreateMenuItem("About".Localize() + " " + ApplicationController.Instance.ProductName, imageBuffer);
 			menuItem.Click += (s, e) => ApplicationController.Instance.ShowAboutPage();
+			return popupMenu;
+		}
+
+		/// <summary>
+		/// EBMC Edition: the brand menu laid out by ClubMenus.Brand. Each item runs the same code as in the stock menu
+		/// above and appears under the same conditions (keyboard shortcuts in Advanced mode; the update check and
+		/// Community only with the vendor services). The interface tour stays: no setting hides it from the menu.
+		/// </summary>
+		private static PopupMenu CreateClubPopupMenu(PopupMenu popupMenu, ThemeConfig menuTheme, ImageBuffer linkIcon)
+		{
+			var sources = new System.Collections.Generic.Dictionary<string, ClubMenuSource>
+			{
+				[ClubMenus.OpenFile] = new ClubMenuSource(new NamedAction()
+				{
+					Title = "Open file…".Localize(),
+					Action = () => ApplicationController.OpenFileWithSystemDialog((fileNames) =>
+					{
+						if (fileNames != null && fileNames.Any())
+						{
+							ApplicationController.Instance.MainView.OpenFile(fileNames.FirstOrDefault());
+						}
+					}),
+				}),
+				[ClubMenus.Help] = new ClubMenuSource(new NamedAction()
+				{
+					Title = "Help".Localize(),
+					Action = () => ApplicationController.Instance.ShowApplicationHelp("Docs"),
+				}),
+				[ClubMenus.Tour] = new ClubMenuSource(new NamedAction()
+				{
+					Title = "Interface Tour".Localize(),
+					Action = () => UiThread.RunOnIdle(() =>
+					{
+						DialogWindow.Show<Tour.WelcomePage>();
+					}),
+				}),
+				[ClubMenus.Settings] = new ClubMenuSource((menu, title) =>
+				{
+					var item = ClubMenuBuilder.CreateItem(menu, title, ClubStyle.MenuIcon("fa-cog_16.png", ClubStyle.Muted(menuTheme)), null, false);
+					item.Click += (s, e) => DialogWindow.Show<ApplicationSettingsPage>();
+					item.Name = "Settings MenuItem";
+					return item;
+				}),
+				[ClubMenus.About] = new ClubMenuSource(new NamedAction()
+				{
+					Title = ClubMenuText.WithEllipsis("About".Localize() + " " + ApplicationController.Instance.ProductName, true),
+					Action = () => ApplicationController.Instance.ShowAboutPage(),
+				}),
+			};
+
+			// command search, "Find a tool" (OemSettings.EnableAdvancedTools; Cmd/Ctrl + K works in both modes). Opened after
+			// this menu has closed and given the focus back, so the search keeps the focus
+			if (AdvancedTools.IsEnabled)
+			{
+				sources[ClubMenus.FindTool] = new ClubMenuSource((menu, title) =>
+				{
+					var item = ClubMenuBuilder.CreateItem(menu, title, ClubStyle.MenuIcon("icon_search_24x24.png", ClubStyle.Muted(menuTheme)), KeyHints.ForThisComputer("Ctrl + K"), false);
+					item.Name = "Find a Tool MenuItem";
+					item.Click += (s, e) => UiThread.RunOnIdle(CommandSearchPopup.Toggle, .2);
+					return item;
+				});
+			}
+
+			// the keyboard shortcuts sheet (Advanced mode, OemSettings.EnableAdvancedTools)
+			if (AdvancedTools.InAdvancedMode)
+			{
+				sources[ClubMenus.Shortcuts] = new ClubMenuSource((menu, title) =>
+				{
+					var item = ClubMenuBuilder.CreateItem(menu, title, null, "?", false);
+					item.Name = "Keyboard Shortcuts MenuItem";
+					item.Click += (s, e) => ShortcutsPage.Show();
+					return item;
+				});
+			}
+
+			if (Application.EnableNetworkTraffic && SettingsManagement.OemSettings.Instance.ShowVendorServices)
+			{
+				sources[ClubMenus.CheckForUpdate] = new ClubMenuSource(new NamedAction()
+				{
+					Title = "Check For Update".Localize(),
+					Action = () => UiThread.RunOnIdle(() =>
+					{
+						UpdateControlData.Instance.CheckForUpdate();
+						DialogWindow.Show<CheckForUpdatesPage>();
+					}),
+				});
+			}
+
+			// EBMC Edition: these all lead to MatterHackers' forums, support and issue tracker
+			if (SettingsManagement.OemSettings.Instance.ShowVendorServices)
+			{
+				sources[ClubMenus.Community] = new ClubMenuSource((menu, title) =>
+				{
+					menu.CreateSubMenu(title, menuTheme, (modifyMenu) =>
+					{
+						var menuItem = modifyMenu.CreateMenuItem("Forums".Localize(), linkIcon);
+						menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://forums.matterhackers.com/category/20/mattercontrol");
+
+						menuItem = modifyMenu.CreateMenuItem("Guides and Articles".Localize(), linkIcon);
+						menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://www.matterhackers.com/topic/mattercontrol");
+
+						menuItem = modifyMenu.CreateMenuItem("Support".Localize(), linkIcon);
+						menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://www.matterhackers.com/mattercontrol/support");
+
+						menuItem = modifyMenu.CreateMenuItem("Release Notes".Localize(), linkIcon);
+						menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://www.matterhackers.com/mattercontrol/support/release-notes");
+
+						modifyMenu.CreateSeparator();
+
+						menuItem = modifyMenu.CreateMenuItem("Report a Bug".Localize(), StaticData.Instance.LoadIcon("feedback.png", 16, 16).GrayToColor(menuTheme.TextColor));
+						menuItem.Click += (s, e) => ApplicationController.LaunchBrowser("https://github.com/MatterHackers/MatterControl/issues");
+					}, StaticData.Instance.LoadIcon("feedback.png", 16, 16).GrayToColor(menuTheme.TextColor));
+
+					return ClubMenuBuilder.LastItem(menu);
+				});
+			}
+
+			ClubMenuBuilder.Build(popupMenu, ClubMenus.Brand, sources);
 			return popupMenu;
 		}
 	}

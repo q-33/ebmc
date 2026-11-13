@@ -1,5 +1,5 @@
 {
-  "_about": "Icon refresh map read by Tools/EBMC/build_icons.py. Keys are paths under StaticData/Icons and must name existing .png files there, except directly inside Shapes/ (the shapes palette's own glyphs), where build_icons.py creates them. source is lucide:<name> (Tools/EBMC/icons/lucide/<name>.svg, 74 vendored files) or custom:<name> (Tools/EBMC/icons/custom/<name>.svg, 32 EBMC drawings). size is the output PNG edge in pixels: 4x the logical size the code loads (64 for 16x16, 56 for 14x14, 48 for 12x12, 96 for 24x24, 128 for 32x32; Library/folder.png is loaded at its own size and stays 256). color (optional, #RRGGBB, saturated) bakes that colour into the pixels instead of black, for status icons whose colour carries meaning; GrayToColor tinting leaves saturated pixels alone. glyph (optional, px) renders the drawing at that size centred on the size x size canvas, for callers that load the icon into a larger box than the glyph should fill. At device scale 1 the app's loader halves these exactly (64->32->16). At device scale 2 it first resamples the source up by 2 (64->128, bilinear) and then halves it twice to 32 px, so the result is close to, but slightly softer than, an exact 2x box reduction. previously_untinted marks icons whose code did not tint them before the refresh (used only by the preview sheet). Shapes/ glyphs are 80 px masters for 20 px palette buttons; the palette loads them with its own loader, which box-halves straight to the device size, so 1x and 2x are both exact.",
+  "_about": "Icon refresh map read by Tools/EBMC/build_icons.py. Keys are paths under StaticData/Icons and must name existing .png files there, except directly inside Shapes/ (the shapes palette's own glyphs), where build_icons.py creates them. source is lucide:<name> (Tools/EBMC/icons/lucide/<name>.svg, 79 vendored files) or custom:<name> (Tools/EBMC/icons/custom/<name>.svg, 48 EBMC drawings). size is the output PNG edge in pixels: 4x the logical size the code loads (64 for 16x16, 56 for 14x14, 48 for 12x12, 96 for 24x24, 128 for 32x32; Library/folder.png is loaded at its own size and stays 256). color (optional, #RRGGBB, saturated) bakes that colour into the pixels instead of black, for status icons whose colour carries meaning; GrayToColor tinting leaves saturated pixels alone. glyph (optional, px) renders the drawing at that size centred on the size x size canvas, for callers that load the icon into a larger box than the glyph should fill. At device scale 1 the app's loader halves these exactly (64->32->16). At device scale 2 it first resamples the source up by 2 (64->128, bilinear) and then halves it twice to 32 px, so the result is close to, but slightly softer than, an exact 2x box reduction. previously_untinted marks icons whose code did not tint them before the refresh (used only by the preview sheet). Shapes/ glyphs are 80 px masters for 20 px palette buttons; the palette loads them with its own loader, which box-halves straight to the device size, so 1x and 2x are both exact.",
   "lucide_version": "1.72.0",
   "icons": {
     "icon_search_24x24.png": {
@@ -75,7 +75,7 @@
     "bed.png": {
       "source": "custom:heated-bed",
       "size": 64,
-      "notes": "Shared: bed temperature widget, 3D toolbar Bed menu, and the bed toggle in the floating view controls"
+      "notes": "Bed temperature widget (heated bed with heat waves). The 3D toolbar Bed menu and the view controls' bed toggle use the plate glyph, Shapes/view-bed.png"
     },
     "cube_export.png": {
       "source": "lucide:share",
@@ -335,6 +335,12 @@
       "size": 80,
       "notes": "Shapes palette: Description (note)"
     },
+    "Shapes/dialog-question.png": {
+      "source": "lucide:circle-help",
+      "size": 64,
+      "notes": "Club dialog template (ClubDialogsAndMenus): the question severity tile of a confirmation; baked club accent colour",
+      "color": "#FF3D12"
+    },
     "Shapes/variable-sheet.png": {
       "source": "lucide:variable",
       "size": 80,
@@ -514,7 +520,7 @@
     "Shapes/view-bed.png": {
       "source": "custom:bed-plate",
       "size": 64,
-      "notes": "View controls Show Print Bed (new file so bed.png keeps the heated-bed glyph for temperature uses); loaded through StaticData.LoadIcon at 16x16, so 64 px"
+      "notes": "The print bed (plate) glyph: view controls Show Print Bed and the 3D toolbar Bed menu. Kept in Shapes/ because build_icons.py only creates new files there; bed.png keeps the heated-bed glyph for temperature uses. Loaded through StaticData.LoadIcon at 16x16, so 64 px"
     },
     "view_shaded.png": {
       "source": "custom:view-shaded",
@@ -635,16 +641,14 @@
       "notes": "Running task row: stop. Filled copy of the Lucide glyph: outlines did not read at 12 px and the outline square looked like a checkbox"
     },
     "Up Arrow.png": {
-      "source": "lucide:chevron-up",
+      "source": "custom:z-step-up",
       "size": 128,
-      "glyph": 96,
-      "notes": "Print panel Z offset (baby-step) up; loaded at 32x32. glyph 96: 24 px chevron in the 32 px button box"
+      "notes": "Print panel Z offset (baby-step) up; loaded at 32x32. A bold filled triangle at full size: these buttons are used live during the first layer"
     },
     "Down Arrow.png": {
-      "source": "lucide:chevron-down",
+      "source": "custom:z-step-down",
       "size": 128,
-      "glyph": 96,
-      "notes": "Print panel Z offset (baby-step) down; loaded at 32x32. glyph 96: 24 px chevron in the 32 px button box"
+      "notes": "Print panel Z offset (baby-step) down; loaded at 32x32. A bold filled triangle at full size: these buttons are used live during the first layer"
     },
     "fa-clock_24.png": {
       "source": "lucide:clock",
@@ -660,6 +664,86 @@
       "source": "lucide:lock",
       "size": 64,
       "notes": "Locked object properties: Unlock"
+    },
+    "Shapes/rounded-box.png": {
+      "source": "custom:rounded-box",
+      "size": 80,
+      "notes": "Shapes palette: Rounded Box (club shapes, EnableClubShapes)"
+    },
+    "Shapes/slot-plate.png": {
+      "source": "custom:slot-plate",
+      "size": 80,
+      "notes": "Shapes palette: Slot Plate (club shapes)"
+    },
+    "Shapes/tube.png": {
+      "source": "custom:tube",
+      "size": 80,
+      "notes": "Shapes palette: Tube (club shapes)"
+    },
+    "Shapes/polygon-prism.png": {
+      "source": "lucide:hexagon",
+      "size": 80,
+      "notes": "Shapes palette: Polygon Prism (club shapes)"
+    },
+    "Shapes/star.png": {
+      "source": "lucide:star",
+      "size": 80,
+      "notes": "Shapes palette: Star (club shapes)"
+    },
+    "Shapes/heart.png": {
+      "source": "lucide:heart",
+      "size": 80,
+      "notes": "Shapes palette: Heart (club shapes)"
+    },
+    "Shapes/gear.png": {
+      "source": "lucide:cog",
+      "size": 80,
+      "notes": "Shapes palette: Gear (club shapes)"
+    },
+    "Shapes/starters.png": {
+      "source": "lucide:sparkles",
+      "size": 80,
+      "notes": "Shapes palette: Starters family button and the start card's starter section"
+    },
+    "Shapes/starter-name-tag.png": {
+      "source": "custom:starter-name-tag",
+      "size": 80,
+      "notes": "Club Starter: Name Tag (palette and start card)"
+    },
+    "Shapes/starter-sign.png": {
+      "source": "custom:starter-sign",
+      "size": 80,
+      "notes": "Club Starter: Sign"
+    },
+    "Shapes/starter-box.png": {
+      "source": "custom:starter-box",
+      "size": 80,
+      "notes": "Club Starter: Box with Lid"
+    },
+    "Shapes/starter-hook.png": {
+      "source": "custom:starter-hook",
+      "size": 80,
+      "notes": "Club Starter: Wall Hook"
+    },
+    "Shapes/starter-stand.png": {
+      "source": "custom:starter-stand",
+      "size": 80,
+      "notes": "Club Starter: Phone Stand"
+    },
+    "Shapes/starter-knob.png": {
+      "source": "custom:starter-knob",
+      "size": 80,
+      "notes": "Club Starter: Knob"
+    },
+    "Shapes/starter-clip.png": {
+      "source": "custom:starter-clip",
+      "size": 80,
+      "notes": "Club Starter: Cable Clip"
+    },
+    "Shapes/starter-plant.png": {
+      "source": "custom:starter-plant",
+      "size": 80,
+      "notes": "Club Starter: Plant Label"
     }
   }
 }

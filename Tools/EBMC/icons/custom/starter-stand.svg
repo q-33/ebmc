@@ -1,0 +1,6 @@
+<!-- EBMC custom icon "starter-stand": Club Starter phone stand: a leaning back rest on a base with a front lip. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 20h18" />
+  <path d="M6 20 14 4h3l-7 16" />
+  <path d="M13 20l1.5-5H19" />
+</svg>

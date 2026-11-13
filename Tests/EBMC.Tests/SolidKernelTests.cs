@@ -231,6 +231,20 @@ namespace EBMC.Tests
 		}
 
 		[Test]
+		public void TriangleCapStopsBeforeAnyOutput()
+		{
+			using (var box = SolidBuilders.Box(Box(100, 100, 100, SolidEdgeTreatment.Fillet, 5, SolidBoxEdges.All)))
+			{
+				var full = EbmcOcct.Tessellate(box, 0.02, 5 * Math.PI / 180, 0);
+				var ex = Assert.Throws<OcctException>(() => EbmcOcct.Tessellate(box, 0.02, 5 * Math.PI / 180, full.TriangleCount - 1));
+				Assert.That(ex.Code, Is.EqualTo(EbmcOcct.ErrTooBig));
+				Assert.That(EbmcOcct.Tessellate(box, 0.02, 5 * Math.PI / 180, full.TriangleCount).TriangleCount, Is.EqualTo(full.TriangleCount));
+				var problem = Assert.Throws<SolidBuildException>(() => SolidBuilders.Tessellate(box, 0.02, 5 * Math.PI / 180, 100));
+				Assert.That(problem.Problem, Is.EqualTo(SolidProblem.TooDetailed));
+			}
+		}
+
+		[Test]
 		public void BuildReportsCancellation()
 		{
 			using (var source = new CancellationTokenSource())

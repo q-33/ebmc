@@ -124,5 +124,12 @@ namespace MatterHackers.MatterControl
 		/// Gets or sets a value indicating whether indicates if the task should suppress pause/resume/stop operations
 		/// </summary>
 		public bool ReadOnlyReporting { get; set; } = false;
+
+		/// <summary>
+		/// EBMC Edition: true for a long-running task that a window rebuild cannot disturb (a print in progress, the heater
+		/// hold after it, a heating loop, a timed notice), so the Simple · Advanced switch need not wait for it. False (the
+		/// default) makes the switch wait: saves, exports, file loads, part rebuilds, slicing, sends.
+		/// </summary>
+		public bool AllowsWindowRebuild { get; set; } = false;
 	}
 }

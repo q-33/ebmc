@@ -121,7 +121,14 @@ namespace MatterHackers.MatterControl.ActionBar
 						"Disconnect and stop the current print?".Localize(),
 						StyledMessageBox.MessageType.YES_NO,
 						"Disconnect".Localize(),
-						"Stay Connected".Localize());
+						"Stay Connected".Localize(),
+						// EBMC Edition: club template labels; Enter stays connected (ClubDialogsAndMenus)
+						new ClubMessageOptions()
+						{
+							YesLabel = "Disconnect and stop".Localize(),
+							NoLabel = "Stay connected".Localize(),
+							Destructive = true,
+						});
 				}
 				else
 				{

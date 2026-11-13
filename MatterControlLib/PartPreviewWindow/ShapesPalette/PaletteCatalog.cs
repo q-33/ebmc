@@ -29,7 +29,10 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 		SceneOperation,
 
 		/// <summary>A palette command (see PaletteCatalog.AddModelCommand and SupportsCommand).</summary>
-		Command
+		Command,
+
+		/// <summary>EBMC Edition: a Club Starter, a GeneratorItem of ClubStartersContainer (also registered in the library root), found by its (English) name.</summary>
+		Starters
 	}
 
 	/// <summary>
@@ -346,6 +349,181 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			return sections.Take(1).Concat(new[] { Solids }).Concat(sections.Skip(1)).ToList();
 		}
+
+		/// <summary>
+		/// EBMC Edition: the design tab in Simple mode (UiModes): the Box, Round, Text and Image &amp; QR shapes and the
+		/// Measure Tool, with no Solids, no Description or Variable Sheet and no modelling tools.
+		/// </summary>
+		public static IReadOnlyList<PaletteSection> DesignSimple { get; } = new[]
+		{
+			new PaletteSection(
+				"Shapes",
+				Design[0].Families.Where(f => f.Id == "box" || f.Id == "round" || f.Id == "text" || f.Id == "image")
+					.Concat(new[] { new PaletteFamily("measure", "Measure Tool", Measure()) })
+					.ToArray()),
+		};
+
+		/// <summary>
+		/// EBMC Edition: the printer tab in Simple mode: Add model, then Arrange All, Lay Flat and Supports. No test shapes,
+		/// calibration parts or Measure Tool.
+		/// </summary>
+		public static IReadOnlyList<PaletteSection> PrinterSimple { get; } = new[]
+		{
+			Printer[0],
+			new PaletteSection(
+				"Prepare",
+				Printer[2].Families.Where(f => f.Id == "arrange" || f.Id == "layflat" || f.Id == "supports").ToArray()),
+		};
+
+		/// <summary>
+		/// The sections for a tab in a mode. Advanced is exactly <see cref="For(PaletteTab, bool)"/>; Simple is
+		/// <see cref="DesignSimple"/> or <see cref="PrinterSimple"/>, never with solids.
+		/// </summary>
+		public static IReadOnlyList<PaletteSection> For(PaletteTab tab, bool withSolids, UiMode mode)
+		{
+			if (mode == UiMode.Simple)
+			{
+				return tab == PaletteTab.Printer ? PrinterSimple : DesignSimple;
+			}
+
+			return For(tab, withSolids);
+		}
+
+		public static IEnumerable<PaletteFamily> Families(PaletteTab tab, UiMode mode) => For(tab, false, mode).SelectMany(s => s.Families);
+
+		// ---------------------------------------------------------------------------------------------------------------
+		// EBMC Edition: club shapes and Club Starters (OemSettings.EnableClubShapes), design tabs only
+
+		/// <summary>Glyph of the Starters family button.</summary>
+		public const string StartersGlyph = "starters";
+
+		/// <summary>Most rows a shape family's flyout lists (the Starters flyout lists all nine starters).</summary>
+		public const int MaxShapeFlyoutRows = 8;
+
+		private static PaletteMember Starter(string name, string glyph, string hint) => new PaletteMember(PaletteSource.Starters, name, glyph).Hinted(hint);
+
+		/// <summary>The Club Starters, in the order of the start card's gallery. Names are ClubStartersContainer's generator names.</summary>
+		public static IReadOnlyList<PaletteMember> StarterMembers { get; } = new[]
+		{
+			Starter("Name Tag", "starter-name-tag", "A tag with your name in raised letters and a key-ring hole."),
+			Starter("Sign", "starter-sign", "Up to three lines of text on a plate, with a border and screw holes."),
+			Starter("Box with Lid", "starter-box", "A box and a lid that fits inside it, printed side by side."),
+			Starter("Wall Hook", "starter-hook", "A hook with two countersunk screw holes."),
+			Starter("Phone Stand", "starter-stand", "Holds a phone at a comfortable angle, with a gap for the cable."),
+			Starter("Knob", "starter-knob", "A grip knob for a round or D-shaped shaft."),
+			Starter("Cable Clip", "starter-clip", "Snaps over a cable; screw it down by its tab."),
+			Starter("Plant Label", "starter-plant", "A stake for a pot with the plant's name on it."),
+			Starter("QR Tag", "qr-code", "A tag with a QR code that opens a web page."),
+		};
+
+		/// <summary>Box shapes with the club's Rounded Box and Slot Plate.</summary>
+		public static PaletteFamily ClubBox { get; } = new PaletteFamily(
+			"box",
+			"Box shapes",
+			Design[0].Families[0].Members
+				.Concat(new[]
+				{
+					Primitive("Rounded Box", "rounded-box").Sized("RoundedBoxObject3D", "{0} × {1} × {2}", D20, "Width", "Depth", "Height")
+						.Hinted("Rounded upright edges; the top edges can be rounded too."),
+					Primitive("Slot Plate", "slot-plate").Sized("SlotPlateObject3D", "{0} × {1} × {2}", new double[] { 40, 20, 5 }, "Length", "Width", "Height", "SlotLength", "SlotWidth")
+						.Hinted("A plate with round ends and a slot through it."),
+				}).ToArray()).Holes();
+
+		/// <summary>Round shapes with the club's Tube.</summary>
+		public static PaletteFamily ClubRound { get; } = new PaletteFamily(
+			"round",
+			"Round shapes",
+			Design[0].Families[1].Members
+				.Concat(new[]
+				{
+					Primitive("Tube", "tube").Sized("TubeObject3D", "Ø{0} × {1}", new double[] { 20, 20 }, "OuterDiameter", "Height", "WallThickness")
+						.Hinted("A cylinder with a hole through it; set the wall thickness."),
+				}).ToArray()).Holes();
+
+		/// <summary>The club's other shapes (Advanced only). No size chips: each shows its default size.</summary>
+		public static PaletteFamily MoreShapes { get; } = new PaletteFamily(
+			"more",
+			"More shapes",
+			Primitive("Polygon Prism", "polygon-prism").Note("Ø20 × 20").Hinted("3 to 12 sides; 6 makes a hexagon."),
+			Primitive("Star", "star").Note("Ø20 × 5"),
+			Primitive("Heart", "heart").Note("20 × 5"),
+			Primitive("Gear", "gear").Note("20 teeth").Hinted("A spur gear; gears with the same module mesh.")).Holes();
+
+		/// <summary>The Club Starters: a click opens the list (each is chosen deliberately, not repeated).</summary>
+		public static PaletteFamily Starters { get; } = new PaletteFamily("starters", "Starters", StarterMembers.ToArray()).FlyoutOnClick().WithGlyph(StartersGlyph);
+
+		private static PaletteSection WithClubShapes(PaletteSection shapes, bool simple)
+		{
+			var families = new List<PaletteFamily>();
+			foreach (var family in shapes.Families)
+			{
+				if (family.Id == "box")
+				{
+					families.Add(ClubBox);
+				}
+				else if (family.Id == "round")
+				{
+					families.Add(ClubRound);
+					if (!simple)
+					{
+						families.Add(MoreShapes);
+					}
+				}
+				else
+				{
+					families.Add(family);
+					if (family.Id == "image")
+					{
+						families.Add(Starters);
+					}
+				}
+			}
+
+			return new PaletteSection(shapes.Label, families.ToArray());
+		}
+
+		/// <summary>The design tab (Advanced) with the club shapes and starters.</summary>
+		public static IReadOnlyList<PaletteSection> DesignClub { get; } = new[] { WithClubShapes(Design[0], false) }.Concat(Design.Skip(1)).ToArray();
+
+		/// <summary>The design tab in Simple with the starters, and Rounded Box, Slot Plate and Tube in the Box and Round flyouts.</summary>
+		public static IReadOnlyList<PaletteSection> DesignSimpleClub { get; } = new[] { WithClubShapes(DesignSimple[0], true) };
+
+		/// <summary>
+		/// The sections for a tab in a mode, with the club shapes and starters on design tabs when
+		/// <paramref name="withClubShapes"/> is true. Printer tabs never show them; without them this is exactly
+		/// <see cref="For(PaletteTab, bool, UiMode)"/>.
+		/// </summary>
+		public static IReadOnlyList<PaletteSection> For(PaletteTab tab, bool withSolids, UiMode mode, bool withClubShapes)
+		{
+			if (!withClubShapes || tab != PaletteTab.Design)
+			{
+				return For(tab, withSolids, mode);
+			}
+
+			if (mode == UiMode.Simple)
+			{
+				return DesignSimpleClub;
+			}
+
+			return withSolids ? DesignClub.Take(1).Concat(new[] { Solids }).Concat(DesignClub.Skip(1)).ToList() : DesignClub;
+		}
+
+		/// <summary>Every glyph the palette loads for a tab with the club shapes (both modes, with solids).</summary>
+		public static IEnumerable<string> ClubGlyphs(PaletteTab tab)
+		{
+			return new[] { UiMode.Simple, UiMode.Advanced }
+				.SelectMany(mode => For(tab, true, mode, true))
+				.SelectMany(s => s.Families)
+				.SelectMany(f => f.Members.Select(m => m.Glyph).Concat(f.FamilyGlyph != null ? new[] { f.FamilyGlyph } : new string[0]))
+				.Concat(Glyphs(tab))
+				.Distinct();
+		}
+
+		/// <summary>
+		/// EBMC Edition: true when the palette always shows its labels and hides the labels toggle (design tabs in Simple).
+		/// Otherwise the user's labels setting applies.
+		/// </summary>
+		public static bool LabelsAlwaysShown(PaletteTab tab, UiMode mode) => mode == UiMode.Simple && tab == PaletteTab.Design;
 
 		/// <summary>True when the tab shows the Solid/Hole switch (design tabs only).</summary>
 		public static bool HasHoleSwitch(PaletteTab tab) => tab == PaletteTab.Design;

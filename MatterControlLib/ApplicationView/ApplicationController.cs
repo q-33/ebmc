@@ -168,7 +168,11 @@ namespace MatterHackers.MatterControl
 				return popupMenu;
 			}
 
-			if (!selectedItemType.IsDefined(typeof(ImmutableAttribute), false))
+			// EBMC Edition: the club right-click menu (OemSettings.ClubDialogsAndMenus) is built below from the same actions
+			bool clubMenu = ClubUi.ClubStyle.On && addInSubmenu;
+
+			if (!clubMenu
+				&& !selectedItemType.IsDefined(typeof(ImmutableAttribute), false))
 			{
 				AddActionMenuItems(sceneContext, addInSubmenu, menuTheme, popupMenu);
 			}
@@ -176,7 +180,49 @@ namespace MatterHackers.MatterControl
 			var workspaceActions = GetWorkspaceActions(view3DWidget);
 			var printer = view3DWidget.Printer;
 
-			var actions = new[]
+			var saveAsAction = new NamedAction()
+			{
+				Title = "Save As".Localize(),
+				Action = () => UiThread.RunOnIdle(() =>
+				{
+					DialogWindow.Show(
+						new SaveAsPage(
+							(container, newName) =>
+							{
+								sceneContext.SaveAs(container, newName);
+							}));
+				}),
+				IsEnabled = () => sceneContext.EditableScene
+			};
+
+			var exportAction = new NamedAction()
+			{
+				ID = "Export",
+				Title = "Export".Localize(),
+				Icon = StaticData.Instance.LoadIcon("cube_export.png", 16, 16).GrayToColor(MenuTheme.TextColor),
+				Action = () =>
+				{
+					Instance.ExportLibraryItems(
+						new[] { new InMemoryLibraryItem(selectedItem) },
+						centerOnBed: false,
+						printer: printer);
+				}
+			};
+
+			int clubChildCount = -1;
+			if (clubMenu)
+			{
+				ClubUi.ClubSceneMenus.BuildPartMenu(
+					popupMenu,
+					view3DWidget,
+					workspaceActions,
+					saveAsAction,
+					exportAction,
+					editable: !selectedItemType.IsDefined(typeof(ImmutableAttribute), false));
+				clubChildCount = popupMenu.Children.Count;
+			}
+
+			var actions = clubMenu ? new NamedAction[0] : new[]
 			{
 				new ActionSeparator(),
 				workspaceActions["Edit"],
@@ -228,6 +274,11 @@ namespace MatterHackers.MatterControl
 				{
 					AddReorderChildrenRightClickMenuItems(popupMenu, selectedItem);
 				}
+			}
+
+			if (clubMenu)
+			{
+				ClubUi.ClubSceneMenus.KeepDangerLast(popupMenu, clubChildCount);
 			}
 
 			return popupMenu;
@@ -734,7 +785,7 @@ namespace MatterHackers.MatterControl
 				{
 					ID = "Print",
 					Title = "Print".Localize(),
-					Shortcut = "Ctrl+P",
+					Shortcut = KeyHints.ForThisComputer("Ctrl+P"),
 					Action = view3DWidget.PushToPrinterAndPrint,
 					IsEnabled = () =>
 					{
@@ -836,7 +887,7 @@ namespace MatterHackers.MatterControl
 				{
 					ID = "Save",
 					Title = "Save".Localize(),
-					Shortcut = "Ctrl+S",
+					Shortcut = KeyHints.ForThisComputer("Ctrl+S"),
 					Action = () =>
 					{
 						ApplicationController.Instance.Tasks.Execute("Saving".Localize(), printer, sceneContext.SaveChanges).ConfigureAwait(false);
@@ -1293,6 +1344,26 @@ namespace MatterHackers.MatterControl
                 }
             }
 
+			// EBMC Edition: a toast instead of the timed task row (OemSettings.ClubDialogsAndMenus); the task row stays the
+			// fallback when there is no main window yet
+			if (ClubUi.ClubStyle.On)
+			{
+				UiThread.RunOnIdle(() =>
+				{
+					if (!ClubUi.ClubToast.Show(message, durationSeconds))
+					{
+						this.ShowNotificationTask(message, durationSeconds);
+					}
+				});
+
+				return;
+			}
+
+			this.ShowNotificationTask(message, durationSeconds);
+		}
+
+		private void ShowNotificationTask(string message, double durationSeconds)
+		{
 			// show the message for the time requested
 			this.Tasks.Execute(message,
 				null,
@@ -1306,7 +1377,9 @@ namespace MatterHackers.MatterControl
 					}
 
 					return Task.CompletedTask;
-				});
+				},
+				// EBMC Edition: a timed notice does not hold up the Simple · Advanced switch
+				new RunningTaskOptions() { AllowsWindowRebuild = true });
         }
 
         public void Connection_ErrorReported(object sender, string line)
@@ -1339,14 +1412,24 @@ namespace MatterHackers.MatterControl
 						300,
 						"Resume".Localize(),
 						"OK".Localize(),
-						ApplicationController.Instance.Theme);
+						ApplicationController.Instance.Theme,
+						false,
+						// EBMC Edition: Enter stays paused (stock: Enter resumed); "OK" says what it does. Resume is
+						// unchanged and still one click away (ClubDialogsAndMenus)
+						new ClubMessageOptions()
+						{
+							Severity = ClubUi.DialogSeverity.Danger,
+							YesLabel = "Resume print".Localize(),
+							NoLabel = "Stay paused".Localize(),
+							SafeDefault = true,
+						});
 
 						var exportButton = Theme.CreateDialogButton("Export Print Log...".Localize());
 						exportButton.Click += (s, e) =>
 						{
 							UiThread.RunOnIdle(() => TerminalLog.Export(printerConnection), .1);
 						};
-						messageBox.AddPageAction(exportButton);
+						messageBox.AddPageAction(exportButton, ClubUi.PageActionStyle.Aside);
 
 						DialogWindow.Show(messageBox);
 					});
@@ -1416,7 +1499,9 @@ namespace MatterHackers.MatterControl
 						{
 							printerConnection.TurnOffBedAndExtruders(TurnOff.Now);
 						}),
-						StopToolTip = "Immediately turn off heaters".Localize()
+						StopToolTip = "Immediately turn off heaters".Localize(),
+						// EBMC Edition: the heater hold after a print does not hold up the Simple · Advanced switch
+						AllowsWindowRebuild = true,
 					});
 				}
 			}
@@ -2328,12 +2413,15 @@ namespace MatterHackers.MatterControl
 						return null;
 					}
 
-					// the stream stays open, as in GetTypeFace
-					var stream = StaticData.Instance.OpenStream(path);
+					// LoadTTF reads the whole font, so the stream is closed straight after (agg-sharp's own
+					// LoadTTF(filename) does the same)
 					var typeFace = new TypeFace();
-					if (stream == null || !typeFace.LoadTTF(stream))
+					using (var stream = StaticData.Instance.OpenStream(path))
 					{
-						return null;
+						if (stream == null || !typeFace.LoadTTF(stream))
+						{
+							return null;
+						}
 					}
 
 					FitDescentToGlyphs(typeFace);
@@ -2354,17 +2442,23 @@ namespace MatterHackers.MatterControl
 			var bold = Load("Bold");
 			AggContext.DefaultFont = regular;
 			AggContext.DefaultFontBold = bold ?? LiberationSansBoldFont.Instance;
-			AggContext.DefaultFontItalic = Load("Italic") ?? regular;
-			AggContext.DefaultFontBoldItalic = Load("Bold_Italic") ?? bold ?? LiberationSansBoldFont.Instance;
+
+			// Nothing in the app or agg-sharp reads the italic defaults, so the italic files are not loaded; these keep
+			// the same pairing the stock code uses (italic = regular, bold italic = bold)
+			AggContext.DefaultFontItalic = regular;
+			AggContext.DefaultFontBoldItalic = AggContext.DefaultFontBold;
 		}
 
 		/// <summary>
-		/// EBMC Edition, workaround: agg-sharp sizes a line of text as one em, from the font's descent up, and clips each
+		/// EBMC Edition, workaround (noted 2026-11-12): agg-sharp sizes a line of text as one em, from the font's descent up, and clips each
 		/// text widget to that box. Nunito's descent (-0.353 em) is much deeper than its letters go (-0.19 em), so the box
 		/// top (0.647 em) would cut the top of capitals and ascenders (0.71 em) by about a pixel. For the interface faces
 		/// the descent is set to -0.25 em (box -0.25 to 0.75 em), which holds both, as Liberation Sans' box does. Only
 		/// these interface copies are changed; text parts load their own copy through GetTypeFace. The real fix is for
 		/// agg-sharp's TextWidget to size text from the glyph extents (or the font's line metrics); remove this then.
+		/// The clean replacement inside this repository is an interface-only copy of the font file (for example
+		/// Nunito_UI_Regular.ttf) patched to the smaller descender, loaded here instead of the stock file, so no reflection
+		/// into agg-sharp is needed. Not done yet.
 		/// </summary>
 		private static void FitDescentToGlyphs(TypeFace typeFace)
 		{
@@ -2474,6 +2568,9 @@ namespace MatterHackers.MatterControl
 				},
 				taskActions: new RunningTaskOptions()
 				{
+					// EBMC Edition: a print in progress does not hold up the Simple · Advanced switch (the print runs in the
+					// printer connection; the window rebuild only redraws its progress row)
+					AllowsWindowRebuild = true,
 					ExpansionSerializationKey = $"{nameof(MonitorPrintTask)}_expanded",
 					RichProgressWidget = () => PrinterTabPage.PrintProgressWidget(printer, this.Theme),
 					PauseAction = () => UiThread.RunOnIdle(() =>

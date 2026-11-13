@@ -120,7 +120,10 @@ namespace MatterHackers.MatterControl.DesignTools
 					}
 				}
 
-				return new ModelFitAdvice(ModelFitIssue.Tiny, largest, choices);
+				// a prompt whose only button is "Leave it" helps nobody
+				return choices.Count == 0
+					? ModelFitAdvice.NoIssue
+					: new ModelFitAdvice(ModelFitIssue.Tiny, largest, choices);
 			}
 
 			if (onPrinter)

@@ -210,6 +210,25 @@ namespace EbmcOcctSpike
 				return (ok, $"coarse {coarse.TriangleCount} tris, fine {fine.TriangleCount}, coarse again {coarse2.TriangleCount}");
 			});
 
+			Run("tessellate triangle cap (0.3)", () =>
+			{
+				using var cut = MakeFilletedCutBox();
+				var full = EbmcOcct.Tessellate(cut, 0.05, 0.5 * Deg);
+				int code = 0;
+				try
+				{
+					EbmcOcct.Tessellate(cut, 0.05, 0.5 * Deg, full.TriangleCount - 1);
+				}
+				catch (OcctException ex)
+				{
+					code = ex.Code;
+				}
+
+				var atCap = EbmcOcct.Tessellate(cut, 0.05, 0.5 * Deg, full.TriangleCount);
+				bool ok = code == EbmcOcct.ErrTooBig && atCap.TriangleCount == full.TriangleCount;
+				return (ok, $"cap {full.TriangleCount - 1} -> code {code}; cap {full.TriangleCount} -> {atCap.TriangleCount} tris");
+			});
+
 			Run("STEP write + read round trip", () =>
 			{
 				var path = Path.Combine(Path.GetTempPath(), "ebmc_occt_spike_" + Guid.NewGuid().ToString("N") + ".step");

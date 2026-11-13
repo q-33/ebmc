@@ -131,7 +131,8 @@ namespace MatterHackers.MatterControl.Library.Widgets
 			};
 			searchPanel.ResetButton.Click += (s, e) =>
 			{
-				breadCrumbWidget.Visible = true;
+				// EBMC Edition: through the bar, so it knows the owner (not the fit) hid or showed it
+				navBar.SetOwnerVisible(breadCrumbWidget, true);
 				searchPanel.Visible = false;
 
 				searchPanel.TextEditWidget.Text = "";
@@ -157,7 +158,7 @@ namespace MatterHackers.MatterControl.Library.Widgets
 				{
 					searchContainer = libraryView.ActiveContainer;
 
-					breadCrumbWidget.Visible = false;
+					navBar.SetOwnerVisible(breadCrumbWidget, false);
 					searchPanel.Visible = true;
 					searchInput.Focus();
 				}

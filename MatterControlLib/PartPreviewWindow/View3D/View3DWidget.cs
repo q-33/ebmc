@@ -353,6 +353,11 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				return (cubeCenterFromRightTop - widgetCenter - new Vector2(0, radius).GetRotated(angle)) / scale;
 			}
 
+			// EBMC Edition: Simple mode (UiModes) keeps only the tumble cube, Reset View, Zoom to Selection and Show Print Bed
+			// (the bed toggle is saved, so a bed hidden in Advanced must stay reachable). The other controls are still built,
+			// so their settings and mouse and keyboard behaviour are unchanged, but not shown.
+			bool fullViewControls = !UiModes.IsSimple;
+
 			// add the view controls
 			var buttonGroupA = new ObservableCollection<GuiWidget>();
 			partSelectButton = new ThemedRadioIconButton(StaticData.Instance.LoadIcon(Path.Combine("ViewTransformControls", "partSelect.png"), 16, 16).GrayToColor(theme.TextColor), theme)
@@ -362,8 +367,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				Margin = theme.ButtonSpacing,
 			};
 
-			partSelectButton.MouseEnterBounds += (s, e) => partSelectButton.SetActiveUiHint("Ctrl + A = Select All, Space = Clear Selection, Esc = Cancel Drag".Localize());
-			AddRoundButton(partSelectButton, RotatedMargin(partSelectButton, MathHelper.Tau * .15));
+			partSelectButton.MouseEnterBounds += (s, e) => partSelectButton.SetActiveUiHint(KeyHints.ForThisComputer("Ctrl + A = Select All, Space = Clear Selection, Esc = Cancel Drag".Localize()));
+			AddRoundButton(partSelectButton, RotatedMargin(partSelectButton, MathHelper.Tau * .15)).Visible = fullViewControls;
 			partSelectButton.Click += (s, e) => viewControls3D.ActiveButton = ViewControls3DButtons.PartSelect;
 			buttonGroupA.Add(partSelectButton);
 
@@ -373,8 +378,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				ToolTipText = "Rotate View".Localize(),
 				Margin = theme.ButtonSpacing
 			};
-			rotateButton.MouseEnterBounds += (s, e) => rotateButton.SetActiveUiHint("Rotate: Right Mouse Button, Ctrl + Left Mouse Button, Arrow Keys".Localize());
-			AddRoundButton(rotateButton, RotatedMargin(rotateButton, MathHelper.Tau * .05));
+			rotateButton.MouseEnterBounds += (s, e) => rotateButton.SetActiveUiHint(KeyHints.ForThisComputer("Rotate: Right Mouse Button, Ctrl + Left Mouse Button, Arrow Keys".Localize()));
+			AddRoundButton(rotateButton, RotatedMargin(rotateButton, MathHelper.Tau * .05)).Visible = fullViewControls;
 			rotateButton.Click += (s, e) => viewControls3D.ActiveButton = ViewControls3DButtons.Rotate;
 			buttonGroupA.Add(rotateButton);
 
@@ -384,8 +389,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				ToolTipText = "Move View".Localize(),
 				Margin = theme.ButtonSpacing
 			};
-			translateButton.MouseEnterBounds += (s, e) => translateButton.SetActiveUiHint("Move: Middle Mouse Button, Ctrl + Shift + Left Mouse Button, Shift Arrow Keys".Localize());
-			AddRoundButton(translateButton, RotatedMargin(translateButton , - MathHelper.Tau * .05));
+			translateButton.MouseEnterBounds += (s, e) => translateButton.SetActiveUiHint(KeyHints.ForThisComputer("Move: Middle Mouse Button, Ctrl + Shift + Left Mouse Button, Shift Arrow Keys".Localize()));
+			AddRoundButton(translateButton, RotatedMargin(translateButton , - MathHelper.Tau * .05)).Visible = fullViewControls;
 			translateButton.Click += (s, e) => viewControls3D.ActiveButton = ViewControls3DButtons.Translate;
 			buttonGroupA.Add(translateButton);
 
@@ -395,8 +400,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				ToolTipText = "Zoom View".Localize(),
 				Margin = theme.ButtonSpacing
 			};
-			zoomButton.MouseEnterBounds += (s, e) => zoomButton.SetActiveUiHint("Zoom: Mouse Wheel, Ctrl + Alt + Left Mouse Button, Ctrl + '+' & Ctrl + '-'".Localize());
-			AddRoundButton(zoomButton, RotatedMargin(zoomButton, - MathHelper.Tau * .15));
+			zoomButton.MouseEnterBounds += (s, e) => zoomButton.SetActiveUiHint(KeyHints.ForThisComputer("Zoom: Mouse Wheel, Ctrl + Alt + Left Mouse Button, Ctrl + '+' & Ctrl + '-'".Localize()));
+			AddRoundButton(zoomButton, RotatedMargin(zoomButton, - MathHelper.Tau * .15)).Visible = fullViewControls;
 			zoomButton.Click += (s, e) => viewControls3D.ActiveButton = ViewControls3DButtons.Scale;
 			buttonGroupA.Add(zoomButton);
 
@@ -431,11 +436,20 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					renderPath(arc, width);
 				}
 
-				renderRoundedGroup(.3, .25);
+				// the mouse mode group (select, rotate, move, zoom)
+				if (fullViewControls)
+				{
+					renderRoundedGroup(.3, .25);
+				}
+
+				// reset view and zoom to selection
 				renderRoundedGroup(.1, .5 + .1);
 
 				// render the perspective and turntable group background
-				renderRoundedGroup(.1, 1 - .1); // when we have both ortho and turntable
+				if (fullViewControls)
+				{
+					renderRoundedGroup(.1, 1 - .1); // when we have both ortho and turntable
+				}
 
 				void renderRoundedLine(double lineWidth, double heightBelowCenter)
 				{
@@ -453,7 +467,11 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 				tumbleCubeCenter.X += bottomButtonOffset;
 
-				renderRoundedLine(18, 101);
+				// the bed and print area pair
+				if (fullViewControls)
+				{
+					renderRoundedLine(18, 101);
+				}
 
 				// e.Graphics2D.Circle(controlLayer.Width - cubeCenterFromRightTop.X, controlLayer.Height - cubeCenterFromRightTop.Y, 150, Color.Cyan);
 
@@ -502,7 +520,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			};
             turnTableButton.MouseEnterBounds += (s, e) => turnTableButton.SetActiveUiHint("Switch between turn table and trackball modes".Localize());
 
-            AddRoundButton(turnTableButton, RotatedMargin(turnTableButton, -MathHelper.Tau * .4)); // 2 button position
+            AddRoundButton(turnTableButton, RotatedMargin(turnTableButton, -MathHelper.Tau * .4)).Visible = fullViewControls; // 2 button position
 			turnTableButton.CheckedStateChanged += (s, e) =>
 			{
 				UserSettings.Instance.set(UserSettingsKey.TurntableMode, turnTableButton.Checked.ToString());
@@ -527,7 +545,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				Checked = TrackballTumbleWidget.PerspectiveMode,
 			};
             projectionButton.MouseEnterBounds += (s, e) => projectionButton.SetActiveUiHint("Turn on and off perspective rendering".Localize());
-            AddRoundButton(projectionButton, RotatedMargin(projectionButton, -MathHelper.Tau * .3));
+            AddRoundButton(projectionButton, RotatedMargin(projectionButton, -MathHelper.Tau * .3)).Visible = fullViewControls;
 			projectionButton.CheckedStateChanged += (s, e) =>
 			{
 				UserSettings.Instance.set(UserSettingsKey.PerspectiveMode, projectionButton.Checked.ToString());
@@ -557,7 +575,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			};
             bedButton.MouseEnterBounds += (s, e) => bedButton.SetActiveUiHint("Hide and show the bed".Localize());
             
-			AddRoundButton(bedButton, new Vector2((cubeCenterFromRightTop.X + 18 * scale - bedButton.Width / 2) / scale, startHeight));
+			// EBMC Edition: shown in both modes; in Simple, where the print-area button beside it is hidden, it sits centred under the cube
+			var bedButtonOffset = fullViewControls ? 18 * scale : 0;
+			AddRoundButton(bedButton, new Vector2((cubeCenterFromRightTop.X + bedButtonOffset - bedButton.Width / 2) / scale, startHeight));
 			var printAreaButton = new ThemedRadioIconButton(StaticData.Instance.LoadIcon("print_area.png", 16, 16).GrayToColor(theme.TextColor), theme)
 			{
 				Name = "Bed Button",
@@ -576,7 +596,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			bool BuildHeightValid() => sceneContext.BuildHeight > 0;
 
-			AddRoundButton(printAreaButton, new Vector2((cubeCenterFromRightTop.X - 18 * scale - bedButton.Width / 2) / scale, startHeight));
+			AddRoundButton(printAreaButton, new Vector2((cubeCenterFromRightTop.X - 18 * scale - bedButton.Width / 2) / scale, startHeight)).Visible = fullViewControls;
 
 			printAreaButton.CheckedStateChanged += (s, e) =>
 			{
@@ -618,14 +638,16 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
             modelViewStyleButton.AnchorMate.Mate.VerticalEdge = MateEdge.Bottom;
 			modelViewStyleButton.AnchorMate.Mate.HorizontalEdge = MateEdge.Right;
 			var marginCenter = cubeCenterFromRightTop.X / scale;
-			AddRoundButton(modelViewStyleButton, new Vector2(marginCenter, startHeight + 1 * ySpacing), true);
+			// EBMC Edition: the view style stays reachable in Simple too: a style picked in Advanced (Overhang, Wireframe...)
+			// is saved, and Simple must be able to change it back (view only; no setting value is involved)
+			AddRoundButton(modelViewStyleButton, new Vector2(marginCenter, startHeight + 1 * ySpacing), true).Visible = true;
 			modelViewStyleButton.BackgroundColor = hudBackgroundColor;
 			modelViewStyleButton.BorderColor = hudStrokeColor;
 
 			void ViewState_ViewModeChanged(object sender, ViewModeChangedEventArgs e)
 			{
 				modelViewStyleButton.Visible = e.ViewMode == PartViewMode.Model;
-				gridSnapButton.Visible = modelViewStyleButton.Visible;
+				gridSnapButton.Visible = fullViewControls && e.ViewMode == PartViewMode.Model;
 			}
 
 			if (printer?.ViewState != null)
@@ -653,7 +675,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
             gridSnapButton.AnchorMate.Mate.VerticalEdge = MateEdge.Bottom;
 			gridSnapButton.AnchorMate.Mate.HorizontalEdge = MateEdge.Right;
-			AddRoundButton(gridSnapButton, new Vector2(marginCenter, startHeight + 2 * ySpacing), true);
+			AddRoundButton(gridSnapButton, new Vector2(marginCenter, startHeight + 2 * ySpacing), true).Visible = fullViewControls;
 			gridSnapButton.BackgroundColor = hudBackgroundColor;
 			gridSnapButton.BorderColor = hudStrokeColor;
 
@@ -670,7 +692,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					Mate = new MateOptions(MateEdge.Left, MateEdge.Bottom)
 				}
 			};
-			AddRoundButton(renderOptionsButton, new Vector2(marginCenter, startHeight + 3 * ySpacing), true);
+			AddRoundButton(renderOptionsButton, new Vector2(marginCenter, startHeight + 3 * ySpacing), true).Visible = fullViewControls;
 #endif
 		}
 
@@ -1042,7 +1064,12 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 							: "Replace the Parts on the Bed?".Localize(),
 						StyledMessageBox.MessageType.YES_NO,
 						"Replace".Localize(),
-						"Cancel".Localize());
+						"Cancel".Localize(),
+						// EBMC Edition: club template; Enter cancels (ClubDialogsAndMenus)
+						new ClubMessageOptions()
+						{
+							Destructive = true,
+						});
 				}
 				else
 				{
@@ -2123,7 +2150,16 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					workspaceActions["ClearBed"],
 				};
 
-			theme.CreateMenuItems(popupMenu, actions);
+			// EBMC Edition: the club menu (OemSettings.ClubDialogsAndMenus): the same items plus the Select All and Add a
+			// file actions, grouped by ClubMenus.BedContext; Save, Export and Print keep their order
+			if (ClubUi.ClubStyle.On)
+			{
+				ClubUi.ClubSceneMenus.BuildBedMenu(popupMenu, this, workspaceActions, actions[1]);
+			}
+			else
+			{
+				theme.CreateMenuItems(popupMenu, actions);
+			}
 
 			var popupBounds = new RectangleDouble(position.X + 1, position.Y + 1, position.X + 1, position.Y + 1);
 

@@ -73,6 +73,40 @@ namespace MatterHackers.MatterControl
 			return operation;
 		}
 
+		/// <summary>
+		/// EBMC Edition: marks an operation as one Simple mode keeps (see SceneOperation.ShowInSimpleMode).
+		/// </summary>
+		private static SceneOperation SimpleToo(SceneOperation operation)
+		{
+			operation.ShowInSimpleMode = true;
+			return operation;
+		}
+
+		/// <summary>
+		/// EBMC Edition: whether an operation or group is shown in Simple mode. Groups never are; a top-level operation is
+		/// when it is marked ShowInSimpleMode. Operations inside groups are offered by <see cref="SimpleGroupedOperations"/>.
+		/// </summary>
+		public static bool ShowInSimple(SceneOperation operation)
+		{
+			return !(operation is OperationGroup)
+				&& !(operation is SceneSelectionSeparator)
+				&& operation.ShowInSimpleMode;
+		}
+
+		/// <summary>
+		/// EBMC Edition: the operations of a group that Simple mode shows on their own (the group itself is hidden): those
+		/// marked ShowInSimpleMode, on design tabs only. Printer tabs show none (their Simple toolbar has no Placement).
+		/// </summary>
+		public static IEnumerable<SceneOperation> SimpleGroupedOperations(OperationGroup group, bool printerTab)
+		{
+			if (printerTab)
+			{
+				return Enumerable.Empty<SceneOperation>();
+			}
+
+			return group.Operations.Where(operation => operation != null && operation.ShowInSimpleMode);
+		}
+
 		private static Dictionary<Type, Func<ThemeConfig, ImageBuffer>> Icons { get; set; }
 
 		private static Dictionary<string, SceneOperation> OperationsById { get; } = new Dictionary<string, SceneOperation>();
@@ -120,10 +154,22 @@ namespace MatterHackers.MatterControl
 			bool trimForPrinter = OemSettings.Instance.TrimPrinterTabToolbar
 				&& sceneContext?.Printer != null;
 
+			// EBMC Edition: Simple mode lists only what its toolbar shows (no operation groups; Align on its own on design
+			// tabs). Advanced, and the stock build, list everything as before.
+			bool simple = UiModes.IsSimple;
+			bool printerTab = sceneContext?.Printer != null;
+
 			bool Show(SceneOperation operation)
 			{
 				if (trimForPrinter
 					&& !operation.ShowOnPrinterTabs)
+				{
+					return false;
+				}
+
+				if (simple
+					&& !ShowInSimple(operation)
+					&& !(operation is OperationGroup))
 				{
 					return false;
 				}
@@ -164,8 +210,33 @@ namespace MatterHackers.MatterControl
 				return visible;
 			}
 
+			void AddItem(SceneOperation operation)
+			{
+				var menuItem = popupMenu.CreateMenuItem(operation.Title, operation.Icon(theme));
+				menuItem.Click += (s, e) => operation.Action(sceneContext);
+				menuItem.Enabled = operation.IsEnabled(sceneContext);
+				menuItem.ToolTipText = operation.HelpText ?? "";
+			}
+
 			foreach (var operation in All)
 			{
+				if (simple
+					&& operation is OperationGroup simpleGroup)
+				{
+					// The group is hidden in Simple; its Simple operations (if any) are listed on their own
+					foreach (var childOperation in SimpleGroupedOperations(simpleGroup, printerTab))
+					{
+						if ((!trimForPrinter || childOperation.ShowOnPrinterTabs)
+							&& childOperation.ShowInModifyMenu?.Invoke(sceneContext) != false
+							&& childOperation.IsEnabled?.Invoke(sceneContext) == true)
+						{
+							AddItem(childOperation);
+						}
+					}
+
+					continue;
+				}
+
 				if (!Show(operation))
 				{
 					continue;
@@ -201,10 +272,7 @@ namespace MatterHackers.MatterControl
 				}
 				else
 				{
-					var menuItem = popupMenu.CreateMenuItem(operation.Title, operation.Icon(theme));
-					menuItem.Click += (s, e) => operation.Action(sceneContext);
-					menuItem.Enabled = operation.IsEnabled(sceneContext);
-					menuItem.ToolTipText = operation.HelpText ?? "";
+					AddItem(operation);
 				}
 			}
 
@@ -541,6 +609,26 @@ namespace MatterHackers.MatterControl
 			};
 		}
 
+		/// <summary>
+		/// EBMC Edition: a mirrored copy of the selection beside it (PartPreviewWindow MirrorCopy): asks for the axis, adds
+		/// the copy as one undo step and selects it.
+		/// </summary>
+		public static SceneOperation MirrorCopyOperation()
+		{
+			return new SceneOperation("MirrorCopy")
+			{
+				ResultType = typeof(MirrorObject3D_2),
+				TitleGetter = () => "Mirror Copy".Localize(),
+				Action = (sceneContext) => MirrorCopy.ChooseAxisAndRun(sceneContext),
+				Icon = (theme) => StaticData.Instance.LoadIcon("mirror_32x32.png", 16, 16).GrayToColor(theme.TextColor).SetPreMultiply(),
+				// a part inside a group is placed in its group's space, so only a whole (top-level) selection is copied
+				HelpTextGetter = () => "At least 1 part must be selected".Localize().Stars() + "\n" + TransformRules.NestedSelectionMessage.Localize(),
+				UiHint = "Adds a mirrored copy next to the selection".Localize(),
+				IsEnabled = (sceneContext) => IsMeshObject(sceneContext.Scene.SelectedItem)
+					&& sceneContext.Scene.Children.Contains(sceneContext.Scene.SelectedItem),
+			};
+		}
+
 		public static SceneOperation OutlinePathOperation()
 		{
 			return new SceneOperation("OutlinePath")
@@ -747,15 +835,15 @@ namespace MatterHackers.MatterControl
 
 			registeredOperations = new List<SceneOperation>()
 			{
-				ArrangeAllPartsOperation(),
+				SimpleToo(ArrangeAllPartsOperation()),
 				new SceneSelectionSeparator(),
-				LayFlatOperation(),
+				SimpleToo(LayFlatOperation()),
 				RebuildOperation(),
-				GroupOperation(),
-				UngroupOperation(),
+				SimpleToo(GroupOperation()),
+				SimpleToo(UngroupOperation()),
 				new SceneSelectionSeparator(),
-				DuplicateOperation(),
-				RemoveOperation(),
+				SimpleToo(DuplicateOperation()),
+				SimpleToo(RemoveOperation()),
 				new SceneSelectionSeparator(),
 				new OperationGroup("Transform")
 				{
@@ -765,16 +853,22 @@ namespace MatterHackers.MatterControl
 					{
 						TranslateOperation(),
 						RotateOperation(),
-						ScaleOperation(),
+
+						// EBMC Edition: Simple keeps Scale (a beginner needs "make it bigger"): on its own in the design tab's
+						// Simple toolbar, like Align, and as the properties panel's Scale button
+						SimpleToo(ScaleOperation()),
 						MirrorOperation(),
 					}
+					// EBMC Edition: Mirror Copy beside Mirror (OemSettings.EnableAdvancedTools; Advanced only, like the group)
+					.Concat(AdvancedTools.IsEnabled ? new[] { DesignOnly(MirrorCopyOperation()) } : new SceneOperation[0])
+					.ToList()
 				},
 				new OperationGroup("Placement")
 				{
 					TitleGetter = () => "Placement".Localize(),
 					Operations = new List<SceneOperation>()
 					{
-						AlignOperation(),
+						SimpleToo(AlignOperation()),
 						DualExtrusionAlignOperation(),
 					},
 				},

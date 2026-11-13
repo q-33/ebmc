@@ -289,17 +289,34 @@ LEFT OUT unless the owner asks (print-adjacent): design-tab Print becoming "Send
 Still waiting on the owner: what fixed the printer (bed sensor halt 2026-11-12 15:32); G-code rule (their usual
   job is a .gcode file, refused while locked); PrusaSlicer bundle answers; purge of old commits from the reflog.
 
-STATE 2026-11-12 23:10: solids review fix round DONE (528 tests, 0 errors; not seen on screen). Visual
-clean-up batch DONE and reviewed; seen on screen (Nunito, new view icons). Its review fixes are QUEUED on the
-Simple/Advanced implementer as a second task (most important: TextObject3D line wrapping must measure with
-Liberation again, because the Nunito default font changed wrapped text-part geometry; also tooltips re-wrap,
-Cmd vs Ctrl hints on macOS, bolder Z arrows, OverflowBar active tab + dead rows, build_icons key check).
-IN FLIGHT: Simple / Advanced mode implementer (batch 3). NEXT after it: on-screen check of modes + solids
-fixes, independent review of modes, then batch 4 (new shapes + Club Starters + empty-tab start card), then
-batch 5 (command search, typed transform panel, mirror copy, section view, shortcuts sheet), then the dialog
-and menu clean-up from the UX report (items 5, 6, 9).
-For the owner to confirm: OpenCASCADE.txt contact line and copyright holder ("East Bay Makers Club and
-contributors") in the shim's BSD header; attaching the OCCT source archive to releases.
+STATE 2026-11-13 ~03:20. THE IMPROVEMENT PROGRAMME'S PLANNED WORK IS COMPLETE AND REVIEWED.
+Committed: ed018e809 (8 ahead of origin, NOT pushed). UNCOMMITTED, built, 954 tests, 0 errors (Release and
+Debug), bundle in dist/ rebuilt after the last fix round: Simple/Advanced mode; visual review fixes; solids
+fix rounds 2-3; seven shapes, nine Club Starters, start card; advanced tools (Cmd+K search, Transform section,
+Mirror Copy, shortcuts sheet); dialog template + safe Enter defaults + regrouped menus + toasts; all review
+fix rounds, including the final one (Debug re-add crash, MissingMeshWatch, DefaultButton -1).
+Final review: no must-fix; print path untouched except the owner-approved speeds; no private data in the tree.
+WAITING ON THE OWNER:
+  1. ON-SCREEN PASS — none of batch 4, batch 5, the dialogs/menus or the later fix rounds has been seen
+     running (display asleep since ~01:30). Do this first when the owner says "check".
+  2. Commit (owner's word needed). 3. Sign-off on the "Cmd + P" hint text in OctoPrintSendPopupMenu.cs.
+  4. New speeds: unlock + Printer Options > Update settings on the installed printer; test cube.
+  5. OpenCASCADE contact + copyright holder; release checklist before sharing any binary.
+The nudge cron was deleted when this was written; nothing is scheduled.
+Open follow-ups (not started): Transform section should edit parametric objects' own size fields; section
+  view (feasible, S); Help/tour rewrite; P2/P3 icons + tumble cube; Library container renames; PrusaSlicer
+  bundle (waiting on owner); CI on GitHub; signing/notarisation; mXparser licence; toasts all use the info
+  icon; whether a window rebuild during a print (AllowsWindowRebuild) disturbs anything — untested live.
+
+TEMPERATURE LIMITS — owner 2026-11-13: "Set the max temp to 300", "The max bed temp should be 100".
+Staged firmware config (printer-config/proposed/config, untracked): hotend max_temp 400 -> 300, bed max_temp
+140 -> 100, each with a .bak copy beside it. NOT YET ON THE PRINTER (the Pi was unreachable from the owner's
+Mac; needs the SD card in the Mac, or config-set through OctoPrint + reset when the Pi is reachable, then
+confirm the stored values). App: Temperature Tower and Set Temperature parts now cap at 300 (were 400).
+On-screen pass 2026-11-13 09:00: start card, starters, palette families, club menus, Mirror Copy, Cmd+D,
+shortcuts sheet, dialog template seen working. Defects found and fixed afterwards (976 tests, NOT re-checked
+on screen): Find a tool popup had zero width; start card position/text; Size field appended typed text to
+the old value ("79.7100.126" read as 79.71*0.126); clipped properties title; badge tile tint.
 
 SPEEDS — owner approved 2026-11-12 ("I agree with your suggestions. Except, let's keep the first layer at
 20"): club profile infill/perimeters/top 35->70, support/raft 40->80, bridges 20->40, travel 150->250 (firmware

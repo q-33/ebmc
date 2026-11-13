@@ -38,6 +38,7 @@ using MatterHackers.Agg.UI;
 using MatterHackers.Localizations;
 using MatterHackers.MatterControl.CustomWidgets;
 using MatterHackers.MatterControl.Library;
+using MatterHackers.MatterControl.DesignTools.Solid;
 using MatterHackers.MatterControl.Library.Export;
 using MatterHackers.MatterControl.PartPreviewWindow;
 
@@ -353,7 +354,12 @@ namespace MatterHackers.MatterControl
 										// Only show errors in Generate if not GCodeExport - GCodeExport shows validation errors before Generate call
 										if (showGenerateErrors)
 										{
-											ApplicationController.Instance.ShowValidationErrors("Export Error".Localize(), exportErrors);
+											// EBMC Edition: a cancelled STEP export is not an error (other formats are unchanged)
+											var title = exportPlugin is StepExport
+												&& StepExportRules.Classify(exportErrors.Select(e => e.ID)) == StepExportOutcome.Cancelled
+												? "Export Cancelled".Localize()
+												: "Export Error".Localize();
+											ApplicationController.Instance.ShowValidationErrors(title, exportErrors);
 										}
 									}
 								});

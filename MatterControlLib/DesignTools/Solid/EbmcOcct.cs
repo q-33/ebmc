@@ -82,6 +82,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 		public const int ErrStd = 6;
 		public const int ErrUnknown = 7;
 		public const int ErrIo = 8;
+		public const int ErrTooBig = 9;
 
 		public const int CurveLine = 0;
 		public const int CurveCircle = 1;
@@ -123,7 +124,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 			[DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] public static extern int ebmc_area(OcctShape s, out double area);
 			[DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] public static extern int ebmc_bbox(OcctShape s, [Out] double[] out6);
 			[DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] public static extern int ebmc_is_valid(OcctShape s, out int valid);
-			[DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] public static extern int ebmc_tessellate(OcctShape s, double linear, double angular, out IntPtr mesh);
+			[DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] public static extern int ebmc_tessellate(OcctShape s, double linear, double angular, int maxTriangles, out IntPtr mesh);
 			[DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] public static extern void ebmc_mesh_free(IntPtr mesh);
 			[DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] public static extern int ebmc_write_step(OcctShape s, byte[] utf8Path);
 			[DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] public static extern int ebmc_read_step(byte[] utf8Path, out OcctShape shape);
@@ -240,9 +241,10 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 		public static double[] BoundingBox(OcctShape shape) { var b = new double[6]; Check(Native.ebmc_bbox(shape, b)); return b; }
 		public static bool IsValid(OcctShape shape) { Check(Native.ebmc_is_valid(shape, out var v)); return v != 0; }
 
-		public static OcctMesh Tessellate(OcctShape shape, double linearDeflection, double angularDeflectionRadians)
+		/// <summary>maxTriangles &gt; 0: fails with <see cref="ErrTooBig"/> (before anything is copied) above that many triangles.</summary>
+		public static OcctMesh Tessellate(OcctShape shape, double linearDeflection, double angularDeflectionRadians, int maxTriangles = 0)
 		{
-			Check(Native.ebmc_tessellate(shape, linearDeflection, angularDeflectionRadians, out var p));
+			Check(Native.ebmc_tessellate(shape, linearDeflection, angularDeflectionRadians, maxTriangles, out var p));
 			try
 			{
 				var n = Marshal.PtrToStructure<NativeMesh>(p);

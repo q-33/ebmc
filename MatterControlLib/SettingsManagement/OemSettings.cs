@@ -153,7 +153,7 @@ namespace MatterHackers.MatterControl.SettingsManagement
 
         /// <summary>
         /// EBMC Edition: the family of the interface typeface, loaded from StaticData/Fonts as
-        /// "{family}_Regular", "{family}_Bold", "{family}_Italic" and "{family}_Bold_Italic" (e.g. "Nunito").
+        /// "{family}_Regular" and "{family}_Bold" (e.g. "Nunito"; nothing reads the italic defaults, so no italic file is loaded).
         /// Empty keeps the stock Liberation Sans. Only interface text changes: text parts name their own font.
         /// </summary>
         public string DefaultUiFont = "";
@@ -162,6 +162,52 @@ namespace MatterHackers.MatterControl.SettingsManagement
         /// EBMC Edition: the text a new QR Code part starts with; empty keeps the stock default.
         /// </summary>
         public string QrCodeDefaultText = "";
+
+        /// <summary>
+        /// EBMC Edition: true shows the "Simple · Advanced" switch at the right of the top bar (see UiModes). Simple shows
+        /// fewer tools, palette buttons, view controls and slice-settings rows; a mode never changes a setting value, the bed
+        /// or how a print is sliced or sent. False keeps the stock interface (always Advanced).
+        /// </summary>
+        public bool ShowUiModeSwitch = false;
+
+        /// <summary>
+        /// EBMC Edition: the mode a user starts in until they pick one ("Simple" or "Advanced"). Only used when
+        /// ShowUiModeSwitch is true.
+        /// </summary>
+        public string DefaultUiMode = "Advanced";
+
+        /// <summary>
+        /// EBMC Edition: true adds the club shapes (Rounded Box, Tube, Polygon Prism, Star, Heart, Slot Plate, Gear) and the
+        /// Club Starters (fill-in designs such as a name tag or a box with lid) to design tabs: the palette, the Primitives
+        /// list and a "Club Starters" library folder. They are ordinary parts whose output is a normal mesh. False keeps
+        /// the stock lists.
+        /// </summary>
+        public bool EnableClubShapes = false;
+
+        /// <summary>
+        /// EBMC Edition: true opens a new design tab empty, with a "Start a design" card (add a shape, use a starter, open a
+        /// file) over the 3D view until something is added; the club badge is then one of the starters. False keeps the
+        /// stock behaviour (a new design tab starts with the sample part on it).
+        /// </summary>
+        public bool NewDesignStartsEmpty = false;
+
+        /// <summary>
+        /// EBMC Edition: true adds the Advanced-mode design tools: command search ("Find a tool", Cmd/Ctrl + K), the typed
+        /// Transform section in the properties panel, Mirror Copy and the keyboard shortcuts sheet (Advanced mode only, or
+        /// always when the mode switch is off), and Cmd/Ctrl + D for Duplicate. They only move, size, rotate, copy or add
+        /// parts through the undo buffer, like the existing tools; none of them slices, sends or prints. False keeps the
+        /// stock interface.
+        /// </summary>
+        public bool EnableAdvancedTools = false;
+
+        /// <summary>
+        /// EBMC Edition: true applies the club dialog template and menu style: dialogs get a title with a severity tile, a
+        /// footer bar and buttons named with verbs (Enter never picks a destructive button); the main menus are regrouped
+        /// with section headers, shortcut hints and danger items last; short notices show as a toast instead of a timed
+        /// task row. Every menu item and dialog button keeps the action and enable conditions it has with this off. False
+        /// keeps the stock dialogs and menus exactly.
+        /// </summary>
+        public bool ClubDialogsAndMenus = false;
 
         [JsonIgnore]
         public bool UseShapesPalette => string.Equals(ShapesPaletteStyle, "palette", System.StringComparison.OrdinalIgnoreCase);

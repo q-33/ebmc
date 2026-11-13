@@ -45,21 +45,56 @@ namespace MatterHackers.MatterControl.DesignTools
 			}
 		}
 
-		private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> Reported = new System.Runtime.CompilerServices.ConditionalWeakTable<object, object>();
-
-		/// <summary>A loader has shown its own message for this item (or the user cancelled it); the generic "Couldn't open" is then left out.</summary>
-		public static void MarkReported(object item)
+		/// <summary>A club shape or starter had to change values to build (wording from ClubShapes/ClubStarterRules.cs). Safe to call from any thread.</summary>
+		public static void ShapeNotice(string message)
 		{
-			if (item != null)
+			if (!string.IsNullOrEmpty(message))
 			{
-				Reported.AddOrUpdate(item, item);
+				Show(message);
 			}
 		}
 
-		/// <summary>True (once) when <see cref="MarkReported"/> was called for this item.</summary>
+		private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, System.Runtime.CompilerServices.StrongBox<int>> Reported
+			= new System.Runtime.CompilerServices.ConditionalWeakTable<object, System.Runtime.CompilerServices.StrongBox<int>>();
+
+		/// <summary>
+		/// A loader has shown its own message for one failed load of this item (or the user cancelled it); the generic
+		/// "Couldn't open" is then left out for that load. Counted per load, so two loads of the same item at once each
+		/// consume their own mark.
+		/// </summary>
+		public static void MarkReported(object item)
+		{
+			if (item == null)
+			{
+				return;
+			}
+
+			var count = Reported.GetValue(item, _ => new System.Runtime.CompilerServices.StrongBox<int>(0));
+			lock (count)
+			{
+				count.Value++;
+			}
+		}
+
+		/// <summary>True when a mark from <see cref="MarkReported"/> was waiting for this item; consumes one.</summary>
 		public static bool WasReported(object item)
 		{
-			return item != null && Reported.Remove(item);
+			if (item == null
+				|| !Reported.TryGetValue(item, out var count))
+			{
+				return false;
+			}
+
+			lock (count)
+			{
+				if (count.Value <= 0)
+				{
+					return false;
+				}
+
+				count.Value--;
+				return true;
+			}
 		}
 
 		private static void Show(string message)

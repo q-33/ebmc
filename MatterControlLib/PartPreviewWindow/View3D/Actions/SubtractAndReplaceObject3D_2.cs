@@ -104,8 +104,10 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
         }
 
         /// <summary>
-        /// EBMC: set when a new Subtract &amp; Replace is made with nothing chosen; the build applies the Holes default on
-        /// its own thread before it reads SelectedChildren (first build sees it; only the build thread writes the set).
+        /// EBMC: set when a new one is made with nothing chosen. The first Rebuild, which the wrap calls on the UI thread
+        /// after it has copied the parts in (copies get new IDs, so the default cannot be worked out before that),
+        /// applies the Holes default (and tidies the set) before it starts the build task, so the build thread only reads
+        /// SelectedChildren.
         /// </summary>
         private volatile bool applyDefaultPartsToRemove;
 
@@ -164,6 +166,21 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
 
         public override Task Rebuild()
         {
+            // EBMC: on the UI thread, before the build task starts (see applyDefaultPartsToRemove)
+            if (applyDefaultPartsToRemove)
+            {
+                applyDefaultPartsToRemove = false;
+                if (SelectedChildren.Count == 0)
+                {
+                    foreach (var id in SubtractObject3D_2.DefaultPartsToRemove(SourceContainer, lastPartWhenNoHoles: false))
+                    {
+                        SelectedChildren.Add(id);
+                    }
+                }
+            }
+
+            TidySelectedChildren();
+
             var rebuildLocks = this.RebuilLockAll();
 
             // spin up a task to calculate the paint
@@ -208,25 +225,26 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
 
         public void SubtractAndReplace()
         {
+            TidySelectedChildren();
             SubtractAndReplace(CancellationToken.None, null);
+        }
+
+        /// <summary>
+        /// EBMC: drops chosen IDs that are no longer parts here, exactly when the build used to (only with two or more
+        /// parts to choose from), but on the calling (UI) thread so the build task only reads the set.
+        /// </summary>
+        private void TidySelectedChildren()
+        {
+            if (SourceContainer.FirstWithMultipleChildrenDescendantsAndSelf().Children.Count() >= 2)
+            {
+                SubtractObject3D_2.CleanUpSelectedChildrenIDs(this);
+            }
         }
 
         private void SubtractAndReplace(CancellationToken cancellationToken, Action<double, string> reporter)
         {
             SourceContainer.Visible = true;
             RemoveAllButSource();
-
-            if (applyDefaultPartsToRemove)
-            {
-                applyDefaultPartsToRemove = false;
-                if (SelectedChildren.Count == 0)
-                {
-                    foreach (var id in SubtractObject3D_2.DefaultPartsToRemove(SourceContainer, lastPartWhenNoHoles: false))
-                    {
-                        SelectedChildren.Add(id);
-                    }
-                }
-            }
 
             var parentOfPaintTargets = SourceContainer.FirstWithMultipleChildrenDescendantsAndSelf();
 
@@ -241,7 +259,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
                 return;
             }
 
-            SubtractObject3D_2.CleanUpSelectedChildrenIDs(this);
+            // EBMC: SelectedChildren is tidied by the caller on the UI thread (TidySelectedChildren); here it is only read
 
             var paintObjects = parentOfPaintTargets.Children
                 .Where((i) => SelectedChildren

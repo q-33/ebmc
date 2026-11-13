@@ -29,6 +29,7 @@ either expressed or implied, of the FreeBSD Project.
 
 using JsonPath;
 using MatterHackers.Agg;
+using MatterHackers.Agg.Font;
 using MatterHackers.Agg.Platform;
 using MatterHackers.Agg.UI;
 using MatterHackers.DataConverters3D;
@@ -166,6 +167,13 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
             };
             this.AddChild(editorSectionWidget);
 
+            // EBMC Edition: the title shares its row with the toolbar, which is drawn over it; shorten the title with an
+            // ellipsis to the space left of the toolbar (the full name is the tooltip)
+            this.headerToolbar = toolbar;
+            toolbar.BoundsChanged += (s, e) => FitTitle();
+            editorSectionWidget.BoundsChanged += (s, e) => FitTitle();
+            SetTitle(editorTitle);
+
             this.ContentPanel = editorPanel;
 
             // Register listeners
@@ -173,6 +181,46 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
         }
 
         public GuiWidget ContentPanel { get; set; }
+
+        private GuiWidget headerToolbar;
+
+        private string fullTitle;
+
+        private void SetTitle(string title)
+        {
+            fullTitle = title ?? "";
+            FitTitle();
+        }
+
+        /// <summary>
+        /// EBMC Edition: the title as wide as the row allows before the toolbar (expand arrow and a gap excluded),
+        /// ending in "…" when it is cut (ClubMenuText.Ellipsize).
+        /// </summary>
+        private void FitTitle()
+        {
+            if (editorSectionWidget == null
+                || headerToolbar == null
+                || fullTitle == null)
+            {
+                return;
+            }
+
+            var pointSize = theme.DefaultFontSize * DeviceScale;
+            var available = editorSectionWidget.Width - headerToolbar.Width - (theme.ButtonHeight + 12 * DeviceScale);
+            var shown = editorSectionWidget.Width <= 0
+                ? fullTitle
+                : ClubUi.ClubMenuText.Ellipsize(fullTitle, available, text => new TypeFacePrinter(text, pointSize).LocalBounds.Width);
+
+            if (editorSectionWidget.Text != shown)
+            {
+                editorSectionWidget.Text = shown;
+            }
+
+            if (editorSectionWidget.Checkbox is GuiWidget checkboxWidget)
+            {
+                checkboxWidget.ToolTipText = shown == fullTitle ? "" : fullTitle;
+            }
+        }
 
         private readonly JsonPathContext pathGetter = new JsonPathContext();
         private readonly ThemedIconButton applyButton;
@@ -196,7 +244,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
             // Allow caller to clean up with passing null for selectedItem
             if (item == null)
             {
-                editorSectionWidget.Text = editorTitle;
+                SetTitle(editorTitle);
                 // show any variables that are on the scene
 
                 // and return before showing a properties panel for the selected part (no selection)
@@ -220,6 +268,13 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
             {
                 primaryOperations.Add(SceneOperations.ById("Scale"));
                 primaryOperations.Add(SceneOperations.ById("Mirror"));
+            }
+
+            // EBMC Edition: Simple mode shows the same operations as its toolbar: only those the registry marks
+            // ShowInSimpleMode (Scale is; Mirror and most object-specific operations are not)
+            if (UiModes.IsSimple)
+            {
+                primaryOperations = primaryOperations.Where(operation => operation != null && operation.ShowInSimpleMode).ToList();
             }
 
             // Loop over primary actions creating a button for each
@@ -250,7 +305,13 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
                 primaryActionsPanel.AddChild(new ToolbarSeparator(theme.GetBorderColor(50), theme.SeparatorMargin));
             }
 
-            editorSectionWidget.Text = selectedItem.Name ?? selectedItemType.Name;
+            SetTitle(selectedItem.Name ?? selectedItemType.Name);
+
+            // EBMC Edition: typed position, size and rotation for any selection (Advanced mode, OemSettings.EnableAdvancedTools)
+            if (TransformSection.Create(sceneContext, selectedItem, theme) is TransformSection transformSection)
+            {
+                editorPanel.AddChild(transformSection);
+            }
 
             HashSet<Func<ThemeConfig, UndoBuffer, IObjectEditor>> mappedEditors = ApplicationController.Instance.EditorExtensions.GetEditorsForType(selectedItemType);
 

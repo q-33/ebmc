@@ -190,7 +190,7 @@ namespace MatterHackers.MatterControl.OctoPrint
 				this.CloseMenu();
 				UiThread.RunOnIdle(() => OctoPrintSender.SendBed(printer, startPrint: true));
 			};
-			printButton.MouseEnterBounds += (s, e) => printButton.SetActiveUiHint("Ctrl + P".Localize());
+			printButton.MouseEnterBounds += (s, e) => printButton.SetActiveUiHint(KeyHints.ForThisComputer("Ctrl + P".Localize()));
 			setupRow.AddChild(printButton);
 
 			if (canSend)

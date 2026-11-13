@@ -24,7 +24,7 @@ Contents:
 - Tag `V8_0_1`, commit `b8f597c677811d1f9f4d8a97f5ae2825c0353a42`. The lightweight tag `V8.0.1` points at
   the same commit. GitHub release "V8_0_1" was published 2026-07-30 and is not marked as a pre-release.
   It was the latest stable release when this was built (2026-11-12).
-- The version string at runtime is `ebmc_occt 0.1; OCCT 8.0.1`.
+- The version string at runtime is `ebmc_occt 0.3; OCCT 8.0.1` (0.1 in the Stage 0 spike; see "Use in the app").
 
 ## Licence obligations (plain words; not legal advice)
 
@@ -56,10 +56,18 @@ legal advice:
 3. **Ship the notices.** Ship both licence texts with the app, along with OCCT's copyright notices. The
    exception also requires a "prominent notice in supporting documentation" that the software uses Open
    CASCADE Technology. The About/licences screen and NOTICE.md are the natural places.
-4. **Source availability.** Provide the exact OCCT source that was used (tag and commit above) plus the build
-   script and shim source. Do this by shipping the source with the binary or by a written offer (LGPL 2.1
-   section 6). Hosting a source archive of the exact tag next to each release is the safest option. A link
-   to upstream GitHub alone depends on a third party keeping it online.
+4. **Source availability.** `libebmc_occt` contains OCCT itself, so it is a "work based on the Library": LGPL 2.1
+   section 4 applies to it (not only section 6, which covers the app that merely loads it). Its complete
+   corresponding source (the exact OCCT source, tag and commit above, plus `native/occt/` with the build script
+   and shim) must accompany the binary, or be offered from the same place the binary is offered. A link to
+   upstream GitHub alone depends on a third party keeping it online.
+
+   **Release checklist (before any binary is given to anyone), in this order:**
+   1. push the branch that contains `native/occt/` to the app's public repository;
+   2. attach the OCCT source archive of tag `V8_0_1` (commit `b8f597c677811d1f9f4d8a97f5ae2825c0353a42`) and the
+      `native/occt/` folder to the same release that carries the app;
+   3. fill in the contact line in `StaticData/License/OpenCASCADE.txt`.
+   None of these is done yet.
 5. Any changes made to OCCT itself (none so far) must also be published under the LGPL.
 
 ## How to rebuild
@@ -156,7 +164,7 @@ repeated 3 times with the same results (timings vary by about 3%).
 
 | Test | Result | Measured |
 |---|---|---|
-| load library + version | PASS | `ebmc_occt 0.1; OCCT 8.0.1` |
+| load library + version | PASS | `ebmc_occt 0.1; OCCT 8.0.1` (Stage 0; now 0.3) |
 | box 20×20×20 | PASS | V = 7999.999999999998, 6 faces / 12 edges / 8 vertices |
 | fillet one edge r=3 (edge picked by geometry via `ebmc_edge_info`) | PASS | V = 7961.37166941154, expected 8000 − (1−π/4)·9·20 = 7961.371669411541 (rel err 1e-16), 7 faces |
 | chamfer one edge d=2 | PASS | V = 7959.999999999998 (expected 7960), 7 faces |
@@ -197,7 +205,7 @@ string marshalling.
 - The 19 MB stripped dylib carries some OCAF/Visualization code that STEP drags in. A custom STEP-only path
   might shrink it; that was not tried.
 
-## Use in the app (shim 0.2)
+## Use in the app (shim 0.3)
 
 - `build.sh shim` (and `all`) now also **stages** a stripped copy at `dist/<rid>/libebmc_occt.dylib`
   (`dist/` is git-ignored; `build.sh stage` does only that step). `MatterControl.CrossPlatform.csproj` ships it as
@@ -205,9 +213,12 @@ string marshalling.
   test assembly the same way. Without it the app builds and runs with solid modelling hidden.
 - Shim 0.2 adds `ebmc_edge_geom` (curve type, midpoint, tangent, circle radius: edges are picked by geometry),
   `ebmc_transform` (general 3x4 affine matrix; similitudes exactly, anything else through
-  `BRepBuilderAPI_GTransform`) and `ebmc_compound`. The app requires 0.2 or newer (`SolidKernel.RequiredVersion`).
-  The smoke test covers the new functions; the .NET spike test still passes 13/13 against 0.2.
-- The bindings live in `MatterControlLib/DesignTools/Solid/EbmcOcct.cs` (internal, with the 0.2 calls); the spike
+  `BRepBuilderAPI_GTransform`) and `ebmc_compound`. Shim 0.3 adds a `max_triangles` argument to
+  `ebmc_tessellate`: past it the call fails with `EBMC_ERR_TOO_BIG` (9) before any output array is built (OCCT's
+  own triangulation of the copy is still made, then freed). The app requires 0.x with x >= 3
+  (`SolidKernel.RequiredVersion`, `SolidKernel.IsCompatible`).
+  The smoke test covers the new functions; the .NET spike test passes 14/14 against 0.3 (the 14th row is the triangle cap).
+- The bindings live in `MatterControlLib/DesignTools/Solid/EbmcOcct.cs` (internal, with the 0.2/0.3 calls); the spike
   `dotnet-test/` links that file instead of keeping its own copy (its `bin/` and `obj/` are git-ignored).
 
 ## Other platforms (not done, for planning)

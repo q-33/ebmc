@@ -199,7 +199,14 @@ namespace MatterHackers.MatterControl
 					"Cancel Print?".Localize(),
 					StyledMessageBox.MessageType.YES_NO,
 					"Cancel Print".Localize(),
-					"Continue Printing".Localize());
+					"Continue Printing".Localize(),
+					// EBMC Edition: club template labels; Enter keeps printing (ClubDialogsAndMenus)
+					new ClubMessageOptions()
+					{
+						YesLabel = "Cancel print".Localize(),
+						NoLabel = "Keep printing".Localize(),
+						Destructive = true,
+					});
 			}
 			else
 			{

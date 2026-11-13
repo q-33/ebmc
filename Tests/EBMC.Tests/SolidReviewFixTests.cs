@@ -50,6 +50,9 @@ namespace EBMC.Tests
 			Assert.That(advice.Issue, Is.EqualTo(ModelFitIssue.Tiny));
 			Assert.That(advice.Choices.Select(c => c.Scale), Is.EqualTo(new[] { ModelFit.CentimetresToMm }));
 
+			// on a 12 mm printer neither 25.4x (38 mm) nor 10x (15 mm) fits: no prompt at all
+			Assert.That(ModelFit.Advise(1.5, 1, 1, true, 12, 12, 12).Issue, Is.EqualTo(ModelFitIssue.None));
+
 			// on a normal bed both are offered
 			Assert.That(ModelFit.Advise(1.5, 1, 1, true, 230, 210, 200).Choices, Has.Count.EqualTo(2));
 
@@ -144,8 +147,9 @@ namespace EBMC.Tests
 			Assert.That(SolidTolerance.MaxStepFileBytes, Is.EqualTo(50L * 1024 * 1024));
 		}
 
-		[TestCase("0.2", true)]
+		[TestCase("0.3", true)]
 		[TestCase("0.9", true)]
+		[TestCase("0.2", false)]
 		[TestCase("0.1", false)]
 		[TestCase("1.2", false)]
 		public void KernelVersionNeedsTheSameMajorAndANewerMinor(string version, bool compatible)

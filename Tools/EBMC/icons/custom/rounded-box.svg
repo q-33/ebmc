@@ -1,0 +1,6 @@
+<!-- EBMC custom icon "rounded-box": rounded box: a box in oblique view with rounded front corners and rounded upright edges. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="9" width="12" height="12" rx="3" />
+  <path d="M6 9l5-5h7a3 3 0 0 1 3 3v8a3 3 0 0 1-1 2l-5 4" />
+  <path d="M13 9.5l5.5-5.5" />
+</svg>

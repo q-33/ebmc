@@ -66,11 +66,15 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			if (rightAnchorItem == null)
 			{
-				TabBar = new OverflowBar(null, theme, overflowText)
+				var overflowBar = new OverflowBar(null, theme, overflowText)
 				{
 					HAnchor = HAnchor.Stretch,
 					VAnchor = VAnchor.Fit
 				};
+
+				// EBMC Edition: the active tab never overflows; the last other tabs go to the menu instead
+				overflowBar.IsActiveItem = (widget) => widget == this.ActiveTab as GuiWidget;
+				TabBar = overflowBar;
 			}
 			else
 			{
@@ -212,6 +216,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					{
 						tab.TabContent.Visible = tab == clickedWidget;
 					}
+
+					// EBMC Edition: refit the tab strip so the newly active tab is shown
+					(this.TabBar as OverflowBar)?.RequestFit();
 
 					this.OnActiveTabChanged();
 				}
@@ -484,6 +491,12 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			this.CloseClicked = null;
 		}
 
+		/// <summary>EBMC Edition: whether the tab has a close button (the tab menu offers Close only then).</summary>
+		internal bool HasCloseButton => hasClose;
+
+		/// <summary>EBMC Edition: the tab menu's Close, the same as clicking the tab's close button.</summary>
+		internal void CloseFromMenu() => ConditionallyCloseTab();
+
 		private void ConditionallyCloseTab()
 		{
 			UiThread.RunOnIdle(() =>
@@ -507,7 +520,14 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 						"Cancel Print?".Localize(),
 						StyledMessageBox.MessageType.YES_NO,
 						"Cancel Print".Localize(),
-						"Continue Printing".Localize());
+						"Continue Printing".Localize(),
+						// EBMC Edition: club template labels; Enter keeps printing (ClubDialogsAndMenus)
+						new ClubMessageOptions()
+						{
+							YesLabel = "Cancel print".Localize(),
+							NoLabel = "Keep printing".Localize(),
+							Destructive = true,
+						});
 				}
 				else if (this.TabContent is DesignTabPage partTab // we are a part tap
 					&& partTab?.Workspace?.SceneContext is ISceneContext sceneContext // we have a context

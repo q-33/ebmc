@@ -216,6 +216,15 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 		/// <summary>Hole edges must stay at least this far inside the plate.</summary>
 		public const double MinWall = 0.01;
 
+		/// <summary>value limited to [min, max]; NaN or infinity stays NaN, so the spec's Check() reports it.</summary>
+		public static double ClampOrNaN(double value, double min, double max)
+		{
+			return double.IsNaN(value) || double.IsInfinity(value) ? double.NaN : Math.Min(max, Math.Max(min, value));
+		}
+
+		/// <summary>True when any value is NaN or infinite.</summary>
+		public static bool AnyInvalid(params double[] values) => values.Any(v => double.IsNaN(v) || double.IsInfinity(v));
+
 		public static double ClampSize(double value) => double.IsNaN(value) ? MinSize : Math.Min(MaxSize, Math.Max(MinSize, value));
 
 		/// <summary>Edge sizes (fillet radius, chamfer distance, countersink) are never negative or huge.</summary>
@@ -276,7 +285,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 		/// <summary>The problem that stops this box being built, checked without the kernel; None when it may be built.</summary>
 		public SolidProblem Check()
 		{
-			if (!(Width > 0 && Depth > 0 && Height > 0))
+			if (!(Width > 0 && Depth > 0 && Height > 0) || SolidLimits.AnyInvalid(Width, Depth, Height, EdgeSize))
 			{
 				return SolidProblem.InvalidSize;
 			}
@@ -305,7 +314,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 
 		public SolidProblem Check()
 		{
-			if (!(Diameter > 0 && Height > 0))
+			if (!(Diameter > 0 && Height > 0) || SolidLimits.AnyInvalid(Diameter, Height, EdgeSize))
 			{
 				return SolidProblem.InvalidSize;
 			}
@@ -331,7 +340,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 
 		public SolidProblem Check()
 		{
-			if (!(Width > 0 && Depth > 0 && Height > 0 && HoleDiameter > 0))
+			if (!(Width > 0 && Depth > 0 && Height > 0 && HoleDiameter > 0) || SolidLimits.AnyInvalid(Width, Depth, Height, HoleDiameter, HoleX, HoleY, RimSize))
 			{
 				return SolidProblem.InvalidSize;
 			}
@@ -379,12 +388,64 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 		/// <summary>STEP files over this size are refused rather than read into memory.</summary>
 		public const long MaxStepFileBytes = 50L * 1024 * 1024;
 
+		/// <summary>
+		/// Runs <paramref name="tessellate"/> (linear mm, angular degrees) at each setting in turn, finest first, and returns
+		/// the first result; an attempt that throws something <paramref name="isTooBig"/> accepts moves on to the next.
+		/// Returns null when every setting was too big. Any other exception, and cancellation (checked before each
+		/// attempt), goes to the caller.
+		/// </summary>
+		public static T TessellateWithRetry<T>(double diagonal, Func<double, double, T> tessellate, Func<Exception, bool> isTooBig, System.Threading.CancellationToken cancellationToken)
+			where T : class
+		{
+			for (int attempt = 0; attempt < Attempts; attempt++)
+			{
+				cancellationToken.ThrowIfCancellationRequested();
+				var (linear, degrees) = For(diagonal, attempt);
+				try
+				{
+					return tessellate(linear, degrees);
+				}
+				catch (Exception ex) when (isTooBig(ex))
+				{
+					// try the coarser setting
+				}
+			}
+
+			return null;
+		}
+
 		/// <summary>Linear (mm) and angular (degrees) deflection for a part with this bounding-box diagonal.</summary>
 		public static (double linear, double angularDegrees) For(double diagonal, int attempt)
 		{
 			var linear = Math.Max(MinLinear, (double.IsNaN(diagonal) || diagonal < 0 ? 0 : diagonal) * RelativeLinear);
 			return attempt <= 0 ? (linear, AngularDegrees) : (linear * CoarseFactor, CoarseAngularDegrees);
 		}
+	}
+
+	/// <summary>What a finished rebuild does with its mesh (SolidObject3D.Apply).</summary>
+	public static class SolidApplyRule
+	{
+		/// <summary>
+		/// A successful build always puts its mesh on the part, even one that has left its parent's children (deleted
+		/// while building: Undo re-adds the same object, which must match its values). The parents are told only while
+		/// the part is actually among their children (a part with no parent at all, not yet added, has none to tell).
+		/// </summary>
+		public static (bool assignMesh, bool notifyParents) ForFinishedBuild(bool succeeded, bool hasParent, bool inParentsChildren)
+		{
+			if (!succeeded)
+			{
+				return (false, false);
+			}
+
+			return (true, hasParent && inParentsChildren);
+		}
+	}
+
+	public enum StepExportOutcome
+	{
+		Saved,
+		Failed,
+		Cancelled
 	}
 
 	/// <summary>Which selections the STEP export applies to (the export dialog asks this for every selection).</summary>
@@ -430,6 +491,24 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 			return Walk(root) && found.Count > 0 ? found : null;
 		}
 
+		/// <summary>ID of the result Generate returns when the export was cancelled.</summary>
+		public const string CancelledId = "ItemToSTEPExportCancelled";
+
+		/// <summary>ID of the result Generate returns when the export failed.</summary>
+		public const string FailedId = "ItemToSTEPExportInvalid";
+
+		/// <summary>What a Generate result means: nothing returned is a saved file; the cancel marker is a cancel; anything else failed.</summary>
+		public static StepExportOutcome Classify(IEnumerable<string> resultIds)
+		{
+			var ids = resultIds?.ToList();
+			if (ids == null || ids.Count == 0)
+			{
+				return StepExportOutcome.Saved;
+			}
+
+			return ids.All(id => id == CancelledId) ? StepExportOutcome.Cancelled : StepExportOutcome.Failed;
+		}
+
 		/// <summary>True when there is at least one root and every root qualifies.</summary>
 		public static bool Applies(IEnumerable<bool> rootsQualify)
 		{
@@ -452,6 +531,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 		public const int ErrNotDone = 4;
 		public const int ErrOcct = 5;
 		public const int ErrIo = 8;
+		public const int ErrTooBig = 9;
 
 		/// <summary>The problem behind a non-zero native status from <paramref name="step"/>.</summary>
 		public static SolidProblem FromKernel(int code, SolidStep step)
@@ -459,6 +539,11 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 			if (code == 0)
 			{
 				return SolidProblem.None;
+			}
+
+			if (code == ErrTooBig)
+			{
+				return SolidProblem.TooDetailed;
 			}
 
 			if (code == ErrInvalidArg && step != SolidStep.ReadStep && step != SolidStep.WriteStep)
@@ -510,7 +595,7 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 				case SolidProblem.Cancelled:
 					return null;
 				case SolidProblem.KernelUnavailable:
-					return localize("Exact solids are not available in this copy of the app. The shape keeps its last saved form.");
+					return localize("Exact solids are switched off or not available in this copy of the app. The shape keeps its last saved form, and its sizes cannot be changed here.");
 				case SolidProblem.InvalidSize:
 					return string.Format(localize("Every size of the {0} must be more than zero."), noun);
 				case SolidProblem.FilletTooLarge:

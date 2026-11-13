@@ -361,7 +361,9 @@ namespace MatterHackers.MatterControl
 							},
 							new RunningTaskOptions()
 							{
-								ReadOnlyReporting = true
+								ReadOnlyReporting = true,
+								// EBMC Edition: a heating wait during a print does not hold up the Simple · Advanced switch
+								AllowsWindowRebuild = true,
 							});
 						break;
 
@@ -390,7 +392,9 @@ namespace MatterHackers.MatterControl
 							},
 							new RunningTaskOptions()
 							{
-								ReadOnlyReporting = true
+								ReadOnlyReporting = true,
+								// EBMC Edition: a heating wait during a print does not hold up the Simple · Advanced switch
+								AllowsWindowRebuild = true,
 							});
 						break;
 
@@ -419,7 +423,9 @@ namespace MatterHackers.MatterControl
 							},
 							new RunningTaskOptions()
 							{
-								ReadOnlyReporting = true
+								ReadOnlyReporting = true,
+								// EBMC Edition: a heating wait during a print does not hold up the Simple · Advanced switch
+								AllowsWindowRebuild = true,
 							});
 						break;
 

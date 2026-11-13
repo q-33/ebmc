@@ -16,16 +16,17 @@ How this app uses it, in plain words:
 - libebmc_occt (libebmc_occt.dylib on a Mac, in the app's native folder) is one separate file that contains OCCT
   and a small C wrapper written for this app. That file as a whole is distributed under the LGPL 2.1.
 - The rest of the app only loads that file while it runs. You may replace it with your own build: the build script
-  (native/occt/build.sh) and the wrapper's source (native/occt/shim/) are in this app's source repository. On a
+  (native/occt/build.sh) and the wrapper's source (native/occt/shim/) are part of this app's source code, published
+  with the app's source. On a
   Mac, replacing a file inside the app breaks its signature; sign it again afterwards, for example with
   codesign --force --deep --sign - EBMC.app
 - Source code: the exact OCCT source this library is built from (tag V8_0_1, commit
-  b8f597c677811d1f9f4d8a97f5ae2825c0353a42) is available from its authors at
-  https://github.com/Open-Cascade-SAS/OCCT and from the releases page of this app's public repository,
-  https://github.com/q-33/ebmc/releases, together with the build script and the wrapper source. For at least three
-  years from when you received this app, the East Bay Makers Club will also provide that source on request, for no
-  more than the cost of providing it.
-  Contact: (club to fill in)
+  b8f597c677811d1f9f4d8a97f5ae2825c0353a42) is published by its authors at https://github.com/Open-Cascade-SAS/OCCT.
+  The wrapper source and the build script are part of this app's source code (folder native/occt/), published with
+  the app's source. For at least three
+  years from when you received this app, the East Bay Makers Club will provide the complete corresponding source on
+  request, for no more than the cost of providing it.
+  Contact: (to be filled in before this app is distributed)
 
 ----------------------------------------------------------------------------------------------------------------
 Open CASCADE exception (version 1.0) to GNU LGPL version 2.1.

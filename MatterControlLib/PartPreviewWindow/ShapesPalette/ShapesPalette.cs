@@ -168,6 +168,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 		private bool expanded;
 
+		/// <summary>EBMC Edition: the Simple · Advanced mode this palette was built for (the window is rebuilt on a change).</summary>
+		private readonly UiMode mode;
+
 		public ShapesPalette(ThemeConfig theme, ISceneContext sceneContext, View3DWidget view3DWidget, bool isPrinterTab)
 		{
 			this.theme = theme;
@@ -183,7 +186,10 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			this.Border = new BorderDouble(top: 1, right: 1);
 			this.BorderColor = ClubTabStyle.LineColor(theme);
 
-			expanded = UserSettings.Instance.get(UserSettingsKey.FavoritesBarExpansion) == "1";
+			// EBMC Edition: the Simple · Advanced mode (UiModes) picks the lists; design tabs in Simple always show labels
+			mode = UiModes.Current;
+			expanded = PaletteCatalog.LabelsAlwaysShown(tab, mode)
+				|| UserSettings.Instance.get(UserSettingsKey.FavoritesBarExpansion) == "1";
 
 			Build();
 
@@ -240,8 +246,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				top.AddChild(CreateHoleSwitch(buttonWidth));
 			}
 
-			// EBMC Edition: the Solids family only when solid modelling is on and the kernel loaded
-			foreach (var section in PaletteCatalog.For(tab, DesignTools.Solid.SolidModeling.IsEnabled))
+			// EBMC Edition: the Solids family only when solid modelling is on and the kernel loaded (never in Simple); the club
+			// shapes and starters only when EnableClubShapes is on (design tabs)
+			foreach (var section in PaletteCatalog.For(tab, DesignTools.Solid.SolidModeling.IsEnabled, mode, DesignTools.ClubShapes.ClubShapesFeature.IsEnabled))
 			{
 				if (section.Label != null)
 				{
@@ -280,6 +287,13 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					familyButtons.Add((button, family));
 					top.AddChild(button);
 				}
+			}
+
+			if (PaletteCatalog.LabelsAlwaysShown(tab, mode))
+			{
+				// no labels toggle: the labels stay on and the user's labels setting is left as it is
+				UpdateButtons();
+				return;
 			}
 
 			var labelsButton = new PaletteButton(theme, expanded ? "Hide labels".Localize() : "Show labels".Localize(), false, expanded, buttonWidth)
@@ -411,7 +425,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				lines.Add(member.Hint.Localize());
 			}
 
-			if (member.Source == PaletteSource.Primitives || member.Source == PaletteSource.CalibrationParts)
+			if (member.Source == PaletteSource.Primitives || member.Source == PaletteSource.CalibrationParts || member.Source == PaletteSource.Starters)
 			{
 				if (holeMode && family.CanBeHole)
 				{
@@ -437,6 +451,52 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			// the app's tooltips are Markdown: a blank line starts a new paragraph, a single line break does not
 			return string.Join("\n\n", lines.Where(l => l != ""));
+		}
+
+		/// <summary>
+		/// EBMC Edition: opens a family's flyout as if its corner were clicked (the start card's "Add a shape"). False when
+		/// this palette has no such family or is not in a window.
+		/// </summary>
+		public bool OpenFlyout(string familyId)
+		{
+			foreach (var (button, family) in familyButtons)
+			{
+				if (family.Id == familyId && family.HasFlyout && button.Enabled)
+				{
+					ShowFlyout(button, family);
+					return button.FlyoutOpen;
+				}
+			}
+
+			return false;
+		}
+
+		/// <summary>EBMC Edition: the library item a palette member adds (null when it is not available in this build).</summary>
+		public static ILibraryItem ResolveItem(PaletteMember member) => Resolve(member);
+
+		/// <summary>
+		/// EBMC Edition: runs a member chosen in command search exactly as a click on it would (the family's size chip and
+		/// the Solid/Hole switch apply; inserts queue at the bed centre). False when this palette is not for
+		/// <paramref name="forScene"/> or does not show the member.
+		/// </summary>
+		public bool RunFromSearch(ISceneContext forScene, PaletteMember member)
+		{
+			if (forScene != sceneContext
+				|| this.HasBeenClosed)
+			{
+				return false;
+			}
+
+			var family = familyButtons.Select(f => f.family).FirstOrDefault(f => f.Members.Contains(member));
+			if (family == null
+				|| !IsEnabled(member))
+			{
+				return false;
+			}
+
+			PaletteSession.SetCurrentMember(family, member);
+			Run(family, member);
+			return true;
 		}
 
 		private void ShowFlyout(PaletteButton button, PaletteFamily family)
@@ -531,6 +591,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			{
 				case PaletteSource.Primitives:
 				case PaletteSource.CalibrationParts:
+				case PaletteSource.Starters:
 					if (PrepareItem(family, member) is ILibraryItem item)
 					{
 						// the bed centre, or the nearest free spot on the bed
@@ -710,6 +771,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			{
 				case PaletteSource.Primitives:
 				case PaletteSource.CalibrationParts:
+				case PaletteSource.Starters:
 					return Resolve(member) != null;
 
 				case PaletteSource.SceneOperation:
@@ -766,8 +828,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			IEnumerable<ILibraryItem> items;
 			string name;
 
-			if (member.Source == PaletteSource.Primitives)
+			if (member.Source == PaletteSource.Primitives || member.Source == PaletteSource.Starters)
 			{
+				// EBMC Edition: the Club Starters are registered in the library root too (EditorToolsPlugin)
 				items = ApplicationController.Instance.Library.RootLibaryContainer.Items.OfType<GeneratorItem>();
 				name = member.Name.Localize();
 			}

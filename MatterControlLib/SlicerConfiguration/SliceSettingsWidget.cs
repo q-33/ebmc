@@ -345,7 +345,9 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 					categoryPanel.PerformLayout();
 				}
 
+				// EBMC Edition: no "More" pill when the Simple · Advanced switch is on (the switch is the way to more settings)
 				if (settingsSection.Name == "Slice Simple"
+					&& !UiModes.SwitchEnabled
 					&& UserSettings.Instance.get(UserSettingsKey.SliceSettingsMoreClicked) != "true")
 				{
 					var button = new ThemedTextButton("More".Localize(), theme, 8)
@@ -444,6 +446,13 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 					{
 						if (changingTo)
 						{
+							// EBMC Edition: with the Simple · Advanced switch on, a level outside the current mode changes
+							// the app mode (which sets this level and rebuilds the window), so the two always agree
+							if (UiModes.PickSliceSettingsDetail(level))
+							{
+								return;
+							}
+
 							UserSettings.Instance.set(UserSettingsKey.SliceSettingsViewDetail, level);
 							ApplicationController.Instance.ReloadSettings(printer);
 							UserSettings.Instance.set(UserSettingsKey.SliceSettingsMoreClicked, "true");

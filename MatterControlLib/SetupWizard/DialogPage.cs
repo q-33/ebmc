@@ -32,6 +32,7 @@ using System.Linq;
 using MatterHackers.Agg;
 using MatterHackers.Agg.UI;
 using MatterHackers.Localizations;
+using MatterHackers.MatterControl.ClubUi;
 using MatterHackers.MatterControl.PartPreviewWindow;
 using MatterHackers.VectorMath;
 
@@ -57,6 +58,14 @@ namespace MatterHackers.MatterControl
 		private int actionCount = 0;
 		private SystemWindow systemWindow;
 		private GuiWidget _acceptButton;
+
+		// EBMC Edition (ClubDialogsAndMenus): the footer actions in the order they were added, for the club template
+		private readonly System.Collections.Generic.List<(GuiWidget button, PageActionStyle style, bool highlighted)> clubActions
+			= new System.Collections.Generic.List<(GuiWidget button, PageActionStyle style, bool highlighted)>();
+
+		private GuiWidget severityTile;
+
+		private DialogSeverity severity = DialogSeverity.None;
 
 		public DialogPage(string cancelButtonText = null, bool useOverflowBar = false)
 			: base(FlowDirection.TopToBottom)
@@ -140,6 +149,59 @@ namespace MatterHackers.MatterControl
 			footerRow.Padding = 0;
 			footerRow.Margin = new BorderDouble(top: theme.DefaultContainerPadding);
 #endif
+
+			// EBMC Edition: the club dialog template (OemSettings.ClubDialogsAndMenus): a 15 pt bold title, the content on
+			// the raised background with more room, the footer laid out in OnLoad
+			if (ClubStyle.On)
+			{
+				// the label's own parent (an overflow header bar keeps its children in an inner row)
+				var titleParent = headerLabel.Parent;
+				int titleIndex = titleParent.Children.IndexOf(headerLabel);
+				var titleText = headerLabel.Text;
+				titleParent.RemoveChild(headerLabel);
+				headerLabel.Close();
+				headerLabel = ClubStyle.CreateTitle(theme, titleText);
+				titleParent.AddChild(headerLabel, titleIndex);
+				headerRow.Padding = new BorderDouble(0, 8, 0, 6);
+				contentRow.Padding = new BorderDouble(14, 12);
+			}
+		}
+
+		/// <summary>
+		/// EBMC Edition (ClubDialogsAndMenus): when true, Enter presses the safe button (Cancel) instead of the primary
+		/// action. A page with a Destructive action gets this automatically. Ignored with the switch off.
+		/// </summary>
+		public bool SafeDefault { get; set; }
+
+		/// <summary>
+		/// EBMC Edition (ClubDialogsAndMenus): the tile before the title. Ignored with the switch off.
+		/// </summary>
+		public DialogSeverity Severity
+		{
+			get => severity;
+			set
+			{
+				severity = value;
+				if (!ClubStyle.On)
+				{
+					return;
+				}
+
+				if (severityTile != null)
+				{
+					severityTile.Parent?.RemoveChild(severityTile);
+					severityTile.Close();
+					severityTile = null;
+				}
+
+				severityTile = ClubStyle.CreateSeverityTile(value);
+				var titleParent = headerLabel.Parent;
+				if (severityTile != null
+					&& titleParent != null)
+				{
+					titleParent.AddChild(severityTile, titleParent.Children.IndexOf(headerLabel));
+				}
+			}
 		}
 
 		public GuiWidget AcceptButton
@@ -177,6 +239,43 @@ namespace MatterHackers.MatterControl
 
 			button.Margin = theme.ButtonSpacing;
 			footerRow.AddChild(button);
+
+			clubActions.Add((button, PageActionStyle.Default, highlightFirstAction));
+		}
+
+		/// <summary>
+		/// EBMC Edition: adds a footer action with a club style. With ClubDialogsAndMenus off this is the stock
+		/// AddPageAction (Primary, Default and Destructive highlight as the first action did; the others do not). With it
+		/// on, a Destructive action is never the Enter default (see ClubDialogRules.DefaultButton).
+		/// </summary>
+		public void AddPageAction(GuiWidget button, PageActionStyle style)
+		{
+			bool highlight = style == PageActionStyle.Default
+				|| style == PageActionStyle.Primary
+				|| style == PageActionStyle.Destructive;
+
+			if (!ClubStyle.On)
+			{
+				this.AddPageAction(button, highlight);
+				return;
+			}
+
+			if (style == PageActionStyle.Default)
+			{
+				this.AddPageAction(button, true);
+				return;
+			}
+
+			if (style == PageActionStyle.Primary
+				&& actionCount++ == 0)
+			{
+				this.AcceptButton = button;
+			}
+
+			button.Margin = theme.ButtonSpacing;
+			footerRow.AddChild(button);
+
+			clubActions.Add((button, style, highlight));
 		}
 
 		protected void SetCancelButtonName(string newName)
@@ -211,7 +310,91 @@ namespace MatterHackers.MatterControl
 
 			footerRow.AddChild(CancelButton);
 
+			if (ClubStyle.On)
+			{
+				this.ApplyClubFooter();
+			}
+
 			base.OnLoad(args);
+		}
+
+		/// <summary>
+		/// EBMC Edition: styles the footer buttons, picks the Enter default (ClubDialogRules.DefaultButton) and, when the
+		/// footer holds only the page's actions and Cancel, lays it out as [aside] … [secondary, cancel] [primary] above a
+		/// hairline. Button actions are not touched.
+		/// </summary>
+		private void ApplyClubFooter()
+		{
+			var buttons = new System.Collections.Generic.List<GuiWidget>();
+			var styles = new System.Collections.Generic.List<PageActionStyle>();
+			var highlighted = new System.Collections.Generic.List<bool>();
+
+			foreach (var (button, style, highlight) in clubActions)
+			{
+				if (button.Parent != footerRow)
+				{
+					continue;
+				}
+
+				buttons.Add(button);
+				styles.Add(style);
+
+				// a page that set AcceptButton itself keeps it as the highlighted action
+				highlighted.Add(style == PageActionStyle.Default
+					&& (_acceptButton != null && clubActions.Any(a => a.button == _acceptButton) ? button == _acceptButton : highlight));
+			}
+
+			if (CancelButton.Visible)
+			{
+				buttons.Add(CancelButton);
+				styles.Add(PageActionStyle.Cancel);
+				highlighted.Add(false);
+			}
+
+			var resolved = ClubDialogRules.ResolveStyles(styles, highlighted);
+
+			if (this.SafeDefault
+				|| resolved.Contains(PageActionStyle.Destructive))
+			{
+				int index = ClubDialogRules.DefaultButton(resolved, safeDefault: true);
+				_acceptButton = index >= 0 ? buttons[index] : null;
+			}
+
+			for (int i = 0; i < buttons.Count; i++)
+			{
+				ClubStyle.ApplyButtonStyle(theme, buttons[i], resolved[i], isDefault: buttons[i] == _acceptButton);
+			}
+
+			// lay out only a footer this page did not arrange itself
+			if (footerRow.Children.Count != buttons.Count
+				|| footerRow.Children.Any(c => !buttons.Contains(c)))
+			{
+				return;
+			}
+
+			var order = ClubDialogRules.FooterOrder(resolved);
+			int asides = ClubDialogRules.AsideCount(resolved);
+
+			footerRow.RemoveChildren();
+			for (int i = 0; i < order.Count; i++)
+			{
+				if (i == asides)
+				{
+					footerRow.AddChild(new HorizontalSpacer());
+				}
+
+				var button = buttons[order[i]];
+				button.Margin = new BorderDouble(left: 8);
+
+				// re-added after RemoveChildren (Debug builds refuse a removed widget otherwise)
+				button.ClearRemovedFlag();
+				footerRow.AddChild(button);
+			}
+
+			footerRow.HAnchor = HAnchor.Stretch;
+			footerRow.Border = new BorderDouble(top: 1);
+			footerRow.BorderColor = ClubStyle.Line(theme);
+			footerRow.Padding = new BorderDouble(0, 2, 0, 10);
 		}
 
 		public bool AllowCancel()

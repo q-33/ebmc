@@ -225,6 +225,10 @@ namespace MatterHackers.MatterControl
 			string caption = null;
 			string message = null;
 
+			// EBMC Edition: the club template's verb labels for the exit question (ClubDialogsAndMenus)
+			string exitLabel = null;
+			string stayLabel = null;
+
 			if (!ApplicationController.Instance.ApplicationExiting
 				&& !exitDialogOpen)
 			{
@@ -247,11 +251,15 @@ namespace MatterHackers.MatterControl
 				{
 					caption = "Exit while printing".Localize();
 					message = "Are you sure you want to exit while a print is running from SD Card?\n\nNote: If you exit, it is recommended you wait until the print is completed before running MatterControl again.".Localize();
+					exitLabel = "Exit".Localize();
+					stayLabel = "Stay open".Localize();
 				}
 				else if (printingCount > 0)
 				{
 					caption = "Abort Print".Localize();
 					message = "Are you sure you want to abort the current print(s) and close MatterControl?".Localize();
+					exitLabel = "Stop printing and exit".Localize();
+					stayLabel = "Keep printing".Localize();
 				}
 			}
 
@@ -288,7 +296,16 @@ namespace MatterHackers.MatterControl
 						},
 						message,
 						caption,
-						StyledMessageBox.MessageType.YES_NO_WITHOUT_HIGHLIGHT);
+						StyledMessageBox.MessageType.YES_NO_WITHOUT_HIGHLIGHT,
+						"",
+						"",
+						// EBMC Edition: Enter stays open (stock: no Enter default) (ClubDialogsAndMenus)
+						new ClubMessageOptions()
+						{
+							YesLabel = exitLabel,
+							NoLabel = stayLabel,
+							Destructive = true,
+						});
 				});
 			}
 			else if (!ApplicationController.Instance.ApplicationExiting)

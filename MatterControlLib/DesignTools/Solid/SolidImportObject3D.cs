@@ -14,8 +14,11 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 	/// </summary>
 	internal interface ISolidShapeSource
 	{
-		/// <summary>Makes the shape in the object's own coordinates (those of its mesh); null when it cannot be made.</summary>
-		Func<OcctShape> ExportShape();
+		/// <summary>
+		/// Makes the shape in the object's own coordinates (those of its mesh); null when it cannot be made, with the
+		/// plain message saying why.
+		/// </summary>
+		Func<OcctShape> ExportShape(out string problemMessage);
 	}
 
 	/// <summary>
@@ -78,9 +81,10 @@ namespace MatterHackers.MatterControl.DesignTools.Solid
 			}
 		}
 
-		Func<OcctShape> ISolidShapeSource.ExportShape()
+		Func<OcctShape> ISolidShapeSource.ExportShape(out string problemMessage)
 		{
 			var path = StepAssetPath;
+			problemMessage = path == null ? "The original STEP file of this part is not on this computer.".Localize() : null;
 			return path == null ? (Func<OcctShape>)null : () => SolidBuilders.ReadStep(path);
 		}
 

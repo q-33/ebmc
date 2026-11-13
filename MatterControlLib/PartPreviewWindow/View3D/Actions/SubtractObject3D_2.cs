@@ -103,9 +103,10 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
         }
 
         /// <summary>
-        /// EBMC: set when a new Subtract is made with nothing chosen; the build applies the default (see
-        /// <see cref="DefaultPartsToRemove"/>) on its own thread before it reads SelectedChildren, so the first build
-        /// always sees it and only the build thread writes the set.
+        /// EBMC: set when a new one is made with nothing chosen. The first Rebuild, which the wrap calls on the UI thread
+        /// after it has copied the parts in (copies get new IDs, so the default cannot be worked out before that),
+        /// applies the Holes default (and tidies the set) before it starts the build task, so the build thread only reads
+        /// SelectedChildren.
         /// </summary>
         private volatile bool applyDefaultPartsToRemove;
 
@@ -188,6 +189,23 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
         {
             this.DebugDepth("Rebuild");
 
+            // EBMC: on the UI thread, before the build task starts (see applyDefaultPartsToRemove)
+            if (applyDefaultPartsToRemove)
+            {
+                applyDefaultPartsToRemove = false;
+                if (SelectedChildren.Count == 0)
+                {
+                    foreach (var id in DefaultPartsToRemove(SourceContainer, lastPartWhenNoHoles: true))
+                    {
+                        SelectedChildren.Add(id);
+                    }
+                }
+            }
+
+            // EBMC: also on the UI thread: drop chosen IDs that are no longer parts here. The build task then only reads
+            // SelectedChildren, which the editor overlay and the properties panel read every frame.
+            CleanUpSelectedChildrenIDs(this);
+
             var rebuildLocks = this.RebuilLockAll();
 
             return ApplicationController.Instance.Tasks.Execute(
@@ -231,6 +249,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
 
         public void Subtract()
         {
+            CleanUpSelectedChildrenIDs(this);
             Subtract(CancellationToken.None, null);
         }
 
@@ -268,19 +287,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow.View3D
             SourceContainer.Visible = true;
             RemoveAllButSource();
 
-            if (applyDefaultPartsToRemove)
-            {
-                applyDefaultPartsToRemove = false;
-                if (SelectedChildren.Count == 0)
-                {
-                    foreach (var id in DefaultPartsToRemove(SourceContainer, lastPartWhenNoHoles: true))
-                    {
-                        SelectedChildren.Add(id);
-                    }
-                }
-            }
-
-            CleanUpSelectedChildrenIDs(this);
+            // EBMC: SelectedChildren is tidied (CleanUpSelectedChildrenIDs) by the caller on the UI thread; here it is only read
 
             var (keepItems, removeItems) = GetSubtractItems(SourceContainer, SelectedChildren);
 

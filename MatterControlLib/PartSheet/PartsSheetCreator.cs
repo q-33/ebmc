@@ -135,7 +135,8 @@ namespace MatterHackers.MatterControl
                     double textSpaceMM = 5;
                     double heightMM = textSpaceMM + bounds2D.Height + PartMarginMM * 2;
 
-                    TypeFacePrinter typeFacePrinter = new TypeFacePrinter(item.Name, 28, Vector2.Zero, Justification.Center, Baseline.BoundsCenter);
+                    // EBMC Edition: the sheet keeps Liberation Sans (agg-sharp's default before the interface moved to Nunito)
+                    TypeFacePrinter typeFacePrinter = new TypeFacePrinter(item.Name, new StyledTypeFace(LiberationSansFont.Instance, 28), Vector2.Zero, Justification.Center, Baseline.BoundsCenter);
                     double sizeOfNameX = typeFacePrinter.GetSize().X + PartMarginPixels * 2;
                     Vector2 sizeOfRender = new Vector2(widthInMM * PixelsPerMM, heightMM * PixelsPerMM);
 
@@ -276,11 +277,11 @@ namespace MatterHackers.MatterControl
                 plateGraphics.Render(partToDraw.image, partToDraw.xOffset, offset.Y - tallestHeight);
             }
 
-            TypeFacePrinter printer = new TypeFacePrinter(string.Format("{0}", Path.GetFileNameWithoutExtension(pathAndFileToSaveTo)), 32, justification: Justification.Center);
+            TypeFacePrinter printer = new TypeFacePrinter(string.Format("{0}", Path.GetFileNameWithoutExtension(pathAndFileToSaveTo)), new StyledTypeFace(LiberationSansFont.Instance, 32), justification: Justification.Center);
             printer.Origin = new Vector2(plateGraphics.DestImage.Width / 2, 110);
             plateGraphics.Render(printer, Color.Black);
 
-            printer = new TypeFacePrinter(string.Format("Page {0}", plateNumber), 28, justification: Justification.Center);
+            printer = new TypeFacePrinter(string.Format("Page {0}", plateNumber), new StyledTypeFace(LiberationSansFont.Instance, 28), justification: Justification.Center);
             printer.Origin = new Vector2(plateGraphics.DestImage.Width / 2, 60);
             plateGraphics.Render(printer, Color.Black);
 

@@ -38,6 +38,7 @@ using MatterHackers.Agg.UI;
 using MatterHackers.DataConverters3D;
 using MatterHackers.ImageProcessing;
 using MatterHackers.Localizations;
+using MatterHackers.MatterControl.ClubUi;
 using MatterHackers.MatterControl.CustomWidgets;
 using MatterHackers.MatterControl.DataStorage;
 using MatterHackers.MatterControl.Library;
@@ -111,7 +112,9 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			this.AddChild(new ToolbarSeparator(theme.GetBorderColor(50), theme.SeparatorMargin));
 
-			bedMenuButton = new PopupMenuButton("Bed".Localize(), StaticData.Instance.LoadIcon("bed.png", 16, 16).GrayToColor(theme.TextColor), theme)
+			// EBMC Edition: the Bed menu is about the build plate, so it uses the plate glyph (as the view controls' bed
+			// toggle does); bed.png, the heated bed, stays for temperature
+			bedMenuButton = new PopupMenuButton("Bed".Localize(), StaticData.Instance.LoadIcon(Path.Combine("Shapes", "view-bed.png"), 16, 16).GrayToColor(theme.TextColor), theme)
 			{
 				Name = "Bed Options Menu",
 				Enabled = true,
@@ -132,7 +135,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				Margin = theme.ButtonSpacing,
 				VAnchor = VAnchor.Center
 			};
-			undoButton.MouseEnterBounds += (s, e) => undoButton.SetActiveUiHint("Undo: Ctrl + Z".Localize());
+			undoButton.MouseEnterBounds += (s, e) => undoButton.SetActiveUiHint(KeyHints.ForThisComputer("Undo: Ctrl + Z".Localize()));
 			undoButton.Click += (sender, e) =>
 			{
 				sceneContext.Scene.Undo();
@@ -148,7 +151,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				Enabled = false,
 				VAnchor = VAnchor.Center
 			};
-			redoButton.MouseEnterBounds += (s, e) => redoButton.SetActiveUiHint("Redo: Ctrl + Y, Ctrl + Shift + Z".Localize());
+			redoButton.MouseEnterBounds += (s, e) => redoButton.SetActiveUiHint(KeyHints.ForThisComputer("Redo: Ctrl + Y, Ctrl + Shift + Z".Localize()));
 			redoButton.Click += (sender, e) =>
 			{
 				sceneContext.Scene.Redo();
@@ -177,12 +180,55 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			operationButtons = new Dictionary<GuiWidget, SceneOperation>();
 
+			// EBMC Edition: Simple mode (UiModes) shows only the operations marked ShowInSimpleMode, no operation groups,
+			// no support button and no Tools options menu. Advanced and the stock build show everything as before.
+			bool simple = UiModes.IsSimple;
+
+			// In Simple a separator is only drawn between two shown buttons (never doubled or trailing)
+			bool simpleButtonShown = false;
+			bool simpleSeparatorPending = false;
+
+			void AddSimpleButton(SceneOperation operation)
+			{
+				if (simpleSeparatorPending)
+				{
+					this.AddChild(new ToolbarSeparator(theme.GetBorderColor(50), theme.SeparatorMargin));
+					simpleSeparatorPending = false;
+				}
+
+				AddOperationButton(theme, operation);
+				simpleButtonShown = true;
+			}
+
 			// Add Selected IObject3D -> Operations to toolbar
 			foreach (var namedAction in SceneOperations.All)
 			{
 				// EBMC Edition: printer tabs can leave modelling tools off the toolbar
 				if (!ShowOnThisToolbar(namedAction))
 				{
+					continue;
+				}
+
+				if (simple)
+				{
+					if (namedAction is SceneSelectionSeparator)
+					{
+						simpleSeparatorPending = simpleButtonShown;
+					}
+					else if (namedAction is OperationGroup simpleGroup)
+					{
+						// The group is hidden; its Simple operations (Align on design tabs) are shown on their own
+						foreach (var operation in SceneOperations.SimpleGroupedOperations(simpleGroup, IsPrinterMode)
+							.Where(operation => !TrimForPrinter || operation.ShowOnPrinterTabs))
+						{
+							AddSimpleButton(operation);
+						}
+					}
+					else if (SceneOperations.ShowInSimple(namedAction))
+					{
+						AddSimpleButton(namedAction);
+					}
+
 					continue;
 				}
 
@@ -254,48 +300,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				}
 				else
 				{
-					GuiWidget button;
-
-					if (namedAction.Icon != null)
-					{
-						button = new ThemedIconButton(namedAction.Icon(theme), theme)
-						{
-							Name = namedAction.Title + " Button",
-							ToolTipText = namedAction.Title,
-							Margin = theme.ButtonSpacing,
-							BackgroundColor = theme.ToolbarButtonBackground,
-							HoverColor = theme.ToolbarButtonHover,
-							MouseDownColor = theme.ToolbarButtonDown,
-						};
-
-						if (!string.IsNullOrEmpty(namedAction.UiHint))
-						{
-							button.MouseEnterBounds += (s1, e1) => button.SetActiveUiHint(namedAction.UiHint);
-						}
-					}
-					else
-					{
-						button = new ThemedTextButton(namedAction.Title, theme)
-						{
-							Name = namedAction.Title + " Button",
-							Margin = theme.ButtonSpacing,
-							BackgroundColor = theme.ToolbarButtonBackground,
-							HoverColor = theme.ToolbarButtonHover,
-							MouseDownColor = theme.ToolbarButtonDown,
-						};
-					}
-
-					operationButtons.Add(button, namedAction);
-
-					button.Click += (s, e) => UiThread.RunOnIdle(() =>
-					{
-						namedAction.Action.Invoke(sceneContext);
-						var partTab = button.Parents<DesignTabPage>().FirstOrDefault();
-						var view3D = partTab.Descendants<View3DWidget>().FirstOrDefault();
-						view3D.Object3DControlLayer.Focus();
-					});
-
-					this.AddChild(button);
+					AddOperationButton(theme, namedAction);
 				}
 			}
 
@@ -306,6 +311,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			{
 				AlignToRightEdge = true,
 				DrawArrow = true,
+				// EBMC Edition: no Tools options menu in Simple mode (it only shows, hides and expands groups)
+				Visible = !simple,
 			};
 			this.AddChild(optionsButton);
 			optionsButton.Name = "ToolBar Overflow Menu";
@@ -322,7 +329,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			this.MouseDown += (s, mouseEvent) =>
 			{
-				if (mouseEvent.Button == MouseButtons.Right)
+				if (mouseEvent.Button == MouseButtons.Right
+					&& !simple)
 				{
 					UiThread.RunOnIdle(() =>
 					{
@@ -331,6 +339,55 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 					});
 				}
 			};
+		}
+
+		/// <summary>
+		/// A toolbar button for a single operation.
+		/// </summary>
+		private void AddOperationButton(ThemeConfig theme, SceneOperation namedAction)
+		{
+			GuiWidget button;
+
+			if (namedAction.Icon != null)
+			{
+				button = new ThemedIconButton(namedAction.Icon(theme), theme)
+				{
+					Name = namedAction.Title + " Button",
+					ToolTipText = namedAction.Title,
+					Margin = theme.ButtonSpacing,
+					BackgroundColor = theme.ToolbarButtonBackground,
+					HoverColor = theme.ToolbarButtonHover,
+					MouseDownColor = theme.ToolbarButtonDown,
+				};
+
+				if (!string.IsNullOrEmpty(namedAction.UiHint))
+				{
+					button.MouseEnterBounds += (s1, e1) => button.SetActiveUiHint(namedAction.UiHint);
+				}
+			}
+			else
+			{
+				button = new ThemedTextButton(namedAction.Title, theme)
+				{
+					Name = namedAction.Title + " Button",
+					Margin = theme.ButtonSpacing,
+					BackgroundColor = theme.ToolbarButtonBackground,
+					HoverColor = theme.ToolbarButtonHover,
+					MouseDownColor = theme.ToolbarButtonDown,
+				};
+			}
+
+			operationButtons.Add(button, namedAction);
+
+			button.Click += (s, e) => UiThread.RunOnIdle(() =>
+			{
+				namedAction.Action.Invoke(sceneContext);
+				var partTab = button.Parents<DesignTabPage>().FirstOrDefault();
+				var view3D = partTab.Descendants<View3DWidget>().FirstOrDefault();
+				view3D.Object3DControlLayer.Focus();
+			});
+
+			this.AddChild(button);
 		}
 
         private string Collapsed;
@@ -655,7 +712,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				int thumbWidth = 45;
 				var gutterWidth = thumbWidth + 7;
 
-				popupMenu.CreateSubMenu("Open Recent".Localize(), menuTheme, (subMenu) =>
+				Action<PopupMenu> populateRecent = (subMenu) =>
 				{
 					int maxItemWidth = 0;
 
@@ -726,7 +783,58 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 						menuItem.HAnchor = HAnchor.Left | HAnchor.Absolute;
 						menuItem.Width = maxItemWidth;
 					}
-				});
+				};
+
+				// EBMC Edition: the club Bed menu (OemSettings.ClubDialogsAndMenus): the same items with the same actions
+				// and enable rules, regrouped by ClubMenus.Bed, plus the existing Add a file, Save, Save as and Arrange
+				// all actions. Print keeps its title, shortcut and enable rule and stays between Edit and Export.
+				if (ClubStyle.On)
+				{
+					var sources = new Dictionary<string, ClubMenuSource>()
+					{
+						[ClubMenus.OpenRecent] = new ClubMenuSource((menu, title) =>
+						{
+							menu.CreateSubMenu(title, menuTheme, populateRecent);
+							return ClubMenuBuilder.LastItem(menu);
+						}),
+						[ClubMenus.AddFile] = new ClubMenuSource(new NamedAction()
+						{
+							Title = "Add System File to Bed".Localize(),
+							// the Add button's system file action (CreateOpenFileButton)
+							Action = () => ApplicationController.OpenFileWithSystemDialog((fileNames) =>
+							{
+								sceneContext.AddToPlate(fileNames);
+							}),
+						}),
+						[ClubMenus.Edit] = new ClubMenuSource(workspaceActions["Edit"]),
+						[ClubMenus.Print] = new ClubMenuSource(workspaceActions["Print"]),
+						[ClubMenus.Save] = new ClubMenuSource(workspaceActions["Save"]),
+						[ClubMenus.SaveAs] = new ClubMenuSource(workspaceActions["SaveAs"]),
+						// the Bed menu's own Export (below), unchanged
+						[ClubMenus.Export] = new ClubMenuSource(new NamedAction()
+						{
+							ID = "Export",
+							Title = "Export".Localize(),
+							Action = () =>
+							{
+								ApplicationController.Instance.ExportLibraryItems(
+									new[] { new InMemoryLibraryItem(sceneContext.Scene) },
+									centerOnBed: false,
+									printer: view3DWidget.Printer);
+							},
+							IsEnabled = () => sceneContext.EditableScene
+								|| (sceneContext.EditContext.SourceItem is ILibraryAsset libraryAsset
+									&& string.Equals(Path.GetExtension(libraryAsset.FileName), ".gcode", StringComparison.OrdinalIgnoreCase))
+						}),
+						[ClubMenus.ArrangeAll] = new ClubMenuSource(workspaceActions["ArrangeAll"]),
+						[ClubMenus.ClearBed] = new ClubMenuSource(workspaceActions["ClearBed"]),
+					};
+
+					ClubMenuBuilder.Build(popupMenu, ClubMenus.Bed, sources);
+					return popupMenu;
+				}
+
+				popupMenu.CreateSubMenu("Open Recent".Localize(), menuTheme, populateRecent);
 
 				var actions = new NamedAction[]
 				{
@@ -796,6 +904,25 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			var openMenuItems = new PopupMenu(ApplicationController.Instance.MenuTheme);
 			popupMenu.PopupContent = openMenuItems;
 
+			// EBMC Edition: the club Add split (OemSettings.ClubDialogsAndMenus): the button opens the system file dialog
+			// (ClubAddButton) and the arrow lists both sources; the same two actions as before
+			if (ClubStyle.On
+				&& openLibraryButton is ClubAddButton clubAddButton)
+			{
+				ClubMenuBuilder.StyleMenu(openMenuItems);
+				var menuTheme = ApplicationController.Instance.MenuTheme;
+
+				var fromLibrary = ClubMenuBuilder.CreateItem(openMenuItems, "From the Library".Localize() + ClubMenuText.Ellipsis, ClubStyle.MenuIcon("cube.png", ClubStyle.Muted(menuTheme)), null, false);
+				fromLibrary.Name = "Add From Library Menu Item";
+				fromLibrary.Click += (s, e) => UiThread.RunOnIdle(clubAddButton.ShowPopup);
+
+				var fromFile = ClubMenuBuilder.CreateItem(openMenuItems, "From a file".Localize() + ClubMenuText.Ellipsis, ClubStyle.MenuIcon("fa-folder-open_16.png", ClubStyle.Muted(menuTheme)), null, false);
+				fromFile.Name = "Add System File to Bed Menu Item";
+				fromFile.Click += (s, e) => clubAddButton.OpenSystemFile();
+
+				return popupMenu;
+			}
+
 			var openFileButton = openMenuItems.CreateMenuItem("Add System File to Bed".Localize(), StaticData.Instance.LoadIcon("fa-folder-open_16.png", 16, 16).GrayToColor(theme.TextColor));
 
 			openFileButton.Click += (s, e) =>
@@ -845,7 +972,15 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			var openColor = theme.ResolveColor(theme.BackgroundColor, theme.SlightShade);
 
 			PopupMenuButton libraryPopup = null;
-			libraryPopup = new PopupMenuButton("Add to Bed".Localize(), StaticData.Instance.LoadIcon("fa-folder-open_16.png", 16, 16).GrayToColor(theme.TextColor), theme)
+
+			// EBMC Edition: with ClubDialogsAndMenus the button reads "Add" and opens the system file dialog; the Library
+			// panel below opens from the arrow menu instead (ClubAddButton.ShowPopup). Off, ClubAddButton is a plain
+			// PopupMenuButton.
+			libraryPopup = new ClubAddButton(
+				ClubStyle.On ? "Add".Localize() : "Add to Bed".Localize(),
+				StaticData.Instance.LoadIcon("fa-folder-open_16.png", 16, 16).GrayToColor(theme.TextColor),
+				theme,
+				ClubStyle.On ? (fileNames) => sceneContext.AddToPlate(fileNames) : (Action<string[]>)null)
 			{
 				MakeScrollable = false,
 				Name = "Add Content Menu",
@@ -934,7 +1069,76 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				PopupVAnchor = VAnchor.Fit
 			};
 
+			if (ClubStyle.On)
+			{
+				libraryPopup.ToolTipText = "Add a file to the bed".Localize();
+			}
+
 			return libraryPopup;
+		}
+
+		/// <summary>
+		/// EBMC Edition: the Add button. With an <c>addFiles</c> action (ClubDialogsAndMenus on) a click opens the system
+		/// file dialog (the action of the stock "Add System File to Bed" item) and the Library panel opens only through
+		/// <see cref="PopupButton.ShowPopup"/> from the arrow menu. Without one it is a plain PopupMenuButton.
+		/// </summary>
+		private class ClubAddButton : PopupMenuButton
+		{
+			private readonly Action<string[]> addFiles;
+
+			public ClubAddButton(string text, ImageBuffer icon, ThemeConfig theme, Action<string[]> addFiles)
+				: base(text, icon, theme)
+			{
+				this.addFiles = addFiles;
+			}
+
+			public void OpenSystemFile()
+			{
+				ApplicationController.OpenFileWithSystemDialog((fileNames) =>
+				{
+					addFiles?.Invoke(fileNames);
+				});
+			}
+
+			protected override void OnClick(MouseEventArgs mouseEvent)
+			{
+				if (addFiles == null)
+				{
+					base.OnClick(mouseEvent);
+					return;
+				}
+
+				// a click that closed the open Library panel (it closes when the mouse goes down) does not also open the
+				// file dialog; otherwise open the file dialog
+				if (!panelOpenAtMouseDown
+					&& mouseEvent.Button == MouseButtons.Left)
+				{
+					this.OpenSystemFile();
+				}
+
+				panelOpenAtMouseDown = false;
+
+				// still raise the Click event (PopupButton.OnClick then GuiWidget.OnClick), with the Library panel's
+				// content factory swapped for one that returns nothing, so PopupButton.ShowPopup opens no panel
+				var libraryContent = this.DynamicPopupContent;
+				this.DynamicPopupContent = () => null;
+				try
+				{
+					base.OnClick(mouseEvent);
+				}
+				finally
+				{
+					this.DynamicPopupContent = libraryContent;
+				}
+			}
+
+			private bool panelOpenAtMouseDown;
+
+			public override void OnMouseDown(MouseEventArgs mouseEvent)
+			{
+				panelOpenAtMouseDown = this.MenuVisible;
+				base.OnMouseDown(mouseEvent);
+			}
 		}
 
 		private GuiWidget CreateSupportButton(ThemeConfig theme)
@@ -979,6 +1183,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 			{
 				ButtonText = "Save".Localize(),
 				ButtonName = "Save",
+				// EBMC Edition: the shortcut in the tooltip (ClubDialogsAndMenus)
+				ButtonTooltip = ClubStyle.On ? "Save".Localize() + " (" + KeyHints.ForThisComputer("Ctrl + S") + ")" : null,
 				Icon = StaticData.Instance.LoadIcon("save_grey_16x.png", 16, 16).GrayToColor(theme.TextColor),
 				ButtonAction = (menuButton) =>
 				{
@@ -1016,6 +1222,33 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				},
 				ExtendPopupMenu = (PopupMenu popupMenu) =>
 				{
+					// EBMC Edition: club menu style, same two actions (ClubDialogsAndMenus)
+					if (ClubStyle.On)
+					{
+						ClubMenuBuilder.StyleMenu(popupMenu);
+						var clubSaveAs = ClubMenuBuilder.CreateItem(popupMenu, ClubMenuText.WithEllipsis("Save as".Localize(), true), null, null, false);
+						clubSaveAs.Name = "Save As Menu Item";
+						clubSaveAs.Click += (s, e) => UiThread.RunOnIdle(() =>
+						{
+							DialogWindow.Show(
+								new SaveAsPage(
+									(container, newName) =>
+									{
+										sceneContext.SaveAs(container, newName);
+									}));
+						});
+						var clubExport = ClubMenuBuilder.CreateItem(popupMenu, ClubMenuText.WithEllipsis("Export".Localize(), true), ClubStyle.MenuIcon("cube_export.png", ClubStyle.Muted(popupMenu.Theme)), null, false);
+						clubExport.Name = "Export Menu Item";
+						clubExport.Click += (s, e) => UiThread.RunOnIdle(() =>
+						{
+							ApplicationController.Instance.ExportLibraryItems(
+								new[] { new InMemoryLibraryItem(sceneContext.Scene) },
+								centerOnBed: false,
+								printer: view3DWidget.Printer);
+						});
+						return;
+					}
+
 					var saveAs = popupMenu.CreateMenuItem("Save As".Localize());
 					saveAs.Click += (s, e) => UiThread.RunOnIdle(() =>
 					{

@@ -1,0 +1,6 @@
+<!-- EBMC custom icon "starter-sign": Club Starter sign: a board with two lines of text on two posts. Original work for EBMC (East Bay Makers Club), drawn on Lucide's 24-unit grid and stroke style; not part of Lucide. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="4" width="18" height="11" rx="2" />
+  <path d="M8 15v5M16 15v5M6 20h12" />
+  <path d="M7 8h10M7 11h6" />
+</svg>

@@ -120,7 +120,7 @@ namespace MatterHackers.MatterControl.DesignTools
 
 			using (RebuildLock())
 			{
-				MaxTemperature = Util.Clamp(MaxTemperature, 140, 400, ref valuesChanged);
+				MaxTemperature = Util.Clamp(MaxTemperature, 140, 300, ref valuesChanged);
 				Sections = Util.Clamp(Sections, 2, 20, ref valuesChanged);
 				ChangeAmount = Util.Clamp(ChangeAmount, 1, 30, ref valuesChanged);
 

@@ -74,6 +74,7 @@ extern "C" {
 #define EBMC_ERR_STD          6  /* a C++ std::exception was caught (e.g. std::bad_alloc) */
 #define EBMC_ERR_UNKNOWN      7  /* any other C++ exception */
 #define EBMC_ERR_IO           8  /* file could not be read/written or parsed */
+#define EBMC_ERR_TOO_BIG      9  /* the result would exceed a size limit the caller set (e.g. max_triangles) */
 
 /* Boolean operations */
 #define EBMC_BOOL_FUSE   0
@@ -106,7 +107,7 @@ typedef struct ebmc_mesh {
     int32_t  edge_point_count;
 } ebmc_mesh;
 
-/* Version string, e.g. "ebmc_occt 0.1; OCCT 8.0.1". Static storage; never fails. */
+/* Version string, e.g. "ebmc_occt 0.3; OCCT 8.0.1". Static storage; never fails. */
 EBMC_API const char* ebmc_occt_version(void);
 
 /* Message for the last failed call on this thread ("" if none). */
@@ -152,9 +153,12 @@ EBMC_API int ebmc_bbox(const ebmc_shape* shape, double* out6);
 EBMC_API int ebmc_is_valid(const ebmc_shape* shape, int32_t* is_valid);
 
 /* Triangulates a copy of the shape (the input shape is not modified) with BRepMesh_IncrementalMesh.
- * linear_deflection in model units (mm), angular_deflection in radians. */
+ * linear_deflection in model units (mm), angular_deflection in radians.
+ * max_triangles > 0 caps the result: when the triangulation has more triangles than that, the call fails with
+ * EBMC_ERR_TOO_BIG before any output array is built (OCCT's own triangulation of the copy is still made and freed).
+ * 0 or less means no cap. (Changed in 0.3: the max_triangles parameter is new.) */
 EBMC_API int ebmc_tessellate(const ebmc_shape* shape, double linear_deflection, double angular_deflection,
-                             ebmc_mesh** out);
+                             int32_t max_triangles, ebmc_mesh** out);
 EBMC_API void ebmc_mesh_free(ebmc_mesh* mesh);
 
 /* STEP AP214 export / import, units mm. path is UTF-8. Reading returns all roots as one shape (a compound
@@ -162,7 +166,7 @@ EBMC_API void ebmc_mesh_free(ebmc_mesh* mesh);
 EBMC_API int ebmc_write_step(const ebmc_shape* shape, const char* path);
 EBMC_API int ebmc_read_step(const char* path, ebmc_shape** out);
 
-/* ---- Added for the app's first solid objects (ebmc_occt 0.2) ---- */
+/* ---- Added for the app's first solid objects (ebmc_occt 0.2; 0.3 added max_triangles to ebmc_tessellate) ---- */
 
 /* Curve types reported by ebmc_edge_geom. */
 #define EBMC_CURVE_LINE   0
