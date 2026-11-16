@@ -21,7 +21,9 @@ o.update({
     'infill_speed': '70', 'perimeter_speed': '70',
     'external_perimeter_speed': '70', 'top_solid_infill_speed': '70',
     'support_material_speed': '80', 'raft_print_speed': '80', 'bridge_speed': '40',
-    'retract_length': '2', 'retract_before_travel_avoid': '5',
+    # Retract on any travel over 1 mm (was 5): short hops across jar-lid threads left NylonX whiskers
+    # (owner approved 2026-11-13).
+    'retract_length': '2', 'retract_before_travel': '1', 'retract_before_travel_avoid': '1',
     'retract_lift': '0.4', 'retract_restart_extra': '0',
     'skirts': '4', 'infill_overlap_perimeter': '20%',
     # Levelling is done by the printer's firmware (Smoothieware grid, G32) so it works when the
