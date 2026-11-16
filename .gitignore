@@ -132,3 +132,6 @@ MatterControl.userprefs
 .DS_Store
 native/occt/_build/
 native/occt/dist/
+
+# Claude Code per-project settings and state (local to each computer)
+/.claude/
