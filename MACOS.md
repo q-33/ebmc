@@ -159,9 +159,18 @@ in the passphrase field), `members-restore` (damaged files, restore newest backu
 moved aside), `modes` (Simple/Advanced keeps the page, the typed Members draft and the part on a
 design tab), `slice` (club
 printer, default part, nothing sent: OctoPrint is pointed at a closed loopback port and
-any request off the computer fails the run), `laser-export` (SVG written and parsed).
+any request off the computer fails the run), `laser-export` (SVG written and parsed),
+`update-presets` (an older installed club profile: Printer options > Update club presets,
+the confirmation and the done message, the backup, the hand override kept, a second run
+with nothing to do), `presets-menu-not-club` (no such item for another printer), and
+`ready-to-print` (Send and print to `Tools/EBMC/octoprint_mock.py` on a loopback port: the
+"Ready to print?" summary with hand-changed values, then Cancel sends nothing; a second run
+answers Start print and the mock receives exactly one upload with print). The two printer
+flows first set up the club printer in a fresh profile, then change that profile file
+before starting the app again. Message boxes are measured: the whole text and every button
+must show without scrolling, or the step fails with the measured sizes.
 
-Not covered: the real printer, OctoPrint itself, typing into dialogs the test cannot
+Not covered: the real printer, a real OctoPrint, typing into dialogs the test cannot
 reach, and how anything looks beyond the screenshots (look at them). Only tested with
 the screen unlocked and the display on; a locked screen or sleeping display is untested.
 

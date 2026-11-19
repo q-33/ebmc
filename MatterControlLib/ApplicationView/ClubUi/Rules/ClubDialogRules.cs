@@ -139,13 +139,14 @@ namespace MatterHackers.MatterControl.ClubUi
 
 		/// <summary>
 		/// EBMC Edition: a message box size (in unscaled pixels, as StyledMessageBox.MessageBoxPage takes it) that fits a
-		/// longer text: the stock 400 x 300 at least, grown for the longest row (about 7 px per character at 12 pt, plus
-		/// the margins) and for the rows after wrapping (about 20 px each, plus the title and footer), up to 640 x 640.
+		/// longer text: the stock 400 x 300 at least, grown for the longest row (about 9 px per character at 12 pt, plus
+		/// the margins) and for the rows after wrapping (about 17 px each, plus the title and footer), up to 640 x 640.
 		/// Used by the pre-print question and "Update club presets"; the app-wide message box is unchanged.
 		/// </summary>
 		public static (int width, int height) MessageBoxSize(string message)
 		{
-			const int charWidth = 7, sideMargins = 90, rowHeight = 20, chrome = 170;
+			// measured on screen by the smoke test: about 8.5 px per character and 16 px per row at 12 pt
+			const int charWidth = 9, sideMargins = 90, rowHeight = 17, chrome = 170;
 
 			var rows = (message ?? "").Replace("\r", "").Split('\n');
 			int longest = rows.Max(r => r.Length);

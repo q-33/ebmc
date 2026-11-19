@@ -462,10 +462,10 @@ namespace EBMC.Tests
 		{
 			Assert.That(MatterHackers.MatterControl.ClubUi.ClubDialogRules.MessageBoxSize("Short."), Is.EqualTo((400, 300)));
 			Assert.That(MatterHackers.MatterControl.ClubUi.ClubDialogRules.MessageBoxSize(null), Is.EqualTo((400, 300)));
-			Assert.That(MatterHackers.MatterControl.ClubUi.ClubDialogRules.MessageBoxSize(new string('x', 70)).width, Is.EqualTo(70 * 7 + 90));
-			Assert.That(MatterHackers.MatterControl.ClubUi.ClubDialogRules.MessageBoxSize(new string('x', 500)), Is.EqualTo((640, 7 * 20 + 170)), "wrapped at 78 characters a row");
+			Assert.That(MatterHackers.MatterControl.ClubUi.ClubDialogRules.MessageBoxSize(new string('x', 60)).width, Is.EqualTo(60 * 9 + 90));
+			Assert.That(MatterHackers.MatterControl.ClubUi.ClubDialogRules.MessageBoxSize(new string('x', 500)), Is.EqualTo((640, 9 * 17 + 170)), "wrapped at 61 characters a row");
 			Assert.That(MatterHackers.MatterControl.ClubUi.ClubDialogRules.MessageBoxSize(string.Join("\n", Enumerable.Repeat("row", 40))), Is.EqualTo((400, 640)));
-			Assert.That(MatterHackers.MatterControl.ClubUi.ClubDialogRules.MessageBoxSize(string.Join("\n", Enumerable.Repeat("row", 20))).height, Is.EqualTo(20 * 20 + 170));
+			Assert.That(MatterHackers.MatterControl.ClubUi.ClubDialogRules.MessageBoxSize(string.Join("\n", Enumerable.Repeat("row", 20))).height, Is.EqualTo(20 * 17 + 170));
 		}
 
 		[Test]

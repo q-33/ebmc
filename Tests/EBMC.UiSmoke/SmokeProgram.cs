@@ -162,6 +162,24 @@ namespace EBMC.UiSmoke
 			Console.WriteLine("EBMC UI smoke: data folder " + Smoke.DataDir);
 			Console.WriteLine("EBMC UI smoke: screenshots " + Smoke.OutDir);
 
+			// every exception thrown anywhere, even one the app catches and drops, is written to first-chance.log in the
+			// screenshot folder (a step that fails on a swallowed error can then say which one)
+			var firstChance = new StreamWriter(Path.Combine(Smoke.OutDir, "first-chance.log")) { AutoFlush = true };
+			AppDomain.CurrentDomain.FirstChanceException += (s, e) =>
+			{
+				try
+				{
+					lock (firstChance)
+					{
+						firstChance.WriteLine($"{DateTime.Now:HH:mm:ss.fff} step {Smoke.StepCount}: {e.Exception.GetType().Name}: {e.Exception.Message.Replace('\n', ' ')}");
+						firstChance.WriteLine("    " + new StackTrace(1, false).ToString().Replace("\n", "\n    ").Trim());
+					}
+				}
+				catch (Exception)
+				{
+				}
+			};
+
 			// observers first: the app must never see the real clipboard, and every request is recorded
 			NetworkWatch.Install();
 			NetworkWatch.SelfTest();
@@ -207,6 +225,11 @@ namespace EBMC.UiSmoke
 			}
 
 			NetworkWatch.ThrowIfAny();
+
+			if (Smoke.DeferredFailures.Count > 0)
+			{
+				throw new SmokeFailure(string.Join(" | ", Smoke.DeferredFailures));
+			}
 
 			// unobserved task exceptions are only raised when the task is collected
 			GC.Collect();
@@ -296,6 +319,18 @@ namespace EBMC.UiSmoke
 			if (Interlocked.Exchange(ref finished, 1) != 0)
 			{
 				return;
+			}
+
+			// things a flow started outside the app (the OctoPrint mock) are stopped whatever the outcome
+			foreach (var cleanup in Smoke.OnExit)
+			{
+				try
+				{
+					cleanup();
+				}
+				catch (Exception)
+				{
+				}
 			}
 
 			Console.Out.Flush();

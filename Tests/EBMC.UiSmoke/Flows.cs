@@ -32,7 +32,7 @@ namespace EBMC.UiSmoke
 	/// <summary>
 	/// The on-screen flows. Names and passphrases are invented throwaways; the passphrase is never printed.
 	/// </summary>
-	public static class Flows
+	public static partial class Flows
 	{
 		/// <summary>An obvious throwaway; never a real one, never printed.</summary>
 		private const string Passphrase = "smoke test throwaway 2026";
@@ -52,6 +52,11 @@ namespace EBMC.UiSmoke
 			new Flow { Name = "members-restore", Summary = "damaged files: unreadable view, restore newest backup, files moved aside", ReusesData = true, BeforeStart = DamageMembersFiles, Run = MembersRestoreFlow },
 			new Flow { Name = "modes", Summary = "Simple/Advanced keeps the page and the typed draft (Members) and the part (design tab)", Run = ModesFlow },
 			new Flow { Name = "slice", Summary = "club printer set up, default part sliced, nothing sent", Run = SliceFlow },
+			new Flow { Name = "club-printer", Summary = "set-up only: the club printer in a fresh profile (for the flows that reuse it)", Run = ClubPrinterFlow },
+			new Flow { Name = "update-presets", Summary = "an older installed profile: Update club presets, backup, hand override kept, second run has nothing to do", ReusesData = true, BeforeStart = StaleForUpdate, Run = UpdatePresetsFlow },
+			new Flow { Name = "presets-menu-not-club", Summary = "a printer that is not the club's (Define New): no \"Update club presets\" in Printer options", Run = PresetsMenuNotClubFlow },
+			new Flow { Name = "ready-to-print", Summary = "Send and print to the OctoPrint mock: the summary with hand overrides, then Cancel (nothing sent)", ReusesData = true, BeforeStart = StaleForPrint, Run = ReadyToPrintCancelFlow },
+			new Flow { Name = "ready-to-print-confirm", Summary = "as ready-to-print, then Start print: exactly one upload with print", ReusesData = true, BeforeStart = StaleForPrint, Run = ReadyToPrintConfirmFlow },
 			new Flow { Name = "laser-export", Summary = "Export for laser to SVG in the scratch folder", Run = LaserExportFlow },
 		};
 
@@ -494,7 +499,12 @@ namespace EBMC.UiSmoke
 
 		// --- 5. slice ---
 
-		private static void SliceFlow()
+		/// <summary>
+		/// The club printer in a fresh profile (the welcome dialog's "Setup New Printer", the only printer offered, no
+		/// connection), with the OctoPrint address pointed at a closed loopback port in the scratch profile's user layer.
+		/// Returns the printer.
+		/// </summary>
+		private static PrinterConfig SetUpClubPrinter()
 		{
 			MainWindow();
 			Welcome("welcome-setup-printer", () => ClickWidget(ClickableFor(WaitForText("Setup New Printer"))));
@@ -509,7 +519,9 @@ namespace EBMC.UiSmoke
 						.FirstOrDefault(w => w.Name != null && w.Name.StartsWith("NodeEast Bay Makers Club") && w.ActuallyVisibleOnScreen()));
 					return node != null;
 				}, 15, "the club printer is not in the printer list");
-				Log("printer: " + Ui(() => node.Name));
+				var offered = Ui(() => SystemWindow.AllOpenSystemWindows.Last().Descendants<GuiWidget>()
+					.Where(w => w.Name != null && w.Name.StartsWith("Node") && w.ActuallyVisibleOnScreen()).Select(w => w.Name).ToList());
+				Log("printers offered: " + string.Join(", ", offered));
 				ClickWidget(node);
 				Click("Next Button");
 			});
@@ -531,10 +543,32 @@ namespace EBMC.UiSmoke
 				Log($"club profile: octoprint_enabled={enabled}, octoprint_host={host}");
 
 				// the scratch profile's user layer only: anything that tried to send would reach a closed port here
-				Ui(() => printer.Settings.SetValue(SettingsKey.octoprint_host, "http://127.0.0.1:9"));
-				Require(Ui(() => printer.Settings.GetValue(SettingsKey.octoprint_host)) == "http://127.0.0.1:9", "the OctoPrint host could not be pointed at loopback");
-				Log("octoprint_host set to http://127.0.0.1:9 in the scratch profile (closed port)");
+				Ui(() => printer.Settings.SetValue(SettingsKey.octoprint_host, ClosedLoopback));
+				Require(Ui(() => printer.Settings.GetValue(SettingsKey.octoprint_host)) == ClosedLoopback, "the OctoPrint host could not be pointed at loopback");
+				Log($"octoprint_host set to {ClosedLoopback} in the scratch profile (closed port)");
 			});
+
+			return printer;
+		}
+
+		private const string ClosedLoopback = "http://127.0.0.1:9";
+
+		/// <summary>Only sets up the club printer and closes, leaving the profile for a flow that reuses the folder.</summary>
+		private static void ClubPrinterFlow()
+		{
+			var printer = SetUpClubPrinter();
+			Step("profile-saved", () =>
+			{
+				Ui(() => printer.Settings.Save(userDrivenChange: false));
+				string path = Ui(() => ProfileManager.Instance.ProfilePath(printer.Settings.ID));
+				Require(path != null && File.Exists(path), "the printer profile file was not written");
+				Log("profile: " + path.Substring(DataDir.Length + 1));
+			});
+		}
+
+		private static void SliceFlow()
+		{
+			var printer = SetUpClubPrinter();
 
 			Step("part-on-bed", () =>
 			{

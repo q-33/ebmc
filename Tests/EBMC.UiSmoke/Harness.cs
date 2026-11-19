@@ -26,6 +26,18 @@ namespace EBMC.UiSmoke
 	}
 
 	/// <summary>
+	/// A dialog that does not fit (its text would scroll): the step fails and the run fails at the end, but the
+	/// following steps still run, so one run shows everything else too.
+	/// </summary>
+	public class FitFailure : SmokeFailure
+	{
+		public FitFailure(string message)
+			: base(message)
+		{
+		}
+	}
+
+	/// <summary>
 	/// The helpers every flow uses: named steps with a screenshot each, waits on widget state (never fixed delays
 	/// for correctness), clicks by name, typing, and reading widget state on the UI thread.
 	/// </summary>
@@ -38,6 +50,12 @@ namespace EBMC.UiSmoke
 		public static string DataDir { get; set; }
 
 		public static int StepCount { get; private set; }
+
+		/// <summary>Failed steps after which the flow went on (see <see cref="FitFailure"/>).</summary>
+		public static List<string> DeferredFailures { get; } = new List<string>();
+
+		/// <summary>Run once when the process ends, pass or fail.</summary>
+		public static List<Action> OnExit { get; } = new List<Action>();
 
 		private static readonly Stopwatch FlowTimer = new Stopwatch();
 
@@ -57,6 +75,13 @@ namespace EBMC.UiSmoke
 			{
 				body();
 				NetworkWatch.ThrowIfAny();
+			}
+			catch (FitFailure e)
+			{
+				TryCapture(label + "-FAILED");
+				Console.WriteLine($"[{label}] FAIL ({timer.Elapsed.TotalSeconds:0.0} s), the run goes on: {e.Message}");
+				DeferredFailures.Add($"step {label}: {e.Message}");
+				return;
 			}
 			catch (Exception e)
 			{
@@ -463,6 +488,251 @@ namespace EBMC.UiSmoke
 		}
 
 		private static SystemWindow TopWindow() => SystemWindow.AllOpenSystemWindows.Last();
+	}
+
+	/// <summary>What a shown message box holds and where its parts are on screen (device pixels, y up).</summary>
+	public sealed class MessageBoxReport
+	{
+		public string Title { get; set; }
+
+		/// <summary>The text as given to the box.</summary>
+		public string Message { get; set; }
+
+		/// <summary>The text as drawn: the box inserts line breaks to wrap it.</summary>
+		public string[] DisplayedRows { get; set; }
+
+		public RectangleDouble Window { get; set; }
+
+		public RectangleDouble Page { get; set; }
+
+		public RectangleDouble ScrollArea { get; set; }
+
+		public RectangleDouble Text { get; set; }
+
+		public Dictionary<string, RectangleDouble> Buttons { get; } = new Dictionary<string, RectangleDouble>();
+
+		public double DeviceScale { get; set; }
+
+		/// <summary>What ClubDialogRules.MessageBoxSize returned for the text (units before the device scale).</summary>
+		public (int width, int height) RuleSize { get; set; }
+
+		public double WrapWidth { get; set; }
+
+		public string Sizes()
+		{
+			string Size(RectangleDouble r) => $"{r.Width:0}x{r.Height:0} px ({r.Width / DeviceScale:0}x{r.Height / DeviceScale:0} units)";
+			int messageRows = Message.Replace("\r", "").Split('\n').Length;
+			return $"box {Size(Page)}; rule asked {RuleSize.width}x{RuleSize.height} units; text area {Size(ScrollArea)}; "
+				+ $"text {Size(Text)}; {messageRows} rows given, {DisplayedRows.Length} rows drawn; wrap width {WrapWidth:0} px; scale {DeviceScale}";
+		}
+	}
+
+	public static class MessageBoxes
+	{
+		/// <summary>Reads the top-most message box (StyledMessageBox.MessageBoxPage) on the UI thread.</summary>
+		public static MessageBoxReport Read() => Smoke.Ui(() =>
+		{
+			var window = SystemWindow.AllOpenSystemWindows.Last();
+			var page = window.Descendants<MatterHackers.MatterControl.StyledMessageBox.MessageBoxPage>().FirstOrDefault();
+			if (page == null)
+			{
+				return null;
+			}
+
+			var scrollable = page.Descendants<ScrollableWidget>().First();
+			var text = scrollable.Descendants<TextWidget>().First();
+			string message = (string)typeof(MatterHackers.MatterControl.StyledMessageBox.MessageBoxPage)
+				.GetField("unwrappedMessage", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+				.GetValue(page);
+
+			var contentRow = (GuiWidget)typeof(MatterHackers.MatterControl.DialogPage)
+				.GetField("contentRow", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+				.GetValue(page);
+
+			var report = new MessageBoxReport()
+			{
+				Title = page.HeaderText,
+				Message = message,
+				DisplayedRows = text.Text.Replace("\r", "").Split('\n'),
+				Window = window.LocalBounds,
+				Page = page.TransformToParentSpace(window, page.LocalBounds),
+				ScrollArea = scrollable.TransformToParentSpace(window, scrollable.LocalBounds),
+				Text = text.TransformToParentSpace(window, text.LocalBounds),
+				DeviceScale = GuiWidget.DeviceScale,
+				RuleSize = MatterHackers.MatterControl.ClubUi.ClubDialogRules.MessageBoxSize(message),
+				WrapWidth = contentRow.Width - (contentRow.Padding.Width + text.Margin.Width),
+			};
+
+			foreach (var name in new[] { "Yes Button", "No Button", "Ok Button" })
+			{
+				var button = page.Descendants<GuiWidget>().FirstOrDefault(w => w.Name == name && w.Visible);
+				if (button != null)
+				{
+					report.Buttons[name + " (" + button.Text + ")"] = button.TransformToParentSpace(window, button.LocalBounds);
+				}
+			}
+
+			return report;
+		});
+
+		/// <summary>Waits for a message box with this title.</summary>
+		public static MessageBoxReport WaitFor(string title, double seconds)
+		{
+			MessageBoxReport report = null;
+			Smoke.WaitUntil(() =>
+			{
+				report = Read();
+				return report != null && report.Title == title;
+			}, seconds, $"no \"{title}\" box" + (report != null ? $" (the box shown is \"{report.Title}\")" : ""));
+
+			// let it lay out (the wrap is applied when its size is known)
+			Thread.Sleep(500);
+			return Read();
+		}
+
+		/// <summary>
+		/// The whole text and every button can be seen without scrolling: the text inside its (scrolling) area, the
+		/// buttons and the box inside the window. Fails with the measured sizes.
+		/// </summary>
+		public static void RequireFits(MessageBoxReport box)
+		{
+			Smoke.Log("sizes: " + box.Sizes());
+			Smoke.Log("rows as drawn:");
+			foreach (var row in box.DisplayedRows)
+			{
+				Smoke.Log("  | " + row);
+			}
+
+			var problems = new List<string>();
+			bool Inside(RectangleDouble inner, RectangleDouble outer) =>
+				inner.Left >= outer.Left - 1 && inner.Right <= outer.Right + 1 && inner.Bottom >= outer.Bottom - 1 && inner.Top <= outer.Top + 1;
+
+			if (!Inside(box.Text, box.ScrollArea))
+			{
+				problems.Add($"the text ({box.Text.Width:0}x{box.Text.Height:0} px) does not fit its area ({box.ScrollArea.Width:0}x{box.ScrollArea.Height:0} px), so it scrolls");
+			}
+
+			if (!Inside(box.Page, box.Window))
+			{
+				problems.Add("the box is larger than the window");
+			}
+
+			if (box.Buttons.Count == 0)
+			{
+				problems.Add("no buttons found");
+			}
+
+			foreach (var button in box.Buttons)
+			{
+				if (button.Value.Width < 1 || button.Value.Height < 1 || !Inside(button.Value, box.Page) || !Inside(button.Value, box.Window))
+				{
+					problems.Add($"{button.Key} is not fully inside the box");
+				}
+			}
+
+			Smoke.Log("buttons: " + string.Join(", ", box.Buttons.Keys));
+			if (problems.Count > 0)
+			{
+				throw new FitFailure(string.Join("; ", problems) + $" [{box.Sizes()}]");
+			}
+		}
+	}
+
+	/// <summary>
+	/// Tools/EBMC/octoprint_mock.py on a free 127.0.0.1 port, with its one-line-per-request log (stderr) kept.
+	/// </summary>
+	public sealed class OctoPrintMock : IDisposable
+	{
+		private readonly Process process;
+		private readonly List<string> log = new List<string>();
+
+		public OctoPrintMock(string key, string state)
+		{
+			string script = FindScript();
+			var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+			listener.Start();
+			Port = ((IPEndPoint)listener.LocalEndpoint).Port;
+			listener.Stop();
+
+			process = Process.Start(new ProcessStartInfo("/usr/bin/python3", $"-I \"{script}\" --port {Port} --key {key} --state {state}")
+			{
+				RedirectStandardError = true,
+				RedirectStandardOutput = true,
+				UseShellExecute = false,
+			});
+			process.ErrorDataReceived += (s, e) =>
+			{
+				if (e.Data != null)
+				{
+					lock (log)
+					{
+						log.Add(e.Data);
+					}
+				}
+			};
+			process.BeginErrorReadLine();
+
+			Smoke.WaitUntil(() => Log.Any(l => l.StartsWith("OctoPrint mock on")), 10, "the OctoPrint mock did not start");
+			Console.WriteLine("    mock: " + Log.First());
+		}
+
+		public int Port { get; }
+
+		public string BaseUrl => $"http://127.0.0.1:{Port}";
+
+		public IReadOnlyList<string> Log
+		{
+			get
+			{
+				lock (log)
+				{
+					return log.ToList();
+				}
+			}
+		}
+
+		/// <summary>The request lines (without the start-up line), e.g. "12:00:01 GET /api/version -> 200 key=ok".</summary>
+		public IReadOnlyList<string> Requests => Log.Where(l => !l.StartsWith("OctoPrint mock on")).ToList();
+
+		public string Files()
+		{
+			using (var client = new System.Net.Http.HttpClient())
+			{
+				return client.GetStringAsync(BaseUrl + "/mock/files").GetAwaiter().GetResult();
+			}
+		}
+
+		public void Dispose()
+		{
+			try
+			{
+				if (!process.HasExited)
+				{
+					process.Kill();
+					process.WaitForExit(5000);
+				}
+			}
+			catch (Exception)
+			{
+			}
+		}
+
+		private static string FindScript()
+		{
+			var folder = new DirectoryInfo(AppContext.BaseDirectory);
+			while (folder != null)
+			{
+				string candidate = Path.Combine(folder.FullName, "Tools", "EBMC", "octoprint_mock.py");
+				if (File.Exists(candidate))
+				{
+					return candidate;
+				}
+
+				folder = folder.Parent;
+			}
+
+			throw new SmokeFailure("Tools/EBMC/octoprint_mock.py not found above " + AppContext.BaseDirectory);
+		}
 	}
 
 	/// <summary>

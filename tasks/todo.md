@@ -693,6 +693,11 @@ Owner decisions: none needed to start.
 
 ## RESUME HERE (updated 2026-11-19, 00:12) — read this first
 
+OWNER DECISION 2026-11-19 01:44: NO light theme. The club build has one theme, the current dark EBMC. Every
+"light theme" check in these notes is DROPPED. Correction to an earlier note: a club light theme DID exist
+(`StaticData/Themes/System/EBMC/EBMC-Paper*`, generated); it was being removed (generator, files, EBMC.md,
+tests) by a sub-agent at 01:46: check `git status` and finish or redo if it did not complete.
+
 IN FLIGHT when these notes were written (results NOT seen; sub-agents do not survive a new session, so check
 the files and re-run what is missing):
 - Plan C DONE THROUGH C4 and COMMITTED + PUSHED 2026-11-19 00:40: six flows (start, members, members-restore,
@@ -710,7 +715,17 @@ the files and re-run what is missing):
   without sending, laser export, maybe light theme; then three deliberate-breakage proofs) were being built.
   OWNER'S STANDING INSTRUCTION: when the flows are done and checked, COMMIT AND PUSH to macos-arm64.
   Then C5: independent review (opus).
-- Plan A (material presets, "Update club presets…", fuller "Ready to print?" summary), steps A1-A4, being
+- Plan A A1-A4 DONE, independently reviewed, findings fixed, MERGED and PUSHED 2026-11-19 00:52 (merge
+  e08832285; 1432 tests and all six smoke flows pass on the merged result). NylonX 265/80, NylonG 260/80
+  (fans off like NylonX, density 1.1, cost 64 from the material template: owner may change). EBMC.md speed
+  rows corrected. NOT DONE: neither dialog nor the menu entry seen on screen (smoke flows for them were being
+  added: `ready-to-print` against the loopback OctoPrint mock, and `update-presets`); box sizes are
+  estimates; no Newtonsoft round-trip test in the suite (the reviewer did it by hand, clean); A5 (OctoPrint's
+  own presets on the Pi: club network + yes); then, with the owner's yes, run "Update club presets…" on the
+  owner's installed profile and clear the hand overrides that hide the presets (the action lists them).
+  The Plan A clone under `microduck/.claude/worktrees/agent-ab994f2712724217c/ebmc-planA` is merged and can
+  be deleted; local branch `plan-a-material-settings` too. Older note follows.
+- (older) Plan A, steps A1-A4, were being
   built in a SEPARATE GIT WORKTREE on its own branch (see `git worktree list`), commits there, not pushed.
   OWNER'S STANDING INSTRUCTION: independent review (opus), fix findings, MERGE into macos-arm64, run the full
   suite on the merged result, then PUSH. Then A5 (OctoPrint's own presets on the Pi, club network + yes) and

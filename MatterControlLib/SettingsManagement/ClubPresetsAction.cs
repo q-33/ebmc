@@ -55,6 +55,18 @@ namespace MatterHackers.MatterControl.SettingsManagement
 		}
 
 		/// <summary>Why the presets cannot be updated right now, or null: a local print, or a Send or slice for this printer.</summary>
+		/// <summary>
+		/// The backup's file name for the message, without the profile's 36-character id in front: the full name is
+		/// too long for one row of the box and was cut off (seen in the on-screen smoke test). The backup sits beside
+		/// the profile, so the ending is enough to find it.
+		/// </summary>
+		internal static string ShortBackupName(string backupPath)
+		{
+			string name = Path.GetFileName(backupPath);
+			int at = name.IndexOf(".printer", StringComparison.OrdinalIgnoreCase);
+			return at > 12 ? "…" + name.Substring(at) : name;
+		}
+
 		private static string Busy(PrinterConfig printer)
 		{
 			if (printer.Connection.Printing)
@@ -180,7 +192,7 @@ namespace MatterHackers.MatterControl.SettingsManagement
 
 			int count = result.Comparison.Changed.Count + result.Comparison.Added.Count;
 			string done = string.Format("Club presets updated or added: {0}.".Localize(), count)
-				+ "\n\n" + "Backup of the previous profile:".Localize() + "\n" + Path.GetFileName(result.BackupPath);
+				+ "\n\n" + "Backup of the previous profile:".Localize() + "\n" + ShortBackupName(result.BackupPath);
 
 			string hiddenText = ClubPresets.DescribeHiddenOverrides(hidden, KeyLabel, s => s.Localize(), done: true);
 			if (hiddenText != null)
