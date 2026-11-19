@@ -43,6 +43,7 @@ using MatterHackers.MatterControl.CustomWidgets;
 using MatterHackers.MatterControl.EeProm;
 using MatterHackers.MatterControl.PrinterCommunication;
 using MatterHackers.MatterControl.PrintHistory;
+using MatterHackers.MatterControl.SettingsManagement;
 using MatterHackers.MatterControl.SetupWizard;
 using MatterHackers.MatterControl.SlicerConfiguration;
 using Newtonsoft.Json;
@@ -451,6 +452,18 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				},
 				Icon = StaticData.Instance.LoadIcon("fa-refresh_14.png", 16, 16).GrayToColor(theme.TextColor)
 			});
+			// EBMC Edition: bring this printer's club material presets in line with the club profile bundled with the
+			// app (shows the differences, backs up first); only on the club printer
+			if (ClubPresetsAction.Applies(printer))
+			{
+				menuActions.Add(new NamedAction()
+				{
+					ID = ClubMenus.UpdateClubPresets,
+					Title = "Update club presets...".Localize(),
+					IsEnabled = () => Maintainer.CanManagePrinter,
+					Action = () => UiThread.RunOnIdle(() => ClubPresetsAction.Run(printer)),
+				});
+			}
 			menuActions.Add(new NamedAction()
 			{
 				ID = ClubMenus.RestoreSettings,

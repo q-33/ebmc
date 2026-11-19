@@ -21,6 +21,11 @@
 		<Compile Include="..\..\MatterControl.Printing\Settings\SettingsLock.cs" Link="Settings\%(Filename)%(Extension)" />
 		<Compile Include="..\..\MatterControl.Printing\Settings\MaintainerPin.cs" Link="Settings\%(Filename)%(Extension)" />
 		<Compile Include="..\..\MatterControl.Printing\Settings\MaintainerMessages.cs" Link="Settings\%(Filename)%(Extension)" />
+		<!-- The settings cascade model, the pre-print summary and the club material presets comparison and update
+		     (pure: no PrinterSettings, agg-sharp or GUI; PrinterSettingsSummarySource, which reads a real PrinterSettings, is not linked) -->
+		<Compile Include="..\..\MatterControl.Printing\Settings\SettingsCascade.cs" Link="Settings\%(Filename)%(Extension)" />
+		<Compile Include="..\..\MatterControl.Printing\Settings\PrintSummary.cs" Link="Settings\%(Filename)%(Extension)" />
+		<Compile Include="..\..\MatterControl.Printing\Settings\ClubPresets.cs" Link="Settings\%(Filename)%(Extension)" />
 		<!-- The Simple · Advanced mode rules (default, slice-settings detail mapping); used by the palette catalog too -->
 		<Compile Include="..\..\MatterControl.Printing\Settings\UiMode.cs" Link="Settings\%(Filename)%(Extension)" />
 		<!-- The shapes palette's catalog (families, members, tabs, size chips) and click placement rule; no UI dependencies -->

@@ -98,7 +98,10 @@ printer profile.
 
 Send > Upload and Print slices the bed, uploads the G-code and starts it. The start G-code homes, deploys the
 BLTouch (`M280 S3.3`), probes nine points (`G32 X23 Y15 A180 B180`), stows the probe (`M280 S7.43`) and prints.
-Keep the bed clear while it probes. OctoPrint's Cancel can take up to 40 seconds on this firmware; use the
+Keep the bed clear while it probes. Before the slice, "Ready to print?" lists the material, nozzle and bed
+temperatures, layer height, first layer and brim, with where each value comes from; a value changed by hand shows
+what the preset says (for example "Bed: 60 °C (changed by hand; NylonX preset says 80 °C)"), and a line is added
+when the printer's copy of the active club preset is older than the club's. It warns; it never stops the print. OctoPrint's Cancel can take up to 40 seconds on this firmware; use the
 power switch in an emergency.
 
 Settings that live on the printer, not in this repository (set 2026-11-11):

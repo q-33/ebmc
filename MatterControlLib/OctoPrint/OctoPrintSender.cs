@@ -346,8 +346,8 @@ namespace MatterHackers.MatterControl.OctoPrint
 		}
 
 		/// <summary>
-		/// The "Ready to print?" text for this printer: the active material preset's name and the temperatures it will
-		/// heat to. Read on the UI thread.
+		/// The "Ready to print?" text for this printer: the active material preset's name and the summary of what will
+		/// be sliced (PrintSummary). Read on the UI thread.
 		/// </summary>
 		private static string ConfirmationText(PrinterConfig printer)
 		{
@@ -358,15 +358,16 @@ namespace MatterHackers.MatterControl.OctoPrint
 				return OctoPrintMessages.ConfirmPrintBodyGeneric(s => s.Localize());
 			}
 
+			// EBMC Edition: what will be sliced (material, temperatures, layer heights, brim), where each value comes from,
+			// and what the preset says when it was changed by hand; plus a line when the active club preset is older
+			// than the club's current one. It warns; it never stops the print.
 			var settings = printer.Settings;
-			double? bedTemperature = settings.GetValue<bool>(SettingsKey.has_heated_bed)
-				? settings.GetValue<double>(SettingsKey.bed_temperature)
-				: (double?)null;
+			var summary = PrintSummary.Build(new PrinterSettingsSummarySource(settings), s => s.Localize());
 
 			return OctoPrintMessages.ConfirmPrintBody(
 				settings.MaterialLayer?.Name,
-				settings.GetValue<double>(SettingsKey.temperature),
-				bedTemperature,
+				summary.Select(line => line.Text),
+				ClubPresetsAction.ActivePresetNotice(printer),
 				s => s.Localize());
 		}
 

@@ -275,6 +275,7 @@ namespace MatterHackers.MatterControl.ClubUi
 		public const string ShowTerminal = "ShowTerminal";
 		public const string Calibrate = "Calibrate";
 		public const string UpdateSettings = "UpdateSettings";
+		public const string UpdateClubPresets = "UpdateClubPresets";
 		public const string RestoreSettings = "RestoreSettings";
 		public const string ImportSettings = "ImportSettings";
 		public const string ExportSettings = "ExportSettings";
@@ -298,6 +299,8 @@ namespace MatterHackers.MatterControl.ClubUi
 				new ClubMenuEntry(ShowTerminal, "Terminal", "show"),
 				new ClubMenuEntry(Calibrate, "Calibrate", "maintenance", opensDialog: true, icon: "compass.png"),
 				new ClubMenuEntry(UpdateSettings, "Update settings", "maintenance", opensDialog: true, icon: "fa-refresh_14.png"),
+				// only on the club printer (ClubPresetsAction.Applies)
+				new ClubMenuEntry(UpdateClubPresets, "Update club presets", "maintenance", opensDialog: true),
 				new ClubMenuEntry(RestoreSettings, "Restore settings", "maintenance", opensDialog: true),
 				new ClubMenuEntry(ImportSettings, "Import settings", "maintenance", opensDialog: true),
 				new ClubMenuEntry(ExportSettings, "Export settings", "maintenance", opensDialog: true, icon: "cube_export.png"),
