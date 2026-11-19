@@ -691,9 +691,37 @@ without sending; Export for laser writes an SVG to the temp folder.
 Not in scope: CI, Windows, driving the real printer.
 Owner decisions: none needed to start.
 
-## RESUME HERE (written 2026-11-18, 23:30) — read this first
+## RESUME HERE (updated 2026-11-19, 00:12) — read this first
 
-Repo state: branch macos-arm64, pushed at 21db7c92c (plugin included). Commit only when the owner asks.
+IN FLIGHT when these notes were written (results NOT seen; sub-agents do not survive a new session, so check
+the files and re-run what is missing):
+- Plan C DONE THROUGH C4 and COMMITTED + PUSHED 2026-11-19 00:40: six flows (start, members, members-restore,
+  modes, slice, laser-export) all pass; `Tools/macOS/ui-smoke.sh all`. It found a real bug, fixed in the same
+  commit: every club toast with an icon threw a layout exception (swallowed in Release, so the toast never
+  appeared): `ClubToast.cs`, icon HAnchor. The three breakage proofs all failed the run as they should
+  (handler exception, renamed widget, zero-height row). Left: C5 independent review; light theme (there is
+  NO light themeset in `StaticData/Themes/System/EBMC`, only EBMC-Dark, although EBMC.md mentions a light
+  theme: check); screen locked / display asleep untested. Older note follows.
+- (older) Plan C (UI smoke test), main checkout: C1 spike DONE and checked (`Tests/EBMC.UiSmoke/`,
+  `Tools/macOS/ui-smoke.sh`, `MatterControl.CrossPlatform/Platform/FramebufferCapture.cs`, a small split of
+  `Program.Run` into `Start` + show, `/out/` ignored). Run: `Tools/macOS/ui-smoke.sh`. Click-by-name works
+  on the Mac window; no macOS screen permission needed; refuses any data folder but an empty scratch one.
+  Untested: screen locked, display asleep. C2-C4 (full flows: members, restore from backup, modes, slice
+  without sending, laser export, maybe light theme; then three deliberate-breakage proofs) were being built.
+  OWNER'S STANDING INSTRUCTION: when the flows are done and checked, COMMIT AND PUSH to macos-arm64.
+  Then C5: independent review (opus).
+- Plan A (material presets, "Update club presets…", fuller "Ready to print?" summary), steps A1-A4, being
+  built in a SEPARATE GIT WORKTREE on its own branch (see `git worktree list`), commits there, not pushed.
+  OWNER'S STANDING INSTRUCTION: independent review (opus), fix findings, MERGE into macos-arm64, run the full
+  suite on the merged result, then PUSH. Then A5 (OctoPrint's own presets on the Pi, club network + yes) and
+  A6 (on-screen check with the smoke runner; clear the hand overrides in the installed profile with a yes).
+- Plan B (nozzle height control in the OctoPrint plugin) NOT started: needs the printer's real M503 reply text
+  (club network) and the plugin installed.
+
+Repo state: branch macos-arm64 pushed at 61edf3cd4 (plans + notes). The plugin is in at 21db7c92c.
+
+
+Commit or push only when the owner asks (the two standing instructions above are such asks).
 
 FIRST, before any print on the Pulse:
 - Firmware Z offset is still the mistaken M206 Z5.66 (nozzle 0.1 mm LOWER than before 2026-11-18).
@@ -731,7 +759,8 @@ Members on-screen checks (owner: do these 2026-11-19):
 - Small things seen: a click made straight after setting importance can be lost while the panel rebuilds.
 
 Still open:
-- THREE PLANS just above this section (material settings, nozzle height, UI smoke test) await the owner's yes.
+- The three plans (A material settings, B nozzle height, C UI smoke test) are just above this section: all
+  APPROVED; status at the top of this section.
 - NylonG tuning: needs a photo of the latest part and what to improve. Overrides now: layer 0.15, bed 80,
   nozzle 260, outer wall 35 mm/s, Z lift off, brim off.
 - OctoPrint presets NylonX/NylonG are bed 80; the repo club NylonX preset is 75 and there is no NylonG
@@ -742,4 +771,11 @@ Still open:
 - Owner's global CLAUDE.md changed 2026-11-18: sub-agents use sonnet for lookups/summaries/mechanical work,
   opus for code, design, hardware and all verification. Check that a call passing `sonnet` really runs on
   sonnet (settings has CLAUDE_CODE_SUBAGENT_MODEL=opus).
+- Duck animation mod (`~/.claude/mods/duck-animations`, v0.3.0, loaded for every session on this Mac through
+  CLAUDE_CODE_PLUGIN_DIRS in the user settings): three-row coloured duck, turns at the edges, tricks with the
+  milestone named in the water (agent done, committed, pushed, tests passed, build done). Tests pass; NEVER
+  seen on a real screen by Claude: ask the owner how it looks. Known limit: a test command piped through
+  `| tail` counts as "tests passed" even if tests failed.
+- The permission system refused one command that pushed to MicroDuck `main` without an explicit ask: push
+  only when the owner says push.
 - MicroDuck lives in its own repo (folder `microduck/`, ignored here); its plan is in its tasks/todo.md.

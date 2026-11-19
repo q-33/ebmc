@@ -1,0 +1,663 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Diagnostics;
+using System.Diagnostics.Tracing;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Threading;
+using MatterHackers.Agg;
+using MatterHackers.Agg.Image;
+using MatterHackers.Agg.Platform;
+using MatterHackers.Agg.UI;
+using MatterHackers.GuiAutomation;
+using MatterHackers.MatterControl.CrossPlatform;
+
+namespace EBMC.UiSmoke
+{
+	/// <summary>A failed check: its message is the one-line reason printed at the end.</summary>
+	public class SmokeFailure : Exception
+	{
+		public SmokeFailure(string message)
+			: base(message)
+		{
+		}
+	}
+
+	/// <summary>
+	/// The helpers every flow uses: named steps with a screenshot each, waits on widget state (never fixed delays
+	/// for correctness), clicks by name, typing, and reading widget state on the UI thread.
+	/// </summary>
+	public static class Smoke
+	{
+		public static AutomationRunner Runner { get; set; }
+
+		public static string OutDir { get; set; }
+
+		public static string DataDir { get; set; }
+
+		public static int StepCount { get; private set; }
+
+		private static readonly Stopwatch FlowTimer = new Stopwatch();
+
+		public static void StartTimer() => FlowTimer.Start();
+
+		public static double ElapsedSeconds => FlowTimer.Elapsed.TotalSeconds;
+
+		// --- steps and screenshots ---
+
+		public static void Step(string name, Action body)
+		{
+			StepCount++;
+			string label = $"{StepCount:00}-{name}";
+			var timer = Stopwatch.StartNew();
+			Console.WriteLine($"[{label}] start");
+			try
+			{
+				body();
+				NetworkWatch.ThrowIfAny();
+			}
+			catch (Exception e)
+			{
+				TryCapture(label + "-FAILED");
+				throw new SmokeFailure($"step {label}: {SmokeProgram.Describe(e)}");
+			}
+
+			string file = Capture(label);
+			Console.WriteLine($"[{label}] PASS ({timer.Elapsed.TotalSeconds:0.0} s) screenshot {Path.GetFileName(file)}");
+		}
+
+		public static void Log(string message) => Console.WriteLine("    " + message);
+
+		public static void TryCaptureNamed(string name) => TryCapture($"{StepCount + 1:00}-{name}");
+
+		private static void TryCapture(string label)
+		{
+			try
+			{
+				Capture(label);
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine($"[{label}] (no screenshot: {e.Message})");
+			}
+		}
+
+		/// <summary>
+		/// Saves the next frame as a PNG. The read happens on the UI thread (which owns the GL context), in the
+		/// AfterDraw of the top-most window: the last thing drawn in a frame, before the buffers are swapped.
+		/// </summary>
+		public static string Capture(string label)
+		{
+			var done = new ManualResetEventSlim();
+			ImageBuffer image = null;
+			Exception error = null;
+
+			UiThread.RunOnIdle(() =>
+			{
+				var top = SystemWindow.AllOpenSystemWindows.Last();
+				EventHandler<DrawEventArgs> handler = null;
+				handler = (s, e) =>
+				{
+					top.AfterDraw -= handler;
+					try
+					{
+						image = FramebufferCapture.ReadBackBuffer();
+					}
+					catch (Exception ex)
+					{
+						error = ex;
+					}
+
+					done.Set();
+				};
+				top.AfterDraw += handler;
+				top.Invalidate();
+			});
+
+			if (!done.Wait(TimeSpan.FromSeconds(15)))
+			{
+				throw new SmokeFailure($"no frame was drawn within 15 s for screenshot {label}");
+			}
+
+			if (error != null)
+			{
+				throw new SmokeFailure($"screenshot {label}: {error.Message}");
+			}
+
+			if (image == null)
+			{
+				throw new SmokeFailure($"screenshot {label}: no window to read");
+			}
+
+			string path = Path.Combine(OutDir, label + ".png");
+			if (!ImageIO.SaveImageData(path, image))
+			{
+				throw new SmokeFailure($"screenshot {label}: could not write {path}");
+			}
+
+			return path;
+		}
+
+		// --- checks ---
+
+		public static void Require(bool condition, string message)
+		{
+			if (!condition)
+			{
+				throw new SmokeFailure(message);
+			}
+		}
+
+		public static bool WaitFor(Func<bool> condition, double seconds)
+		{
+			var timer = Stopwatch.StartNew();
+			while (timer.Elapsed.TotalSeconds < seconds)
+			{
+				if (condition())
+				{
+					return true;
+				}
+
+				Thread.Sleep(100);
+			}
+
+			return condition();
+		}
+
+		public static void WaitUntil(Func<bool> condition, double seconds, string failure)
+		{
+			Require(WaitFor(condition, seconds), failure + $" (waited {seconds:0} s)");
+		}
+
+		/// <summary>Runs <paramref name="read"/> on the UI thread and returns its result (widget state is only
+		/// consistent there).</summary>
+		public static T Ui<T>(Func<T> read, double seconds = 20)
+		{
+			if (UiThread.IsUiThread)
+			{
+				// already there (a helper called from inside another read): queuing would wait for itself
+				return read();
+			}
+
+			var done = new ManualResetEventSlim();
+			T result = default;
+			Exception error = null;
+			UiThread.RunOnIdle(() =>
+			{
+				try
+				{
+					result = read();
+				}
+				catch (Exception e)
+				{
+					error = e;
+				}
+
+				done.Set();
+			});
+
+			if (!done.Wait(TimeSpan.FromSeconds(seconds)))
+			{
+				throw new SmokeFailure($"the UI thread did not answer within {seconds:0} s");
+			}
+
+			if (error != null)
+			{
+				throw new SmokeFailure("reading the UI failed: " + error.GetType().Name + ": " + error.Message);
+			}
+
+			return result;
+		}
+
+		public static void Ui(Action action) => Ui(() =>
+		{
+			action();
+			return true;
+		});
+
+		/// <summary>The visible widgets with this name, top-most window first. Call on the UI thread.</summary>
+		private static List<GuiWidget> VisibleNamedOnUi(string name)
+		{
+			var found = new List<GuiWidget>();
+			foreach (var window in SystemWindow.AllOpenSystemWindows.Reverse())
+			{
+				found.AddRange(window.FindDescendants(name)
+					.Select(w => w.Widget)
+					.Where(w => w != null && w.ActuallyVisibleOnScreen()));
+			}
+
+			return found;
+		}
+
+		public static List<GuiWidget> Visible(string name) => Ui(() => VisibleNamedOnUi(name));
+
+		public static bool IsShown(string name) => Visible(name).Count > 0;
+
+		/// <summary>Waits for a visible widget with this name (and the condition, read on the UI thread).</summary>
+		public static GuiWidget WaitForWidget(string name, double seconds = 10, Func<GuiWidget, bool> condition = null, string what = null)
+		{
+			GuiWidget widget = null;
+			bool ok = WaitFor(() =>
+			{
+				widget = Ui(() => VisibleNamedOnUi(name).FirstOrDefault(w => condition == null || condition(w)));
+				return widget != null;
+			}, seconds);
+
+			Require(ok, $"\"{name}\"{(what == null ? "" : " " + what)} not shown within {seconds:0} s");
+			return widget;
+		}
+
+		public static void WaitForGone(string name, double seconds = 10)
+		{
+			WaitUntil(() => !IsShown(name), seconds, $"\"{name}\" still shown");
+		}
+
+		/// <summary>
+		/// The widget is drawn where it can be seen: a non-empty rectangle on screen, inside the window and inside
+		/// every parent (so a row with no height, or one pushed outside its column, fails here).
+		/// </summary>
+		public static void RequireOnScreen(GuiWidget widget, string label)
+		{
+			string problem = Ui(() =>
+			{
+				var window = widget.Parents<SystemWindow>().FirstOrDefault();
+				if (window == null)
+				{
+					return "is not in a window";
+				}
+
+				var bounds = widget.TransformToParentSpace(window, widget.LocalBounds);
+				if (bounds.Width < 1 || bounds.Height < 1)
+				{
+					return $"has an empty area on screen ({bounds.Width:0} x {bounds.Height:0})";
+				}
+
+				foreach (var parent in widget.Parents<GuiWidget>())
+				{
+					var parentBounds = parent.TransformToParentSpace(window, parent.LocalBounds);
+					if (bounds.Left < parentBounds.Left - 1 || bounds.Right > parentBounds.Right + 1
+						|| bounds.Bottom < parentBounds.Bottom - 1 || bounds.Top > parentBounds.Top + 1)
+					{
+						// clipped by a scroll area is allowed only partly: at least half must show
+						var visible = bounds;
+						visible.IntersectWithRectangle(parentBounds);
+						if (visible.Width < bounds.Width / 2 || visible.Height < bounds.Height / 2)
+						{
+							return $"is mostly outside its parent \"{parent.Name}\" ({parent.GetType().Name})";
+						}
+					}
+
+					if (parent == window)
+					{
+						break;
+					}
+				}
+
+				return null;
+			});
+
+			Require(problem == null, $"{label} {problem}");
+		}
+
+		// --- input ---
+
+		/// <summary>Clicks a named widget once it is shown and enabled (waits for a rebuilt panel first).</summary>
+		public static void Click(string name, double seconds = 10)
+		{
+			var widget = WaitForWidget(name, seconds, w => w.Enabled, "(enabled)");
+			Runner.ClickWidget(widget);
+		}
+
+		public static void ClickWidget(GuiWidget widget) => Runner.ClickWidget(widget);
+
+		/// <summary>The visible widget showing exactly this text (for the few controls that have no name).</summary>
+		public static GuiWidget WaitForText(string text, double seconds = 10)
+		{
+			GuiWidget widget = null;
+			bool ok = WaitFor(() =>
+			{
+				widget = Ui(() =>
+				{
+					foreach (var window in SystemWindow.AllOpenSystemWindows.Reverse())
+					{
+						var match = window.Descendants<GuiWidget>()
+							.FirstOrDefault(w => w.Text == text && !(w is TextEditWidget) && w.ActuallyVisibleOnScreen());
+						if (match != null)
+						{
+							return match;
+						}
+					}
+
+					return null;
+				});
+				return widget != null;
+			}, seconds);
+
+			Require(ok, $"no widget showing \"{text}\" within {seconds:0} s");
+			return widget;
+		}
+
+		/// <summary>Clicks a named text field, checks it took the focus, and types into it.</summary>
+		public static void TypeInto(string fieldName, string text, bool secret = false)
+		{
+			var field = WaitForWidget(fieldName, 10, w => w.Enabled, "(enabled)");
+			Runner.ClickWidget(field);
+			WaitUntil(() => Ui(() => field.ContainsFocus), 5, $"\"{fieldName}\" did not take the focus when clicked");
+			SelectAllAndDelete();
+			Type(text);
+			string typed = Ui(() => field.Text);
+			Require(typed == text, secret
+				? $"\"{fieldName}\" does not hold the typed text"
+				: $"\"{fieldName}\" holds \"{typed}\" after typing \"{text}\"");
+		}
+
+		/// <summary>
+		/// Types like the GLFW host does: a key-down with the key and modifiers, then the character unless the key
+		/// press was suppressed, then the key-up. Covers letters (either case), digits, space and - . : /.
+		/// </summary>
+		public static void Type(string text)
+		{
+			Ui(() =>
+			{
+				foreach (char c in text)
+				{
+					var key = KeyFor(c, out bool shift);
+					var keys = key | (shift ? Keys.Shift : Keys.None);
+					var top = TopWindow();
+					var down = new KeyEventArgs(keys);
+					top.OnKeyDown(down);
+					if (!down.SuppressKeyPress)
+					{
+						top.OnKeyPress(new KeyPressEventArgs(c));
+					}
+
+					top.OnKeyUp(new KeyEventArgs(keys));
+				}
+			});
+		}
+
+		private static Keys KeyFor(char c, out bool shift)
+		{
+			shift = false;
+			if (c >= 'a' && c <= 'z')
+			{
+				return (Keys)char.ToUpperInvariant(c);
+			}
+
+			if (c >= 'A' && c <= 'Z')
+			{
+				shift = true;
+				return (Keys)c;
+			}
+
+			if (c >= '0' && c <= '9')
+			{
+				return (Keys)c;
+			}
+
+			switch (c)
+			{
+				case ' ':
+					return Keys.Space;
+				case '-':
+					return Keys.OemMinus;
+				case '.':
+					return Keys.OemPeriod;
+				case '/':
+					return Keys.OemQuestion;
+				case ':':
+					shift = true;
+					return Keys.OemSemicolon;
+				default:
+					throw new SmokeFailure($"the test cannot type '{c}'");
+			}
+		}
+
+		/// <summary>A key with Command held (the host maps Command to Control), like Cmd+C.</summary>
+		public static void PressCommand(Keys key)
+		{
+			Ui(() =>
+			{
+				var top = TopWindow();
+				Keyboard.SetKeyDownState(Keys.ControlKey, true);
+				try
+				{
+					var down = new KeyEventArgs(key | Keys.Control);
+					top.OnKeyDown(down);
+					top.OnKeyUp(new KeyEventArgs(key | Keys.Control));
+				}
+				finally
+				{
+					Keyboard.SetKeyDownState(Keys.ControlKey, false);
+				}
+			});
+		}
+
+		public static void PressEnter()
+		{
+			Ui(() =>
+			{
+				var top = TopWindow();
+				var down = new KeyEventArgs(Keys.Enter);
+				top.OnKeyDown(down);
+				if (!down.SuppressKeyPress)
+				{
+					top.OnKeyPress(new KeyPressEventArgs('\r'));
+				}
+
+				top.OnKeyUp(new KeyEventArgs(Keys.Enter));
+			});
+		}
+
+		private static void SelectAllAndDelete()
+		{
+			PressCommand(Keys.A);
+			Ui(() =>
+			{
+				var top = TopWindow();
+				top.OnKeyDown(new KeyEventArgs(Keys.Back));
+				top.OnKeyUp(new KeyEventArgs(Keys.Back));
+			});
+		}
+
+		private static SystemWindow TopWindow() => SystemWindow.AllOpenSystemWindows.Last();
+	}
+
+	/// <summary>
+	/// An in-memory clipboard installed before the app starts, so the app never reaches the real system clipboard
+	/// during a run (the host only installs its own when none is set).
+	/// </summary>
+	public class FakeClipboard : ISystemClipboard
+	{
+		public string Text { get; private set; } = "";
+
+		public int SetCount { get; private set; }
+
+		public bool ContainsFileDropList => false;
+
+		public bool ContainsImage => false;
+
+		public bool ContainsText => !string.IsNullOrEmpty(Text);
+
+		public StringCollection GetFileDropList() => new StringCollection();
+
+		public ImageBuffer GetImage() => null;
+
+		public string GetText() => Text;
+
+		public void SetText(string text)
+		{
+			Text = text ?? "";
+			SetCount++;
+		}
+
+		public void SetImage(ImageBuffer imageBuffer)
+		{
+			SetCount++;
+		}
+	}
+
+	/// <summary>
+	/// Test-only file dialogs: a save dialog answers at once with a path in the scratch folder; an open dialog is
+	/// cancelled. Installed through AggContext.FileDialogs after start-up, so no system panel is ever shown.
+	/// </summary>
+	public class ScratchFileDialogs : IFileDialogProvider
+	{
+		public string SaveFolder { get; set; }
+
+		public List<string> SavedPaths { get; } = new List<string>();
+
+		public string LastDirectoryUsed => SaveFolder;
+
+		public string ResolveFilePath(string path) => path;
+
+		public bool OpenFileDialog(OpenFileDialogParams openParams, Action<OpenFileDialogParams> callback)
+		{
+			Smoke.Log($"open dialog requested (\"{openParams.Title}\"): cancelled by the test");
+			return false;
+		}
+
+		public bool SelectFolderDialog(SelectFolderDialogParams folderParams, Action<SelectFolderDialogParams> callback)
+		{
+			Smoke.Log("folder dialog requested: cancelled by the test");
+			return false;
+		}
+
+		public bool SaveFileDialog(SaveFileDialogParams saveParams, Action<SaveFileDialogParams> callback)
+		{
+			Directory.CreateDirectory(SaveFolder);
+			string name = string.IsNullOrWhiteSpace(saveParams.FileName) ? "export" : Path.GetFileName(saveParams.FileName);
+			string path = Path.Combine(SaveFolder, name);
+			saveParams.FileName = path;
+			saveParams.FileNames = new[] { path };
+			SavedPaths.Add(path);
+			Smoke.Log($"save dialog (\"{saveParams.Title}\", filter \"{saveParams.Filter}\") answered with {path}");
+			UiThread.RunOnIdle(() => callback?.Invoke(saveParams));
+			return true;
+		}
+
+		public void ShowFileInFolder(string fileName)
+		{
+		}
+	}
+
+	/// <summary>
+	/// Records every HTTP request and host-name lookup the process starts (the runtime's own System.Net.Http and
+	/// System.Net.NameResolution event sources). Anything that is not loopback fails the step it happened in. It
+	/// observes, it cannot block: the slice flow also points the OctoPrint host at a closed loopback port.
+	/// </summary>
+	public sealed class NetworkWatch : EventListener
+	{
+		private static readonly object Locker = new object();
+		private static readonly List<string> Outside = new List<string>();
+		private static readonly List<string> All = new List<string>();
+		private static NetworkWatch instance;
+
+		public static void Install() => instance = new NetworkWatch();
+
+		/// <summary>
+		/// Proves the watch sees traffic before trusting "none seen": a request to a closed loopback port and a lookup
+		/// of "localhost" must both be recorded. They are then forgotten.
+		/// </summary>
+		public static void SelfTest()
+		{
+			using (var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(3) })
+			{
+				try
+				{
+					client.GetAsync("http://127.0.0.1:9/ebmc-ui-smoke-self-test").GetAwaiter().GetResult();
+				}
+				catch (Exception)
+				{
+					// refused, as intended
+				}
+			}
+
+			Dns.GetHostAddresses("localhost");
+
+			lock (Locker)
+			{
+				bool sawRequest = All.Any(a => a.Contains("127.0.0.1:9/ebmc-ui-smoke-self-test"));
+				bool sawLookup = All.Any(a => a == "name lookup localhost");
+				if (!sawRequest || !sawLookup)
+				{
+					throw new SmokeFailure($"the network watch does not work (request seen: {sawRequest}, lookup seen: {sawLookup}): {string.Join("; ", All)}");
+				}
+
+				All.Clear();
+				Outside.Clear();
+			}
+
+			Console.WriteLine("EBMC UI smoke: network watch self-test passed (a loopback request and a lookup were both seen)");
+		}
+
+		public static IReadOnlyList<string> AllSeen
+		{
+			get
+			{
+				lock (Locker)
+				{
+					return All.ToList();
+				}
+			}
+		}
+
+		public static void ThrowIfAny()
+		{
+			lock (Locker)
+			{
+				if (Outside.Count > 0)
+				{
+					throw new SmokeFailure("network traffic outside this computer was attempted: " + string.Join("; ", Outside.Distinct()));
+				}
+			}
+		}
+
+		protected override void OnEventSourceCreated(EventSource eventSource)
+		{
+			if (eventSource.Name == "System.Net.Http" || eventSource.Name == "System.Net.NameResolution")
+			{
+				EnableEvents(eventSource, EventLevel.Informational);
+			}
+		}
+
+		protected override void OnEventWritten(EventWrittenEventArgs e)
+		{
+			string host = null;
+			string description = null;
+			if (e.EventSource.Name == "System.Net.Http" && e.EventName == "RequestStart" && e.Payload?.Count >= 3)
+			{
+				host = e.Payload[1]?.ToString();
+				description = $"HTTP {e.Payload[0]}://{host}:{e.Payload[2]}{(e.Payload.Count > 3 ? e.Payload[3] : "")}";
+			}
+			else if (e.EventSource.Name == "System.Net.NameResolution" && e.EventName == "ResolutionStart" && e.Payload?.Count >= 1)
+			{
+				host = e.Payload[0]?.ToString();
+				description = "name lookup " + host;
+			}
+
+			if (host == null)
+			{
+				return;
+			}
+
+			lock (Locker)
+			{
+				All.Add(description);
+				if (!IsLoopback(host))
+				{
+					Outside.Add(description);
+				}
+			}
+		}
+
+		private static bool IsLoopback(string host)
+		{
+			host = host.Trim('[', ']');
+			return host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+				|| (IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address));
+		}
+	}
+}

@@ -62,6 +62,17 @@ namespace MatterHackers.MatterControl.CrossPlatform
 
 		private static void Run(string[] args)
 		{
+			// Runs the event loop until the window is closed
+			Start(args).ShowAsSystemWindow();
+		}
+
+		/// <summary>
+		/// Every start-up step up to, but not including, showing the window; returns the window to show.
+		/// Split out of Run (unchanged otherwise) so the on-screen smoke test in Tests/EBMC.UiSmoke can start the
+		/// real application in-process and show the window through agg-sharp's AutomationRunner instead.
+		/// </summary>
+		public static SystemWindow Start(string[] args)
+		{
 			// GLFW and SQLite are found by name at first use, so this has to come first
 			NativeLibraries.Register();
 
@@ -160,8 +171,7 @@ namespace MatterHackers.MatterControl.CrossPlatform
 
 			GlfwPlatformWindow.ContentScaleChanged += OnContentScaleChanged;
 
-			// Runs the event loop until the window is closed
-			rootSystemWindow.ShowAsSystemWindow();
+			return rootSystemWindow;
 		}
 
 		/// <summary>

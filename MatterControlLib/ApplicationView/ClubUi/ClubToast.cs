@@ -79,6 +79,9 @@ namespace MatterHackers.MatterControl.ClubUi
 				tile.RemoveChild(icon);
 				tile.Close();
 				icon.Margin = new BorderDouble(right: 10);
+				// the tile centres its icon; a left-to-right row refuses a centred child and throws, which in a
+				// Release build silently dropped every toast that has an icon (found by the on-screen smoke test)
+				icon.HAnchor = HAnchor.Absolute;
 				icon.VAnchor = VAnchor.Center;
 				icon.ClearRemovedFlag();
 				toast.AddChild(icon);

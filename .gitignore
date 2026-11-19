@@ -135,3 +135,6 @@ native/occt/dist/
 
 # Claude Code per-project settings and state (local to each computer)
 /.claude/
+
+# Screenshots and other output of the on-screen smoke test (Tools/macOS/ui-smoke.sh)
+/out/

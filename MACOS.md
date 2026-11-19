@@ -9,13 +9,14 @@ instead. It has no Windows dependencies and targets macOS (arm64 and Intel) and 
 
 | | |
 |---|---|
-| Builds with the .NET 10 SDK | Yes (built on Linux x64; cross-published for `osx-arm64`) |
+| Builds with the .NET 10 SDK | Yes, on Linux x64 and on an Apple silicon Mac (`Tools/macOS/build-app.sh`) |
 | Runs on Linux x64 | Yes - tested end to end, see "What was tested" |
-| Runs on a Mac | **Not yet tried.** No Mac was available while this was written |
+| Runs on a Mac | Yes, on Apple silicon (macOS, Retina display): the owner runs `dist/EBMC.app`, and the first test prints were sent from it to the Pulse XE through OctoPrint (see `tasks/todo.md`). Intel Macs: not tried |
+| Automated on-screen check | Yes, on Apple silicon: see "On-screen smoke test" below |
 | Windows application still compiles | Yes (compile check only, not run) |
 
-The code that is specific to macOS is small and listed under "First run on a Mac" so it
-can be checked off. Expect to find something on the first real run; please report it.
+The code that is specific to macOS is small and listed under "First run on a Mac". Items in
+that list that are not mentioned in `tasks/todo.md` have not been checked on purpose.
 
 ## What you need
 
@@ -133,6 +134,36 @@ application with synthetic mouse and keyboard input:
 
 Not tested anywhere: a print on real hardware from this build, and everything in the
 "First run on a Mac" list.
+
+## On-screen smoke test
+
+```sh
+Tools/macOS/ui-smoke.sh              # every flow
+Tools/macOS/ui-smoke.sh members      # one flow
+Tools/macOS/ui-smoke.sh --list       # the flows
+```
+
+It builds `Tests/EBMC.UiSmoke` in Debug and starts the real application in-process, one
+flow per process, each on a fresh empty data folder (`EBMC_DATA_DIR`; it refuses the real
+one). A window opens while it runs; it is driven by widget name through agg-sharp's
+AutomationRunner, which sends events straight into the interface, so it needs no macOS
+Accessibility or Screen Recording permission and ignores the real mouse and keyboard. The
+app gets a test clipboard and test file dialogs (saves go to the scratch folder). A
+screenshot is saved after every step in `out/ui-smoke/<time>/<flow>/`, and the script
+prints a pass/fail table and exits non-zero if any flow failed. Debug matters: in a
+Release build an exception inside a click handler is swallowed and would be missed.
+
+Flows: `start` (window, scratch database in use, welcome), `members` (create with the
+refusals, add, stars, role, note, lock, wrong and right passphrase, copy and cut refused
+in the passphrase field), `members-restore` (damaged files, restore newest backup, files
+moved aside), `modes` (Simple/Advanced keeps the page, the typed Members draft and the part on a
+design tab), `slice` (club
+printer, default part, nothing sent: OctoPrint is pointed at a closed loopback port and
+any request off the computer fails the run), `laser-export` (SVG written and parsed).
+
+Not covered: the real printer, OctoPrint itself, typing into dialogs the test cannot
+reach, and how anything looks beyond the screenshots (look at them). Only tested with
+the screen unlocked and the display on; a locked screen or sleeping display is untested.
 
 ## What changed outside the new project
 
