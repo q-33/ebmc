@@ -1,16 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace MatterHackers.MatterControl.SlicerConfiguration
 {
-	/// <summary>One line of the pre-print summary.</summary>
+	/// <summary>One entry of the pre-print summary.</summary>
 	public sealed class PrintSummaryLine
 	{
 		/// <summary>The settings key the line is about (the brim line uses <see cref="SettingsKey.create_brim"/>).</summary>
 		public string Key { get; set; }
 
-		/// <summary>The line as shown, e.g. "Bed: 80 °C  (changed by hand; NylonG preset says 75 °C)".</summary>
+		/// <summary>
+		/// The entry as shown: "Nozzle: 265 °C  (NylonX preset)", or, when changed by hand, two rows:
+		/// "Bed: 60 °C\n    changed by hand; NylonX preset says 80 °C".
+		/// </summary>
 		public string Text { get; set; }
 
 		/// <summary>The name of the layer the sliced value comes from (User, Scene, Material, Quality, Oem, Base).</summary>
@@ -24,13 +28,69 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 
 	/// <summary>
 	/// EBMC Edition: the "what will be sliced" lines shown before a print: material, nozzle and bed temperature (bed only
-	/// with a heated bed), layer height, first layer and brim, each with where its value comes from and, when it was
-	/// changed by hand, what the preset or profile beneath says. Free of GUI and translation code: every method takes a
-	/// <c>localize</c> delegate applied to each English template before it is formatted (the app passes
-	/// <c>s => s.Localize()</c>, tests pass <c>s => s</c>).
+	/// with a heated bed, read from the same key the G-code heats to), layer height, first layer (in mm, as sliced) and
+	/// brim (off under a raft, as sliced), each with where its value comes from and, when it was changed by hand, what
+	/// the preset or profile beneath says. Free of GUI and translation code: every method takes a <c>localize</c>
+	/// delegate applied to each English template before it is formatted (the app passes <c>s => s.Localize()</c>, tests
+	/// pass <c>s => s</c>).
 	/// </summary>
 	public static class PrintSummary
 	{
+		/// <summary>The indent of the second row of an entry that was changed by hand.</summary>
+		public const string NoteIndent = "    ";
+
+		/// <summary>The per-surface bed temperature keys, as listed by SettingsHelpers.ActiveMaterialHasAnyBedTemperatures.</summary>
+		public static IReadOnlyList<string> SurfaceBedTemperatureKeys { get; } = new[]
+		{
+			SettingsKey.bed_temperature_blue_tape,
+			SettingsKey.bed_temperature_buildtak,
+			SettingsKey.bed_temperature_garolite,
+			SettingsKey.bed_temperature_glass,
+			SettingsKey.bed_temperature_kapton,
+			SettingsKey.bed_temperature_pei,
+			SettingsKey.bed_temperature_pp,
+		};
+
+		/// <summary>
+		/// The bed temperature key the G-code heats to (SettingsHelpers.ActiveBedTemperatureSetting calls this): the
+		/// surface's own key when the printer has a swappable bed and the material sets any per-surface temperature,
+		/// otherwise <see cref="SettingsKey.bed_temperature"/>.
+		/// </summary>
+		public static string ActiveBedTemperatureKey(bool hasSwappableBed, bool materialHasAnySurfaceTemperature, string bedSurface)
+		{
+			if (!hasSwappableBed || !materialHasAnySurfaceTemperature)
+			{
+				return SettingsKey.bed_temperature;
+			}
+
+			switch (bedSurface)
+			{
+				case "Blue Tape":
+					return SettingsKey.bed_temperature_blue_tape;
+
+				case "BuildTak":
+					return SettingsKey.bed_temperature_buildtak;
+
+				case "Garolite":
+					return SettingsKey.bed_temperature_garolite;
+
+				case "Glass":
+					return SettingsKey.bed_temperature_glass;
+
+				case "Kapton":
+					return SettingsKey.bed_temperature_kapton;
+
+				case "PEI":
+					return SettingsKey.bed_temperature_pei;
+
+				case "Polypropylene":
+					return SettingsKey.bed_temperature_pp;
+
+				default:
+					return SettingsKey.bed_temperature;
+			}
+		}
+
 		public static List<PrintSummaryLine> Build(IPrintSummarySource source, Func<string, string> localize)
 		{
 			if (source == null)
@@ -54,20 +114,51 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 
 			if (IsOn(source.GetValueAndLayerName(SettingsKey.has_heated_bed).currentValue))
 			{
-				lines.Add(Line(source, SettingsKey.bed_temperature, localize("Bed: {0}"), Temperature, localize));
+				string bedKey = source.BedTemperatureKey ?? SettingsKey.bed_temperature;
+				string template = bedKey == SettingsKey.bed_temperature
+					? localize("Bed: {0}")
+					: Format(localize("Bed ({0}): {{0}}"), source.GetValueAndLayerName(SettingsKey.bed_surface).currentValue.Trim());
+				lines.Add(Line(source, bedKey, template, Temperature, localize));
 			}
 
+			string layerHeight = source.GetValueAndLayerName(SettingsKey.layer_height).currentValue;
 			lines.Add(Line(source, SettingsKey.layer_height, localize("Layer height: {0}"), Millimetres, localize));
-			lines.Add(Line(source, SettingsKey.first_layer_height, localize("First layer: {0}"), Millimetres, localize));
+			lines.Add(Line(source, SettingsKey.first_layer_height, localize("First layer: {0}"), v => FirstLayer(v, layerHeight), localize));
 			lines.Add(BrimLine(source, localize));
 
 			return lines;
 		}
 
-		/// <summary>The lines joined for a message box, one per row.</summary>
+		/// <summary>The entries joined for a message box, one row per line.</summary>
 		public static string Text(IEnumerable<PrintSummaryLine> lines)
 		{
-			return string.Join("\n", System.Linq.Enumerable.Select(lines, l => l.Text));
+			return string.Join("\n", lines.Select(l => l.Text));
+		}
+
+		/// <summary>
+		/// A value in the summary's words for the keys the summary shows ("Bed", "80 °C"); other keys get
+		/// <paramref name="keyLabel"/> and the value as stored.
+		/// </summary>
+		public static (string label, string value) Describe(string key, string value, Func<string, string> keyLabel, Func<string, string> localize)
+		{
+			localize = localize ?? (s => s);
+
+			if (key == SettingsKey.temperature)
+			{
+				return (localize("Nozzle"), Temperature(value));
+			}
+
+			if (key == SettingsKey.bed_temperature || SurfaceBedTemperatureKeys.Contains(key))
+			{
+				return (localize("Bed"), Temperature(value));
+			}
+
+			if (key == SettingsKey.layer_height)
+			{
+				return (localize("Layer height"), Millimetres(value));
+			}
+
+			return ((keyLabel ?? (k => k))(key), Shown(value));
 		}
 
 		private static PrintSummaryLine Line(IPrintSummarySource source, string key, string template, Func<string, string> show, Func<string, string> localize)
@@ -75,59 +166,93 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 			var (value, layer) = source.GetValueAndLayerName(key);
 			var (below, belowLayer) = source.GetValueAndLayerNameBelowUser(key);
 
-			return Compose(source, key, Format(template, show(value)), layer, value, below, belowLayer, show(below), localize);
-		}
-
-		private static PrintSummaryLine BrimLine(IPrintSummarySource source, Func<string, string> localize)
-		{
-			var (on, onLayer) = source.GetValueAndLayerName(SettingsKey.create_brim);
-			var (loops, loopsLayer) = source.GetValueAndLayerName(SettingsKey.brims);
-			var (onBelow, onBelowLayer) = source.GetValueAndLayerNameBelowUser(SettingsKey.create_brim);
-			var (loopsBelow, loopsBelowLayer) = source.GetValueAndLayerNameBelowUser(SettingsKey.brims);
-
-			string now = Brim(on, loops, localize);
-			string before = Brim(onBelow, loopsBelow, localize);
-
-			// The brim is two settings; it counts as changed by hand when either hand override changes what it says
-			bool fromUser = onLayer == SettingsCascade.User || (IsOn(on) && loopsLayer == SettingsCascade.User);
-			string layer = fromUser ? SettingsCascade.User : onLayer;
-			string belowLayer = onLayer == SettingsCascade.User || !IsOn(on) ? onBelowLayer : loopsBelowLayer;
-
-			return Compose(source, SettingsKey.create_brim, Format(localize("Brim: {0}"), now), layer, now, before, belowLayer, before, localize);
-		}
-
-		private static PrintSummaryLine Compose(IPrintSummarySource source, string key, string shown, string layer, string value, string below, string belowLayer, string belowShown, Func<string, string> localize)
-		{
-			string note;
-			bool changedByHand = false;
+			string shown = Format(template, show(value));
 
 			if (layer == SettingsCascade.User)
 			{
 				if (belowLayer == null)
 				{
-					note = localize("set by hand");
-					changedByHand = true;
+					return Entry(key, shown, layer, localize("set by hand"), changedByHand: true);
 				}
-				else if (SameValue(value, below))
+
+				if (!SameValue(value, below))
 				{
-					// a hand override that says the same as the preset: the preset is what counts
-					note = LayerLabel(source, belowLayer, localize);
+					return Entry(key, shown, layer, Format(localize("changed by hand; {0} says {1}"), LayerLabel(source, belowLayer, localize), show(below)), changedByHand: true);
 				}
-				else
-				{
-					note = Format(localize("changed by hand; {0} says {1}"), LayerLabel(source, belowLayer, localize), belowShown);
-					changedByHand = true;
-				}
+
+				// a hand override that says the same as the preset: the preset is what counts
+				layer = belowLayer;
 			}
-			else
+
+			return Entry(key, shown, layer, LayerLabel(source, layer, localize), changedByHand: false);
+		}
+
+		private static PrintSummaryLine BrimLine(IPrintSummarySource source, Func<string, string> localize)
+		{
+			var (raft, raftLayer) = source.GetValueAndLayerName(SettingsKey.create_raft);
+			var (on, onLayer) = source.GetValueAndLayerName(SettingsKey.create_brim);
+			var (loops, loopsLayer) = source.GetValueAndLayerName(SettingsKey.brims);
+			var (onBelow, onBelowLayer) = source.GetValueAndLayerNameBelowUser(SettingsKey.create_brim);
+			var (loopsBelow, loopsBelowLayer) = source.GetValueAndLayerNameBelowUser(SettingsKey.brims);
+
+			string template = localize("Brim: {0}");
+
+			// the slicer draws no brim under a raft (and the printable area is worked out the same way)
+			if (IsOn(raft))
 			{
-				note = LayerLabel(source, layer, localize);
+				return Entry(SettingsKey.create_brim, Format(template, localize("off")), raftLayer, localize("a raft is on"), changedByHand: false);
 			}
+
+			// a hand override equal to what is beneath it does not count
+			if (onLayer == SettingsCascade.User && onBelowLayer != null && IsOn(on) == IsOn(onBelow))
+			{
+				onLayer = onBelowLayer;
+			}
+
+			if (loopsLayer == SettingsCascade.User && loopsBelowLayer != null && SameValue(loops, loopsBelow))
+			{
+				loopsLayer = loopsBelowLayer;
+			}
+
+			string shown = Format(template, Brim(on, loops, localize));
+
+			if (onLayer == SettingsCascade.User)
+			{
+				string note = onBelowLayer == null
+					? localize("set by hand")
+					: Format(localize("changed by hand; {0} says {1}"), LayerLabel(source, onBelowLayer, localize), Brim(onBelow, loopsBelow, localize));
+				return Entry(SettingsKey.create_brim, shown, SettingsCascade.User, note, changedByHand: true);
+			}
+
+			if (IsOn(on) && loopsLayer == SettingsCascade.User)
+			{
+				string note = loopsBelowLayer == null
+					? localize("loops set by hand")
+					: Format(localize("loops changed by hand; {0} says {1}"), LayerLabel(source, loopsBelowLayer, localize), Loops(loopsBelow, localize));
+				return Entry(SettingsKey.create_brim, shown, SettingsCascade.User, note, changedByHand: true);
+			}
+
+			string label = LayerLabel(source, onLayer, localize);
+			if (IsOn(on) && loopsLayer != null && loopsLayer != onLayer)
+			{
+				label = Format(localize("{0}; loops: {1}"), label, LayerLabel(source, loopsLayer, localize));
+			}
+
+			return Entry(SettingsKey.create_brim, shown, onLayer, label, changedByHand: false);
+		}
+
+		private static PrintSummaryLine Entry(string key, string shown, string layer, string note, bool changedByHand)
+		{
+			string text = note == null
+				? shown
+				: changedByHand
+					? shown + "\n" + NoteIndent + note
+					: shown + "  (" + note + ")";
 
 			return new PrintSummaryLine()
 			{
 				Key = key,
-				Text = note == null ? shown : shown + "  (" + note + ")",
+				Text = text,
 				LayerName = layer,
 				ChangedByHand = changedByHand,
 			};
@@ -169,26 +294,52 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 
 		private static string Brim(string on, string loops, Func<string, string> localize)
 		{
-			if (!IsOn(on))
-			{
-				return localize("off");
-			}
+			return IsOn(on) ? localize("on") + ", " + Loops(loops, localize) : localize("off");
+		}
 
+		private static string Loops(string loops, Func<string, string> localize)
+		{
 			string trimmed = (loops ?? "").Trim();
 			if (TryNumber(trimmed, out double count))
 			{
-				return count == 1
-					? localize("on, 1 loop")
-					: Format(localize("on, {0} loops"), Number(count));
+				return count == 1 ? localize("1 loop") : Format(localize("{0} loops"), Number(count));
 			}
 
 			if (trimmed.EndsWith("mm", StringComparison.OrdinalIgnoreCase)
 				&& TryNumber(trimmed.Substring(0, trimmed.Length - 2).Trim(), out double width))
 			{
-				return Format(localize("on, {0} mm wide"), Number(width));
+				return Format(localize("{0} mm wide"), Number(width));
 			}
 
-			return trimmed.Length == 0 ? localize("on") : Format(localize("on, {0}"), trimmed);
+			return trimmed.Length == 0 ? "?" : trimmed;
+		}
+
+		/// <summary>
+		/// The first layer as the slicer takes it (AsPercentOfReferenceOrDirect on layer_height): a percentage of the
+		/// layer height, and 0 meaning the layer height. Shown in mm, with the percentage in brackets.
+		/// </summary>
+		private static string FirstLayer(string value, string layerHeight)
+		{
+			string trimmed = (value ?? "").Trim();
+			TryNumber(layerHeight, out double reference);
+
+			if (trimmed.Contains("%"))
+			{
+				if (TryNumber(trimmed.Replace("%", ""), out double percent))
+				{
+					double mm = reference * percent / 100.0;
+					return Number(mm == 0 ? reference : mm) + " mm (" + Number(percent) + "%)";
+				}
+
+				return Shown(value);
+			}
+
+			if (TryNumber(trimmed, out double direct))
+			{
+				return Number(direct == 0 ? reference : direct) + " mm";
+			}
+
+			return Shown(value);
 		}
 
 		private static string Temperature(string value)
@@ -212,7 +363,8 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 			return v == "1" || string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
 		}
 
-		private static bool SameValue(string a, string b)
+		/// <summary>Equal as numbers when both are numbers, otherwise as trimmed text.</summary>
+		public static bool SameValue(string a, string b)
 		{
 			if (TryNumber(a, out double x) && TryNumber(b, out double y))
 			{
@@ -222,7 +374,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 			return string.Equals((a ?? "").Trim(), (b ?? "").Trim(), StringComparison.Ordinal);
 		}
 
-		private static bool TryNumber(string value, out double number)
+		internal static bool TryNumber(string value, out double number)
 		{
 			return double.TryParse((value ?? "").Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out number);
 		}

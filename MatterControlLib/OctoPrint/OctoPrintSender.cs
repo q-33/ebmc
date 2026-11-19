@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using MatterHackers.Agg;
 using MatterHackers.Agg.UI;
 using MatterHackers.Localizations;
+using MatterHackers.MatterControl.ClubUi;
 using MatterHackers.MatterControl.DataStorage;
 using MatterHackers.MatterControl.Library;
 using MatterHackers.MatterControl.Library.Export;
@@ -26,6 +27,12 @@ namespace MatterHackers.MatterControl.OctoPrint
 		private static int busy;
 
 		private static int busyMessageShowing;
+
+		/// <summary>
+		/// EBMC Edition: a Send or Upload task is running (slicing, uploading or waiting for "Ready to print?"). One runs
+		/// at a time for the whole app, whatever the printer.
+		/// </summary>
+		public static bool IsBusy => Volatile.Read(ref busy) != 0;
 
 		public static void SendBed(PrinterConfig printer, bool startPrint)
 		{
@@ -407,15 +414,17 @@ namespace MatterHackers.MatterControl.OctoPrint
 					return;
 				}
 
-				// The same page and size StyledMessageBox.ShowMessageBox uses, kept so it can be closed on Stop
+				// The same page StyledMessageBox.ShowMessageBox uses, kept so it can be closed on Stop. EBMC Edition: sized
+				// to the text (at least the stock 400 x 300), so the pre-print summary does not scroll out of sight
+				var (width, height) = ClubDialogRules.MessageBoxSize(message);
 				window = DialogWindow.Show(new StyledMessageBox.MessageBoxPage(
 					(response) => answer.TrySetResult(response),
 					message,
 					caption,
 					StyledMessageBox.MessageType.YES_NO,
 					null,
-					400,
-					300,
+					width,
+					height,
 					yes,
 					no,
 					ApplicationController.Instance.Theme));

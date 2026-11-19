@@ -20,6 +20,9 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 
 		public string QualityName => settings.QualityLayer?.Name;
 
+		/// <summary>The key the G-code heats the bed to: SettingsHelpers' own selection.</summary>
+		public string BedTemperatureKey => settings.Helpers.ActiveBedTemperatureSetting;
+
 		public (string currentValue, string layerName) GetValueAndLayerName(string key)
 		{
 			return Normalize(settings.GetValueAndLayerName(key));

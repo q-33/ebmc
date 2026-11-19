@@ -78,6 +78,18 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 		}
 	}
 
+	/// <summary>A hand override (User layer) that still wins over a value of the active club preset.</summary>
+	public sealed class HiddenOverride
+	{
+		public string Key { get; set; }
+
+		public string UserValue { get; set; }
+
+		public string ClubValue { get; set; }
+
+		public string PresetName { get; set; }
+	}
+
 	/// <summary>The result of <see cref="ClubPresets.UpdateFile"/>.</summary>
 	public sealed class ClubPresetUpdate
 	{
@@ -193,21 +205,24 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 		}
 
 		/// <summary>
-		/// The comparison in plain words for the confirmation, one row per line. <paramref name="keyLabel"/> turns a
-		/// settings key into its name in the settings panel (null: the key itself).
+		/// The comparison in plain words for the confirmation, one row per line, each short enough for the club message
+		/// box. <paramref name="keyLabel"/> turns a settings key into its name in the settings panel (null: the key
+		/// itself). <paramref name="hidden"/> (optional, see <see cref="HiddenOverrides"/>) lists the hand overrides that
+		/// will still win over the updated active preset.
 		/// </summary>
-		public static string Describe(ClubPresetComparison comparison, Func<string, string> keyLabel, Func<string, string> localize)
+		public static string Describe(ClubPresetComparison comparison, Func<string, string> keyLabel, Func<string, string> localize, IReadOnlyList<HiddenOverride> hidden = null)
 		{
 			localize = localize ?? (s => s);
 			keyLabel = keyLabel ?? (k => k);
 
 			if (comparison == null || !comparison.HasDifferences)
 			{
-				return localize("This printer's club presets match the club's current ones. Nothing to update.");
+				return localize("This printer's club presets match the club's")
+					+ "\n" + localize("current ones. Nothing to update.");
 			}
 
 			var text = new StringBuilder();
-			text.Append(localize("This printer's club presets differ from the club's current ones:"));
+			text.Append(localize("These club presets differ from the club's:"));
 
 			foreach (var difference in comparison.Changed)
 			{
@@ -238,8 +253,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 
 			foreach (var added in comparison.Added)
 			{
-				text.Append('\n');
-				text.Append('\n');
+				text.Append("\n\n");
 				added.Values.TryGetValue(SettingsKey.temperature, out string nozzle);
 				added.Values.TryGetValue(SettingsKey.bed_temperature, out string bed);
 				text.Append(nozzle != null && bed != null
@@ -247,12 +261,121 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 					: Format(localize("{0}: new preset"), added.Name));
 			}
 
+			string hiddenText = DescribeHiddenOverrides(hidden, keyLabel, localize, done: false);
+			if (hiddenText != null)
+			{
+				text.Append("\n\n");
+				text.Append(hiddenText);
+			}
+
 			text.Append("\n\n");
-			text.Append(localize("A backup of the printer profile is saved first."));
+			if (comparison.Changed.Count > 0)
+			{
+				text.Append(localize("Values marked \"here\" are replaced by the club's;"));
+				text.Append('\n');
+				text.Append(localize("the backup keeps the old ones."));
+				if (comparison.Changed.Any(d => d.MatchedByName))
+				{
+					text.Append('\n');
+					text.Append(localize("A preset \"matched by name\" is this printer's own"));
+					text.Append('\n');
+					text.Append(localize("preset with that name; it is replaced too."));
+				}
+			}
+			else
+			{
+				text.Append(localize("A backup of the printer profile is saved first."));
+			}
+
 			text.Append('\n');
-			text.Append(localize("Hand-changed settings and other presets stay as they are."));
+			text.Append(localize("Your hand overrides on the printer (the"));
+			text.Append('\n');
+			text.Append(localize("highlighted settings) are not changed."));
+			text.Append('\n');
+			text.Append(localize("Presets that are not club presets are not changed."));
 
 			return text.ToString();
+		}
+
+		/// <summary>
+		/// The hand overrides (User layer) that will still win over the active material preset once it is updated: keys
+		/// the club's version of that preset sets, which the User layer sets to another value. Empty when the active
+		/// material is not a club preset that is about to change.
+		/// </summary>
+		public static List<HiddenOverride> HiddenOverrides(ClubPresetComparison comparison, IReadOnlyDictionary<string, string> userLayer, string activeMaterialLayerId)
+		{
+			var result = new List<HiddenOverride>();
+			if (comparison == null || userLayer == null || string.IsNullOrEmpty(activeMaterialLayerId))
+			{
+				return result;
+			}
+
+			var difference = comparison.ChangedInstalled(activeMaterialLayerId);
+			if (difference == null)
+			{
+				return result;
+			}
+
+			foreach (var pair in difference.Club.Values)
+			{
+				if (IgnoredKeys.Contains(pair.Key) || pair.Key == SettingsKey.layer_name)
+				{
+					continue;
+				}
+
+				if (userLayer.TryGetValue(pair.Key, out string userValue)
+					&& !PrintSummary.SameValue(userValue, pair.Value))
+				{
+					result.Add(new HiddenOverride() { Key = pair.Key, UserValue = userValue, ClubValue = pair.Value, PresetName = difference.Club.Name });
+				}
+			}
+
+			return result;
+		}
+
+		/// <summary>
+		/// The hand overrides that still win, in the summary's words: "Bed stays 60 °C: changed by hand on this printer;"
+		/// then "the NylonX preset now says 80 °C." (<paramref name="done"/>: after the update) or "will say" (before).
+		/// Null when there are none.
+		/// </summary>
+		public static string DescribeHiddenOverrides(IReadOnlyList<HiddenOverride> hidden, Func<string, string> keyLabel, Func<string, string> localize, bool done)
+		{
+			localize = localize ?? (s => s);
+			if (hidden == null || hidden.Count == 0)
+			{
+				return null;
+			}
+
+			var text = new StringBuilder();
+			text.Append(done
+				? localize("These hand overrides still win over the preset:")
+				: localize("These hand overrides will still win over the preset:"));
+
+			foreach (var item in hidden)
+			{
+				var (label, userValue) = PrintSummary.Describe(item.Key, item.UserValue, keyLabel, localize);
+				var (_, clubValue) = PrintSummary.Describe(item.Key, item.ClubValue, keyLabel, localize);
+				text.Append('\n');
+				text.Append(Format(localize("{0} stays {1}: changed by hand on this printer;"), label, userValue));
+				text.Append('\n');
+				text.Append(PrintSummary.NoteIndent);
+				text.Append(done
+					? Format(localize("the {0} preset now says {1}."), item.PresetName, clubValue)
+					: Format(localize("the {0} preset will say {1}."), item.PresetName, clubValue));
+			}
+
+			text.Append('\n');
+			text.Append(localize("Clear them in the settings to use the preset."));
+
+			return text.ToString();
+		}
+
+		/// <summary>The app's material layers (PrinterSettings.MaterialLayers, each a key/value dictionary) as presets.</summary>
+		public static List<MaterialPreset> FromLayers(IEnumerable<IEnumerable<KeyValuePair<string, string>>> layers)
+		{
+			return (layers ?? Enumerable.Empty<IEnumerable<KeyValuePair<string, string>>>())
+				.Select(layer => new MaterialPreset(layer.GroupBy(p => p.Key).ToDictionary(g => g.Key, g => g.First().Value)))
+				.ToList();
 		}
 
 		/// <summary>
@@ -265,7 +388,8 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 			var difference = comparison?.ChangedInstalled(activeMaterialLayerId ?? "");
 			return difference == null
 				? null
-				: Format(localize("This printer's {0} preset differs from the club's current one (Printer options > Update club presets)."), difference.Club.Name);
+				: Format(localize("This printer's {0} preset is not the club's."), difference.Club.Name)
+					+ "\n" + localize("To update: Printer options > Update club presets.");
 		}
 
 		/// <summary>The backup file name: "&lt;file&gt;.bak-yyyy-MM-dd-HHmm", with "-2", "-3"... when that name is taken.</summary>
@@ -307,7 +431,7 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 			{
 				int index = layers.IndexOf(installedObjects[installedPresets.IndexOf(difference.Installed)]);
 				var replacement = (JsonObject)JsonNode.Parse(clubObjects[clubPresets.IndexOf(difference.Club)].ToJsonString());
-				if (difference.MatchedByName)
+				if (difference.MatchedByName && difference.Installed.Id != "")
 				{
 					replacement[LayerIdKey] = difference.Installed.Id;
 				}

@@ -337,7 +337,8 @@ namespace MatterHackers.MatterControl.OctoPrint
 				text += "\n\n" + notice.Trim();
 			}
 
-			return text + "\n\n" + localize("The printer will heat, home, and probe the bed before it prints.");
+			return text + "\n\n" + localize("The printer will heat, home, and probe the bed,")
+				+ "\n" + localize("then print.");
 		}
 
 		/// <summary>

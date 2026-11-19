@@ -5,12 +5,14 @@ using MatterHackers.Agg;
 using MatterHackers.Agg.Platform;
 using MatterHackers.Agg.UI;
 using MatterHackers.Localizations;
+using MatterHackers.MatterControl.ClubUi;
+using MatterHackers.MatterControl.OctoPrint;
 using MatterHackers.MatterControl.SlicerConfiguration;
 
 namespace MatterHackers.MatterControl.SettingsManagement
 {
 	/// <summary>
-	/// EBMC Edition: "Update club presets…" in Printer options, and the one-line notice in the pre-print summary. The
+	/// EBMC Edition: "Update club presets…" in Printer options, and the notice in the pre-print summary. The
 	/// comparison, the wording and the file update are in <see cref="ClubPresets"/> (MatterControl.Printing, unit
 	/// tested); this only reads the bundled club profile, asks, and reloads the printer. Nothing happens at start-up:
 	/// the update runs only when chosen and confirmed.
@@ -27,8 +29,8 @@ namespace MatterHackers.MatterControl.SettingsManagement
 		}
 
 		/// <summary>
-		/// One line for "Ready to print?" when the active material is a club preset that differs from the club's current
-		/// one; null otherwise, and null (never an error) if anything cannot be read.
+		/// Two short lines for "Ready to print?" when the active material is a club preset that differs from the club's
+		/// current one; null otherwise, and null (never an error) if anything cannot be read.
 		/// </summary>
 		public static string ActivePresetNotice(PrinterConfig printer)
 		{
@@ -39,11 +41,10 @@ namespace MatterHackers.MatterControl.SettingsManagement
 					return null;
 				}
 
-				var installed = printer.Settings.MaterialLayers.Select(layer => new MaterialPreset(layer.ToDictionary(p => p.Key, p => p.Value)));
 				var club = ClubPresets.ReadMaterialPresets(StaticData.Instance.ReadAllText(ClubPresets.BundledProfilePath));
 
 				return ClubPresets.ActivePresetNotice(
-					ClubPresets.Compare(installed, club),
+					ClubPresets.Compare(ClubPresets.FromLayers(printer.Settings.MaterialLayers), club),
 					printer.Settings.MaterialLayer?.ValueOrDefault(ClubPresets.LayerIdKey),
 					s => s.Localize());
 			}
@@ -51,6 +52,27 @@ namespace MatterHackers.MatterControl.SettingsManagement
 			{
 				return null;
 			}
+		}
+
+		/// <summary>Why the presets cannot be updated right now, or null: a local print, or a Send or slice for this printer.</summary>
+		private static string Busy(PrinterConfig printer)
+		{
+			if (printer.Connection.Printing)
+			{
+				return "This printer is printing. Update the presets when the print has finished.".Localize();
+			}
+
+			if (OctoPrintSender.IsBusy)
+			{
+				return "A job is being sent to OctoPrint. Update the presets when it has finished.".Localize();
+			}
+
+			if (printer.ViewState.SlicingItem)
+			{
+				return "The bed is being sliced. Update the presets when slicing has finished.".Localize();
+			}
+
+			return null;
 		}
 
 		public static void Run(PrinterConfig printer)
@@ -62,16 +84,16 @@ namespace MatterHackers.MatterControl.SettingsManagement
 				return;
 			}
 
-			if (printer.Connection.Printing)
+			if (Busy(printer) is string busy)
 			{
-				StyledMessageBox.ShowMessageBox("Wait until the print has finished, then update the presets.".Localize(), title);
+				Show(null, busy, title, StyledMessageBox.MessageType.OK);
 				return;
 			}
 
 			string profilePath = ProfileManager.Instance.ProfilePath(printer.Settings.ID);
 			if (profilePath == null || !File.Exists(profilePath))
 			{
-				StyledMessageBox.ShowMessageBox("This printer's profile file could not be found. Nothing was changed.".Localize(), title);
+				Show(null, "This printer's profile file could not be found. Nothing was changed.".Localize(), title, StyledMessageBox.MessageType.OK);
 				return;
 			}
 
@@ -89,18 +111,18 @@ namespace MatterHackers.MatterControl.SettingsManagement
 			}
 			catch (Exception e)
 			{
-				StyledMessageBox.ShowMessageBox("The presets could not be compared. Nothing was changed.".Localize() + "\n\n" + e.Message, title);
+				Show(null, "The presets could not be compared. Nothing was changed.".Localize() + "\n\n" + e.Message, title, StyledMessageBox.MessageType.OK);
 				return;
 			}
 
-			string text = ClubPresets.Describe(comparison, KeyLabel, s => s.Localize());
+			string text = ClubPresets.Describe(comparison, KeyLabel, s => s.Localize(), Hidden(printer, comparison));
 			if (!comparison.HasDifferences)
 			{
-				StyledMessageBox.ShowMessageBox(text, title);
+				Show(null, text, title, StyledMessageBox.MessageType.OK);
 				return;
 			}
 
-			StyledMessageBox.ShowMessageBox(
+			Show(
 				(update) =>
 				{
 					if (update)
@@ -111,17 +133,17 @@ namespace MatterHackers.MatterControl.SettingsManagement
 				text,
 				title,
 				StyledMessageBox.MessageType.YES_NO,
-				"Update presets".Localize(),
-				"Cancel".Localize(),
-				new ClubMessageOptions()
-				{
-					YesLabel = "Update presets".Localize(),
-					NoLabel = "Cancel".Localize(),
-				});
+				"Update presets".Localize());
 		}
 
 		private static void Update(PrinterConfig printer, string profilePath, string clubJson, string title)
 		{
+			if (Busy(printer) is string busy)
+			{
+				Show(null, busy, title, StyledMessageBox.MessageType.OK);
+				return;
+			}
+
 			ClubPresetUpdate result;
 			try
 			{
@@ -130,13 +152,13 @@ namespace MatterHackers.MatterControl.SettingsManagement
 			}
 			catch (Exception e)
 			{
-				StyledMessageBox.ShowMessageBox("The presets could not be updated. The profile was not changed.".Localize() + "\n\n" + e.Message, title);
+				Show(null, "The presets could not be updated. The profile was not changed.".Localize() + "\n\n" + e.Message, title, StyledMessageBox.MessageType.OK);
 				return;
 			}
 
 			if (result.BackupPath == null)
 			{
-				StyledMessageBox.ShowMessageBox(ClubPresets.Describe(result.Comparison, KeyLabel, s => s.Localize()), title);
+				Show(null, ClubPresets.Describe(result.Comparison, KeyLabel, s => s.Localize()), title, StyledMessageBox.MessageType.OK);
 				return;
 			}
 
@@ -145,19 +167,58 @@ namespace MatterHackers.MatterControl.SettingsManagement
 			{
 				// should not happen; put the backup back rather than leave a profile the app cannot read
 				File.Copy(result.BackupPath, profilePath, overwrite: true);
-				StyledMessageBox.ShowMessageBox("The updated profile could not be read, so the backup was put back. Nothing was changed.".Localize(), title);
+				Show(null, "The updated profile could not be read, so the backup was put back. Nothing was changed.".Localize(), title, StyledMessageBox.MessageType.OK);
 				return;
 			}
+
+			// the overrides that still win, read before the swap (the User layer and active material are not changed by it)
+			var hidden = Hidden(printer, result.Comparison);
 
 			// load the updated file into the open printer (this reloads the printer's views) and save it in the app's format
 			printer.SwapToSettings(updated);
 			printer.Settings.Save(userDrivenChange: false);
 
 			int count = result.Comparison.Changed.Count + result.Comparison.Added.Count;
-			StyledMessageBox.ShowMessageBox(
-				string.Format("Club presets updated or added: {0}.".Localize(), count)
-					+ "\n\n" + "Backup of the previous profile:".Localize() + "\n" + Path.GetFileName(result.BackupPath),
-				title);
+			string done = string.Format("Club presets updated or added: {0}.".Localize(), count)
+				+ "\n\n" + "Backup of the previous profile:".Localize() + "\n" + Path.GetFileName(result.BackupPath);
+
+			string hiddenText = ClubPresets.DescribeHiddenOverrides(hidden, KeyLabel, s => s.Localize(), done: true);
+			if (hiddenText != null)
+			{
+				done += "\n\n" + hiddenText;
+			}
+
+			Show(null, done, title, StyledMessageBox.MessageType.OK);
+		}
+
+		private static System.Collections.Generic.List<HiddenOverride> Hidden(PrinterConfig printer, ClubPresetComparison comparison)
+		{
+			return ClubPresets.HiddenOverrides(comparison, printer.Settings.UserLayer, printer.Settings.MaterialLayer?.ValueOrDefault(ClubPresets.LayerIdKey));
+		}
+
+		/// <summary>The club message box, sized to its text (ClubDialogRules.MessageBoxSize).</summary>
+		private static void Show(Action<bool> callback, string message, string title, StyledMessageBox.MessageType type, string yesLabel = "")
+		{
+			var (width, height) = ClubDialogRules.MessageBoxSize(message);
+			DialogWindow.Show(
+				new StyledMessageBox.MessageBoxPage(
+					callback,
+					message,
+					title,
+					type,
+					null,
+					width,
+					height,
+					yesLabel,
+					type == StyledMessageBox.MessageType.OK ? "" : "Cancel".Localize(),
+					ApplicationController.Instance.Theme,
+					false,
+					new ClubMessageOptions()
+					{
+						YesLabel = string.IsNullOrEmpty(yesLabel) ? null : yesLabel,
+						NoLabel = type == StyledMessageBox.MessageType.OK ? null : "Cancel".Localize(),
+					}),
+				0);
 		}
 
 		private static string KeyLabel(string key)

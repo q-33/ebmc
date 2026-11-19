@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -129,6 +130,32 @@ namespace MatterHackers.MatterControl.ClubUi
 			}
 
 			return isQuestion ? DialogSeverity.Question : DialogSeverity.Info;
+		}
+
+		public const int MessageBoxMinWidth = 400;
+		public const int MessageBoxMinHeight = 300;
+		public const int MessageBoxMaxWidth = 640;
+		public const int MessageBoxMaxHeight = 640;
+
+		/// <summary>
+		/// EBMC Edition: a message box size (in unscaled pixels, as StyledMessageBox.MessageBoxPage takes it) that fits a
+		/// longer text: the stock 400 x 300 at least, grown for the longest row (about 7 px per character at 12 pt, plus
+		/// the margins) and for the rows after wrapping (about 20 px each, plus the title and footer), up to 640 x 640.
+		/// Used by the pre-print question and "Update club presets"; the app-wide message box is unchanged.
+		/// </summary>
+		public static (int width, int height) MessageBoxSize(string message)
+		{
+			const int charWidth = 7, sideMargins = 90, rowHeight = 20, chrome = 170;
+
+			var rows = (message ?? "").Replace("\r", "").Split('\n');
+			int longest = rows.Max(r => r.Length);
+			int width = Math.Min(MessageBoxMaxWidth, Math.Max(MessageBoxMinWidth, longest * charWidth + sideMargins));
+
+			int charsPerRow = Math.Max(20, (width - sideMargins) / charWidth);
+			int wrappedRows = rows.Sum(r => Math.Max(1, (r.Length + charsPerRow - 1) / charsPerRow));
+			int height = Math.Min(MessageBoxMaxHeight, Math.Max(MessageBoxMinHeight, wrappedRows * rowHeight + chrome));
+
+			return (width, height);
 		}
 
 		/// <summary>

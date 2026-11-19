@@ -59,11 +59,15 @@ Starting point is the factory `Pulse/S-232.printer`. Changed values:
 | Layer height / first layer | 0.25 / 0.25 mm | 0.15 / 0.2 mm |
 | Quality presets (Coarse / Standard / Fine) | 0.3 / 0.2 / 0.1 mm | 0.2 / 0.15 / 0.1 mm |
 | First layer width | 125% | 120% (NylonX preset: 110%) |
-| Infill / perimeter / outside perimeter speed | 80 / 50 / 50 mm/s | 35 / 35 / 35 mm/s |
-| Top solid infill speed | 35 mm/s | 35 mm/s |
-| Travel speed | 300 mm/s | 150 mm/s |
+| First layer speed | 20 mm/s | 20 mm/s (set in the profile, unchanged) |
+| Infill / perimeter / outside perimeter speed | 80 / 50 / 50 mm/s | 70 / 70 / 70 mm/s |
+| Top solid infill speed | 35 mm/s | 70 mm/s |
+| Support / raft speed | 40 / 40 mm/s | 80 / 80 mm/s |
+| Bridge speed | 20 mm/s | 40 mm/s |
+| Travel speed | 300 mm/s | 250 mm/s |
 | Retract length | 4.5 mm | 2 mm |
-| Minimum avoid travel requiring retraction | 20 mm (default) | 5 mm |
+| Minimum travel requiring retraction | 5 mm | 1 mm |
+| Minimum avoid travel requiring retraction | 20 mm (default) | 1 mm |
 | Z lift | 0 | 0.4 mm |
 | Extra length on restart | 0.5 mm | 0 |
 | Skirt loops | 2 | 4 |
@@ -77,7 +81,7 @@ Starting point is the factory `Pulse/S-232.printer`. Changed values:
 - First-layer adhesion on garolite with glue stick was confirmed with a live Z offset of
   -0.06 mm. Z offset is per machine and per nozzle, so it is not stored in the profile; set it
   with the Z Offset arrows on the print panel during the skirt.
-- Retraction (2 mm, 5 mm travel threshold) was chosen to cure stringing but the confirming
+- Retraction (2 mm, first with a 5 mm travel threshold, lowered to 1 mm on 2026-11-13 for NylonX whiskers) was chosen to cure stringing but the confirming
   print did not finish, because the bed thermistor circuit failed. Treat it as untested.
 - NylonX nozzle temperature is 265C, set by the club on 2026-11-11 (the factory preset is 255C).
 - NylonX bed temperature is 80C (the factory preset is 55C): raised from 60C to 75C on 2026-11-18 after small parts
@@ -85,7 +89,11 @@ Starting point is the factory `Pulse/S-232.printer`. Changed values:
 - NylonG (260C / 80C) was added on 2026-11-19 at the owner's request; its density and cost are from the
   MatterHackers NylonG material file. It has not been printed.
 - These presets reach a computer only when its installed copy of the profile is updated: Printer options >
-  Update club presets… shows the differences, backs the installed profile up and replaces only the club presets.
+  Update club presets… shows the differences, backs the installed profile up (`<file>.bak-<date>`) and replaces
+  the club presets with the club's (a club preset edited on that computer, or one of its own presets with a club
+  preset's name, is replaced too; other presets and the hand overrides are kept). A hand override of a value the
+  active preset sets still wins after the update; the confirmation and the result list those overrides.
+  It is refused while the printer prints, slices or sends a job to OctoPrint.
 - A layer shift on tall thin walls was still present on the last completed print.
 
 ## Printing through OctoPrint
@@ -99,9 +107,11 @@ printer profile.
 Send > Upload and Print slices the bed, uploads the G-code and starts it. The start G-code homes, deploys the
 BLTouch (`M280 S3.3`), probes nine points (`G32 X23 Y15 A180 B180`), stows the probe (`M280 S7.43`) and prints.
 Keep the bed clear while it probes. Before the slice, "Ready to print?" lists the material, nozzle and bed
-temperatures, layer height, first layer and brim, with where each value comes from; a value changed by hand shows
-what the preset says (for example "Bed: 60 °C (changed by hand; NylonX preset says 80 °C)"), and a line is added
-when the printer's copy of the active club preset is older than the club's. It warns; it never stops the print. OctoPrint's Cancel can take up to 40 seconds on this firmware; use the
+temperatures (the bed value the G-code heats to, per bed surface when the profile uses surfaces), layer height,
+first layer (in mm as sliced) and brim (off under a raft), with where each value comes from; a value changed by
+hand shows what the preset says on the next row (for example "Bed: 60 °C", then "changed by hand; NylonX preset
+says 80 °C"), and two lines are added when the printer's copy of the active club preset is not the club's. It
+warns; it never stops the print. OctoPrint's Cancel can take up to 40 seconds on this firmware; use the
 power switch in an emergency.
 
 Settings that live on the printer, not in this repository (set 2026-11-11):

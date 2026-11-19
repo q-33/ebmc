@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MatterHackers.MatterControl.SlicerConfiguration
 {
@@ -16,6 +17,9 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 
 		/// <summary>The active quality preset's name, or null or blank when no quality preset is chosen.</summary>
 		string QualityName { get; }
+
+		/// <summary>The bed temperature key the G-code heats to (see <see cref="PrintSummary.ActiveBedTemperatureKey"/>).</summary>
+		string BedTemperatureKey { get; }
 
 		/// <summary>The value that wins and the name of its layer; layerName is null when no layer has the key.</summary>
 		(string currentValue, string layerName) GetValueAndLayerName(string key);
@@ -66,6 +70,36 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 
 			return this;
 		}
+
+		/// <summary>
+		/// The same selection as the app's (SettingsHelpers.ActiveBedTemperatureSetting): a per-surface temperature counts
+		/// when the Material, Oem or Base layer sets it above 0 (PrinterSettings.MaterialLayerCascade).
+		/// </summary>
+		public string BedTemperatureKey
+		{
+			get
+			{
+				bool materialHasAny = PrintSummary.SurfaceBedTemperatureKeys.Any(key =>
+				{
+					foreach (string name in new[] { Material, Oem, Base })
+					{
+						if (layers.TryGetValue(name, out var values) && values.TryGetValue(key, out string value))
+						{
+							return PrintSummary.TryNumber(value, out double degrees) && degrees > 0;
+						}
+					}
+
+					return false;
+				});
+
+				return PrintSummary.ActiveBedTemperatureKey(
+					IsOn(GetValueAndLayerName(SettingsKey.has_swappable_bed).currentValue),
+					materialHasAny,
+					GetValueAndLayerName(SettingsKey.bed_surface).currentValue);
+			}
+		}
+
+		private static bool IsOn(string value) => value == "1" || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
 
 		public (string currentValue, string layerName) GetValueAndLayerName(string key) => Find(key, skipUser: false);
 
