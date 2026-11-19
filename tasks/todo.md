@@ -580,3 +580,26 @@ The nozzle is now 0.1 mm LOWER than before. Correct value for +0.1 mm is M206 Z5
 M206 Z5.56. The correction was not sent (blocked pending the owner's yes). DO NOT PRINT until this is fixed.
 Rule: on this printer, to RAISE the nozzle, DECREASE M206 Z.
 Also set on the owner's instruction: nozzle temperature 260 C for the NylonG spool (app, effective value 260).
+
+## RESUME HERE (written 2026-11-18, 22:35)
+
+Committed and pushed today: branch macos-arm64 at 0304580d2 (Members, laser export parked, NylonX bed 75,
+version 1.0). App rebuilt; window title not yet looked at.
+
+FIRST, before any print:
+- Firmware Z offset is still the mistaken M206 Z5.66 (nozzle 0.1 mm LOWER than before today).
+  To RAISE the nozzle, DECREASE M206 Z. Owner to choose 5.46 (raise 0.1 as asked) or 5.56 (undo only);
+  then M206 + M500 + G28 with the printer idle and the owner present.
+
+Then:
+- OctoPrint: large red "STOP PRINT and HOME ALL AXES" button under the temperature section. Not started.
+  Needs a small plugin and an OctoPrint restart (never during a print). Show the plugin first.
+- NylonG print still needs refinement (owner: "better, but still needs work"). Current overrides: layer
+  0.15, bed 80, nozzle 260, outer wall 35 mm/s, Z lift off, brim off. Ask for a photo of the latest part.
+- OctoPrint presets NylonX and NylonG are now bed 80; the repo club NylonX preset is 75 and there is no
+  NylonG preset in the Pulse profile. Ask whether to align them.
+- Still open from before: on-screen checks of Members (copy/cut blocking, restore from backup, light theme),
+  old Members copies that open with the throwaway passphrase, the invented test entry "Juniper Vale",
+  keeping EBMC_DATA_DIR, laser export.
+- The MicroDuck work moved to its own repo (folder `microduck/`, ignored here); its plan is in its own
+  tasks/todo.md.
