@@ -76,7 +76,31 @@ namespace MatterHackers.MatterControl.DataStorage
 
 		// SpecialFolderOption.Create: on macOS and Linux GetFolderPath returns an empty string for a folder that does
 		// not exist yet (a new account has no ~/.local/share), which would put the user data in the working directory.
-		private static string _applicationUserDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create), ApplicationDataFolderName);
+		private static string _applicationUserDataPath = DataFolderFromEnvironment()
+			?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create), ApplicationDataFolderName);
+
+		/// <summary>
+		/// EBMC Edition: for trying a build without touching the real settings, library and members list, the
+		/// environment variable EBMC_DATA_DIR names another folder (an absolute path) to keep all user data in.
+		/// Not set (the normal case): null, and the usual per-user folder is used. Set to something that is not an
+		/// absolute path: the app stops, because quietly falling back to the real folder is the one thing a person
+		/// who set this did not want. The folder is made when it is first used (EnsurePath), as the usual one is.
+		/// </summary>
+		private static string DataFolderFromEnvironment()
+		{
+			string path = Environment.GetEnvironmentVariable("EBMC_DATA_DIR");
+			if (string.IsNullOrWhiteSpace(path))
+			{
+				return null;
+			}
+
+			if (!Path.IsPathRooted(path))
+			{
+				throw new InvalidOperationException("EBMC_DATA_DIR must be an absolute path. EBMC did not start, so the usual data folder was not touched.");
+			}
+
+			return path;
+		}
 
         private static string _applicationLibraryDataPath => Path.Combine(_applicationUserDataPath, "Library");
         

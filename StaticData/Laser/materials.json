@@ -1,0 +1,4 @@
+{
+  "_about": "Approved laser material presets. Written by Tools/EBMC/generate_ebmc_files.py. Empty until the owner approves values; see the generator for the schema.",
+  "materials": []
+}

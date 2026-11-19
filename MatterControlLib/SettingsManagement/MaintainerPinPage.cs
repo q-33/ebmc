@@ -211,6 +211,14 @@ namespace MatterHackers.MatterControl
 
 				if (!Maintainer.SetPin(pin))
 				{
+					// EBMC Edition: changed in another window, the settings could not be read, or the new PIN did not
+					// reach them; say why and keep the page open
+					if (Maintainer.PinRefusal != null)
+					{
+						ShowError(Maintainer.PinRefusal);
+						return;
+					}
+
 					// The lock changed while the page was open
 					CloseDialog();
 					return;

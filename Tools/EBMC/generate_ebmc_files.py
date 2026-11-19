@@ -52,7 +52,8 @@ heights = {'Coarse': '0.2', 'Standard': '0.15', 'Fine': '0.1'}
 for q in p['QualityLayers']:
     q['layer_height'] = heights[q['layer_name']]
 nylonx = [m for m in p['MaterialLayers'] if m['layer_name'] == 'NylonX'][0]
-nylonx.update({'temperature': '265', 'bed_temperature': '60', 'min_fan_speed': '0', 'max_fan_speed': '0',
+# Bed raised from 60 to 75 on 2026-11-18 (owner approved): small NylonX parts came loose at 60 with no brim.
+nylonx.update({'temperature': '265', 'bed_temperature': '75', 'min_fan_speed': '0', 'max_fan_speed': '0',
                'bridge_fan_speed': '100', 'first_layer_extrusion_width': '110%',
                'retract_restart_extra': '0', 'retract_restart_extra_time_to_apply': '0'})
 o['active_material_key'] = nylonx['layer_id']
@@ -191,8 +192,8 @@ s.update({'ShowShopButton': False, 'UnregisteredProductName': 'EBMC',
           'ShowTourOnStartup': False,
           # No first-run agreement page (MatterHackers' EULA for their own builds)
           'ShowLicenseAgreement': False,
-          # Printer and material settings need the club maintainer PIN; per-print settings stay open
-          'RequireMaintainerForPrinterSettings': True,
+          # Printer and material settings are open; the maintainer lock code stays, switched off
+          'RequireMaintainerForPrinterSettings': False,
           # Ask "Ready to print?" (bed empty, material loaded, temperatures) before every print started via OctoPrint
           'ConfirmBedBeforeRemotePrint': True,
           # The shapes and tools palette replaces the stock shapes rail (stock: 'classic')
@@ -224,9 +225,19 @@ s.update({'ShowShopButton': False, 'UnregisteredProductName': 'EBMC',
           # Advanced-mode design tools: command search (Cmd/Ctrl + K), typed Transform fields, Mirror Copy and the
           # keyboard shortcuts sheet. They only change the design through the undo buffer; nothing prints or slices
           'EnableAdvancedTools': True,
+          # The Members tab (club notes on members); encrypted with its own members passphrase in the per-user data
+          # folder, never in the app or the repository; no network
+          'EnableClubMembers': True,
           # Club dialog template (verb buttons, Enter never picks a destructive one) and menu style (sections, shortcut
           # hints, danger items last), and toasts for short notices. Same actions and gating as the stock menus
           'ClubDialogsAndMenus': True,
+          # "Export for laser": the 2D outline of parts as an SVG or DXF file in mm for the laser cutter's own software.
+          # File export only, no machine control; never changes slicing or printing
+          'EnableLaserExport': True,
+          # "G-code for laser (.nc)" on the Export for laser page: off until it has been tried on a machine. When on,
+          # it is offered only while the maintainer lock is in use and unlocked. Writes a file for a laser cutter
+          # (never .gcode, never sent anywhere); no machine control
+          'EnableLaserGcode': False,
           # No MatterHackers affiliate/referral code added to links
           'AffiliateCode': ''})
 # Drop upstream's branded sample parts from the preloaded list (no C# code reads this key;
@@ -234,4 +245,43 @@ s.update({'ShowShopButton': False, 'UnregisteredProductName': 'EBMC',
 s['PreloadedLibraryFiles'] = [f for f in s.get('PreloadedLibraryFiles', []) if f not in (
     'MatterControl - Coin.stl', 'MatterControl - Stand.stl', 'Phil A Ment.stl', 'MH Logo.stl')]
 W('StaticData/OEMSettings/Settings.json', s)
+
+# ---------- laser cutter G-code (Export for laser > G-code for laser) ----------
+# Machine profiles. Neither is verified on a real machine. The generic entry uses conventional GRBL laser values
+# (S 0-1000, M4 dynamic power on, M5 off, origin front-left). The xTool S1 entry is a placeholder: its G-code dialect,
+# power range, speeds and work area have NOT been confirmed on the club's machine, so it carries the generic values,
+# no work area (the app then says the size was not checked) and verified: false. Change these only after measuring.
+GRBL = {
+    'verified': False,
+    'workAreaXMm': None, 'workAreaYMm': None, 'workAreaVerified': False,
+    'powerSMin': 0, 'powerSMax': 1000, 'maxPowerPercent': 100,
+    # slowest cutting speed allowed: slower than this with the laser on is a burn risk
+    'minCutSpeedMmS': 1, 'maxCutSpeedMmS': 100, 'travelSpeedMmS': 100,
+    'laserOnCommand': 'M4', 'laserOffCommand': 'M5',
+    'header': [], 'footer': ['M2'],
+    'originAtBack': False,
+}
+W('StaticData/Laser/machines.json', {
+    '_about': 'Laser machine profiles for G-code for laser (.nc). Written by Tools/EBMC/generate_ebmc_files.py; '
+              'edit the generator, not this file. verified: false means nobody has checked the values on the machine.',
+    'machines': [
+        dict(GRBL, id='generic-grbl', name='Generic GRBL laser',
+             note='Conventional GRBL laser values (S 0-1000, M4/M5). Not checked on any machine; no work area, so the size is not checked.'),
+        dict(GRBL, id='xtool-s1', name='xTool S1 (not confirmed)',
+             note='NOT confirmed on the machine: the G-code dialect, power range, speeds and work area of the S1 are unknown. '
+                  'These are the generic GRBL values. The S1 software may not accept this file.'),
+    ],
+})
+
+# Material presets. EMPTY on purpose: every value must be approved by the owner before it is added. Schema of one entry:
+#   {'id': 'plywood-3', 'name': 'Plywood 3 mm', 'thicknessMm': 3,
+#    'approved': True, 'approvedBy': '<name>', 'approvedOn': 'YYYY-MM-DD', 'source': '<where the values came from>',
+#    'operations': {'cut':   {'powerPercent': <n>, 'speedMmS': <n>, 'passes': <n>},
+#                   'score': {'powerPercent': <n>, 'speedMmS': <n>, 'passes': <n>}}}
+# The app only offers entries with approved: True and a name in approvedBy; it never fills in values by itself.
+W('StaticData/Laser/materials.json', {
+    '_about': 'Approved laser material presets. Written by Tools/EBMC/generate_ebmc_files.py. Empty until the owner '
+              'approves values; see the generator for the schema.',
+    'materials': [],
+})
 print('ok')

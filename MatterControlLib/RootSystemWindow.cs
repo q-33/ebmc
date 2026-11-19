@@ -94,7 +94,7 @@ namespace MatterHackers.MatterControl
 
 		public void SetStartupTraits()
 		{
-			string version = "2.0";
+			string version = "1.0";
 
 			this.MinimumSize = minSize;
 
@@ -220,6 +220,41 @@ namespace MatterHackers.MatterControl
 			if (exitDialogOpen)
 			{
 				eventArgs.Cancel = true;
+			}
+
+			// EBMC Edition (EnableClubMembers): members changes or typed text that still cannot be saved are never lost
+			// without asking first
+			if (!exitDialogOpen
+				&& !ApplicationController.Instance.ApplicationExiting
+				&& ClubMembers.MembersSession.ExitWouldLoseChanges())
+			{
+				exitDialogOpen = true;
+				eventArgs.Cancel = true;
+				UiThread.RunOnIdle(() =>
+				{
+					StyledMessageBox.ShowMessageBox(
+						(closeAnyway) =>
+						{
+							exitDialogOpen = false;
+							if (closeAnyway)
+							{
+								ClubMembers.MembersSession.ConfirmExit();
+								this.CloseOnIdle();
+							}
+						},
+						ClubMembers.MembersSessionText.ExitWouldLose.Localize(),
+						"Members".Localize(),
+						StyledMessageBox.MessageType.YES_NO_WITHOUT_HIGHLIGHT,
+						"Close anyway".Localize(),
+						"Stay open".Localize(),
+						new ClubMessageOptions()
+						{
+							YesLabel = "Close anyway".Localize(),
+							NoLabel = "Stay open".Localize(),
+							Destructive = true,
+						});
+				});
+				return;
 			}
 
 			string caption = null;

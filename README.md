@@ -1,6 +1,8 @@
 EBMC
 ====
 
+Version 1.0
+
 EBMC is the East Bay Makers Club's edition of the open-source 3D printing program MatterControl. It prepares,
 slices and prints parts on the club's printer (a Pulse XE S-232 with a Mosquito hotend), with the club's
 printer profile, theme and badge built in and the vendor's online services removed.

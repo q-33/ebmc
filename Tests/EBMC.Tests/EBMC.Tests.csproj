@@ -34,6 +34,12 @@
 		<Compile Include="..\..\MatterControlLib\ApplicationView\ShortcutTable.cs" Link="ApplicationView\%(Filename)%(Extension)" />
 		<!-- When the Simple · Advanced switch waits, and its hint -->
 		<Compile Include="..\..\MatterControlLib\ApplicationView\UiModeBusyRules.cs" Link="ApplicationView\%(Filename)%(Extension)" />
+		<!-- Members & Projects: the pure core (records, rules, search, store, encrypted vault, export) and the Members tab
+		     session (unlock, PIN change order, lock flush, drafts); no GUI, the tests run them on temporary folders -->
+		<Compile Include="..\..\MatterControlLib\ClubMembers\Core\*.cs" Link="ClubMembers\%(Filename)%(Extension)" />
+		<Compile Include="..\..\MatterControlLib\ClubMembers\Session\*.cs" Link="ClubMembers\%(Filename)%(Extension)" />
+		<!-- Storing a new maintainer PIN: another window's change and a write that did not stick (read back) -->
+		<Compile Include="..\..\MatterControlLib\ApplicationView\MaintainerPinStore.cs" Link="ApplicationView\%(Filename)%(Extension)" />
 		<!-- The locked-theme rule (OemSettings.LockedThemeSet) -->
 		<Compile Include="..\..\MatterControlLib\ApplicationView\Themes\ThemeLock.cs" Link="Themes\%(Filename)%(Extension)" />
 		<!-- Design-side rules: duplicate placement, text size in mm, subtract's hole default, model size prompt and the wording -->
@@ -44,6 +50,10 @@
 		<Compile Include="..\..\MatterControlLib\DesignTools\Solid\EbmcOcct.cs" Link="Solid\%(Filename)%(Extension)" />
 		<Compile Include="..\..\MatterControlLib\DesignTools\Solid\SolidKernel.cs" Link="Solid\%(Filename)%(Extension)" />
 		<Compile Include="..\..\MatterControlLib\DesignTools\Solid\SolidBuilders.cs" Link="Solid\%(Filename)%(Extension)" />
+		<!-- Export for laser: the 2D outline core (pure geometry, no agg-sharp or GUI) and the Clipper file it uses. clipper.cs
+		     is compiled in from the agg-sharp submodule (only System namespaces); the submodule is not changed -->
+		<Compile Include="..\..\Submodules\agg-sharp\clipper_library\clipper.cs" Link="Laser\clipper.cs" />
+		<Compile Include="..\..\MatterControlLib\DesignTools\Laser\*.cs" Link="Laser\%(Filename)%(Extension)" />
 	</ItemGroup>
 
 	<!-- The solid kernel, when native/occt/build.sh has staged it for this machine; the kernel-backed tests are

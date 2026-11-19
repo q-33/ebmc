@@ -101,6 +101,8 @@ namespace MatterHackers.MatterControl.DesignTools
 			"SwitchMode",
 			"Shortcuts",
 			"MaintainerLock",
+			// opens the laser-only page (Export for laser): SVG or DXF outlines, no printer and no G-code
+			"LaserExport",
 		};
 
 		/// <summary>
@@ -176,6 +178,14 @@ namespace MatterHackers.MatterControl.DesignTools
 			["advanced"] = new[] { "SwitchMode" },
 			["pin"] = new[] { "MaintainerLock" },
 			["maintainer"] = new[] { "MaintainerLock" },
+			// not "cut" (Subtract, Plane Cut) or "outline" (Outline Path)
+			["laser"] = new[] { "LaserExport" },
+			["svg"] = new[] { "LaserExport" },
+			["dxf"] = new[] { "LaserExport" },
+			["lightburn"] = new[] { "LaserExport" },
+			["xtool"] = new[] { "LaserExport" },
+			["xcs"] = new[] { "LaserExport" },
+			["cutter"] = new[] { "LaserExport" },
 		};
 
 		// score tiers (higher is better)

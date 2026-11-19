@@ -316,6 +316,7 @@ namespace MatterHackers.MatterControl.ClubUi
 		public const string Save = "Save";
 		public const string SaveAs = "SaveAs";
 		public const string Export = "Export";
+		public const string ExportLaser = "ExportLaser";
 		public const string ArrangeAll = "ArrangeAll";
 		public const string ClearBed = "ClearBed";
 		public const string Paste = "Paste";
@@ -345,6 +346,8 @@ namespace MatterHackers.MatterControl.ClubUi
 				new ClubMenuEntry(Save, "Save", "file", icon: "save_grey_16x.png", shortcut: "Ctrl + S"),
 				new ClubMenuEntry(SaveAs, "Save as", "file", opensDialog: true),
 				new ClubMenuEntry(Export, "Export", "file", opensDialog: true, icon: "cube_export.png"),
+				// design tabs with OemSettings.EnableLaserExport only (no source otherwise, so it is left out)
+				new ClubMenuEntry(ExportLaser, "Export for laser", "file", opensDialog: true, icon: "cube_export.png"),
 				new ClubMenuEntry(ArrangeAll, "Arrange all", "arrange", icon: "arrange_all.png"),
 				// Clear bed does not ask first, so it has no ellipsis
 				new ClubMenuEntry(ClearBed, "Clear bed", "danger", danger: true, icon: "remove.png"),
@@ -415,6 +418,8 @@ namespace MatterHackers.MatterControl.ClubUi
 				new ClubMenuEntry(OpenWith, "Open with", "more"),
 				new ClubMenuEntry(SaveAs, "Save as", "more", opensDialog: true),
 				new ClubMenuEntry(ExportPart, "Export this part", "more", opensDialog: true, icon: "cube_export.png"),
+				// design tabs with OemSettings.EnableLaserExport only (no source otherwise, so it is left out)
+				new ClubMenuEntry(ExportLaser, "Export for laser", "more", opensDialog: true, icon: "cube_export.png"),
 				new ClubMenuEntry(Delete, "Delete", "danger", danger: true, icon: "remove.png", shortcut: "Delete"),
 			});
 

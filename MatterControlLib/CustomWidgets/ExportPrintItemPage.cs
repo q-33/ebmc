@@ -38,6 +38,7 @@ using MatterHackers.Agg.UI;
 using MatterHackers.Localizations;
 using MatterHackers.MatterControl.CustomWidgets;
 using MatterHackers.MatterControl.Library;
+using MatterHackers.MatterControl.DesignTools.Laser;
 using MatterHackers.MatterControl.DesignTools.Solid;
 using MatterHackers.MatterControl.Library.Export;
 using MatterHackers.MatterControl.PartPreviewWindow;
@@ -359,6 +360,12 @@ namespace MatterHackers.MatterControl
 												&& StepExportRules.Classify(exportErrors.Select(e => e.ID)) == StepExportOutcome.Cancelled
 												? "Export Cancelled".Localize()
 												: "Export Error".Localize();
+
+											// EBMC Edition: a laser export's notes about a saved file, or a cancel, are not errors
+											if (exportPlugin is LaserSvgExport || exportPlugin is LaserDxfExport || exportPlugin is LaserGcodeExport)
+											{
+												title = LaserExportRules.ResultTitle(LaserExportRules.Classify(exportErrors.Select(e => e.ID))).Localize();
+											}
 											ApplicationController.Instance.ShowValidationErrors(title, exportErrors);
 										}
 									}

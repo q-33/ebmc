@@ -1,0 +1,49 @@
+{
+  "_about": "Laser machine profiles for G-code for laser (.nc). Written by Tools/EBMC/generate_ebmc_files.py; edit the generator, not this file. verified: false means nobody has checked the values on the machine.",
+  "machines": [
+    {
+      "verified": false,
+      "workAreaXMm": null,
+      "workAreaYMm": null,
+      "workAreaVerified": false,
+      "powerSMin": 0,
+      "powerSMax": 1000,
+      "maxPowerPercent": 100,
+      "minCutSpeedMmS": 1,
+      "maxCutSpeedMmS": 100,
+      "travelSpeedMmS": 100,
+      "laserOnCommand": "M4",
+      "laserOffCommand": "M5",
+      "header": [],
+      "footer": [
+        "M2"
+      ],
+      "originAtBack": false,
+      "id": "generic-grbl",
+      "name": "Generic GRBL laser",
+      "note": "Conventional GRBL laser values (S 0-1000, M4/M5). Not checked on any machine; no work area, so the size is not checked."
+    },
+    {
+      "verified": false,
+      "workAreaXMm": null,
+      "workAreaYMm": null,
+      "workAreaVerified": false,
+      "powerSMin": 0,
+      "powerSMax": 1000,
+      "maxPowerPercent": 100,
+      "minCutSpeedMmS": 1,
+      "maxCutSpeedMmS": 100,
+      "travelSpeedMmS": 100,
+      "laserOnCommand": "M4",
+      "laserOffCommand": "M5",
+      "header": [],
+      "footer": [
+        "M2"
+      ],
+      "originAtBack": false,
+      "id": "xtool-s1",
+      "name": "xTool S1 (not confirmed)",
+      "note": "NOT confirmed on the machine: the G-code dialect, power range, speeds and work area of the S1 are unknown. These are the generic GRBL values. The S1 software may not accept this file."
+    }
+  ]
+}

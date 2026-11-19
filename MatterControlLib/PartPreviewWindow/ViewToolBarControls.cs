@@ -830,6 +830,19 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 						[ClubMenus.ClearBed] = new ClubMenuSource(workspaceActions["ClearBed"]),
 					};
 
+					// EBMC Edition: Export for laser (OemSettings.EnableLaserExport), design tabs only; its page has no
+					// printer, so it never offers G-code
+					if (LaserTools.IsEnabled
+						&& sceneContext.Printer == null)
+					{
+						sources[ClubMenus.ExportLaser] = new ClubMenuSource(new NamedAction()
+						{
+							Title = "Export for laser".Localize(),
+							Action = () => LaserExportPage.Show(sceneContext),
+							IsEnabled = () => sceneContext.Scene.Children.Any(),
+						});
+					}
+
 					ClubMenuBuilder.Build(popupMenu, ClubMenus.Bed, sources);
 					return popupMenu;
 				}

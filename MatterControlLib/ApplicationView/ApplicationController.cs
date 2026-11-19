@@ -1784,6 +1784,9 @@ namespace MatterHackers.MatterControl
 
 		public void OnApplicationClosed()
 		{
+			// EBMC Edition (EnableClubMembers): save the members list and forget its key
+			ClubMembers.MembersSession.FlushAndClose();
+
 			this.Thumbnails.Shutdown();
 
 			ApplicationSettings.Instance.ReleaseClientToken();

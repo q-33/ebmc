@@ -110,7 +110,7 @@
       "retract_restart_extra_time_to_apply": "0",
       "retract_restart_extra": "0",
       "temperature": "265",
-      "bed_temperature": "60",
+      "bed_temperature": "75",
       "filament_density": "1.01",
       "filament_cost": "130",
       "min_fan_speed": "0",

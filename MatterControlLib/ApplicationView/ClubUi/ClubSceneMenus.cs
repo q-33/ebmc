@@ -130,6 +130,18 @@ namespace MatterHackers.MatterControl.ClubUi
 
 			sources[ClubMenus.SaveAs] = new ClubMenuSource(saveAs);
 			sources[ClubMenus.ExportPart] = new ClubMenuSource(export);
+
+			// Export for laser (OemSettings.EnableLaserExport), design tabs only; its page has no printer, so it never
+			// offers G-code. It opens with the selection chosen.
+			if (designTab
+				&& LaserTools.IsEnabled)
+			{
+				sources[ClubMenus.ExportLaser] = new ClubMenuSource(new NamedAction()
+				{
+					Title = "Export for laser".Localize(),
+					Action = () => LaserExportPage.Show(sceneContext),
+				});
+			}
 			sources[ClubMenus.Delete] = new ClubMenuSource(workspaceActions["Delete"]);
 
 			ClubMenuBuilder.Build(popupMenu, ClubMenus.PartContext, sources);

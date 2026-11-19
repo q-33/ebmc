@@ -14,7 +14,7 @@
   "ShowVendorServices": false,
   "ShowTourOnStartup": false,
   "ShowLicenseAgreement": false,
-  "RequireMaintainerForPrinterSettings": true,
+  "RequireMaintainerForPrinterSettings": false,
   "ShowShapesRailOnPrinterTabs": true,
   "TrimPrinterTabToolbar": true,
   "ShapesPaletteStyle": "palette",
@@ -27,7 +27,10 @@
   "ShowUiModeSwitch": true,
   "DefaultUiMode": "Simple",
   "EnableClubShapes": true,
+  "EnableClubMembers": true,
   "NewDesignStartsEmpty": true,
   "EnableAdvancedTools": true,
-  "ClubDialogsAndMenus": true
+  "ClubDialogsAndMenus": true,
+  "EnableLaserExport": true,
+  "EnableLaserGcode": false
 }

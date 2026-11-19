@@ -356,6 +356,18 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 			EnableReduceWidth(tab, theme);
 
+			// EBMC Edition (EnableClubMembers): the Members tab, whenever the club switch is on. The list has its own
+			// passphrase, asked for on the tab; it does not depend on the maintainer lock
+			if (ClubMembers.MembersSession.ShowTab)
+			{
+				tabControl.AddTab(
+					tab = new ChromeTab("Members", "Members".Localize(), tabControl, ClubMembers.MembersTabPage.Create(theme), theme, hasClose: false)
+					{
+						Name = "Members Tab",
+					});
+				EnableReduceWidth(tab, theme);
+			}
+
 			SetInitialTab();
 
 			// EBMC Edition: size, padding and colours of the brand button are set in BrandMenuButton

@@ -95,7 +95,8 @@ namespace MatterHackers.MatterControl.SettingsManagement
 
         /// <summary>
         /// EBMC Edition: true makes printer and material settings need a club maintainer, who unlocks them with a PIN
-        /// for the rest of the session (see Maintainer). Settings for a single print stay open to everyone.
+        /// for the rest of the session (see Maintainer). Settings for a single print stay open to everyone. The club
+        /// build currently leaves it off (the lock code stays, switched off).
         /// </summary>
         public bool RequireMaintainerForPrinterSettings = false;
 
@@ -201,6 +202,15 @@ namespace MatterHackers.MatterControl.SettingsManagement
         public bool EnableAdvancedTools = false;
 
         /// <summary>
+        /// EBMC Edition: true adds the "Members" tab (after Printers) for the club's own notes on members: names, contact,
+        /// interests, machines and dated notes. Always shown when on; the list has its own members passphrase (set on
+        /// first use, with Lock and Change passphrase on the tab), unrelated to the maintainer lock. Stored only in the
+        /// per-user data folder, encrypted with that passphrase; no network. It never changes slicing, printing or
+        /// printer behaviour. False keeps the stock interface.
+        /// </summary>
+        public bool EnableClubMembers = false;
+
+        /// <summary>
         /// EBMC Edition: true applies the club dialog template and menu style: dialogs get a title with a severity tile, a
         /// footer bar and buttons named with verbs (Enter never picks a destructive button); the main menus are regrouped
         /// with section headers, shortcut hints and danger items last; short notices show as a toast instead of a timed
@@ -208,6 +218,21 @@ namespace MatterHackers.MatterControl.SettingsManagement
         /// keeps the stock dialogs and menus exactly.
         /// </summary>
         public bool ClubDialogsAndMenus = false;
+
+        /// <summary>
+        /// EBMC Edition: true adds "Export for laser": the 2D outline of the chosen parts saved as an SVG or DXF file in mm
+        /// for a laser cutter's own software (the export dialog, command search and the Bed and part menus). File export
+        /// only, no machine control; it never changes slicing or printing. False keeps the stock interface.
+        /// </summary>
+        public bool EnableLaserExport = false;
+
+        /// <summary>
+        /// EBMC Edition: true adds "G-code for laser (.nc)" to the Export for laser page (needs EnableLaserExport, and only
+        /// while the maintainer lock is in use and unlocked). It writes a file for a laser cutter, never a .gcode file, and
+        /// never sends anything to a machine; nothing about 3D printing, slicing or the printer changes. False keeps it
+        /// out; the club build leaves it off until it has been tried on a machine.
+        /// </summary>
+        public bool EnableLaserGcode = false;
 
         [JsonIgnore]
         public bool UseShapesPalette => string.Equals(ShapesPaletteStyle, "palette", System.StringComparison.OrdinalIgnoreCase);

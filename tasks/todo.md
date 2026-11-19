@@ -169,6 +169,18 @@ earlier tests, i.e. the probe triggers ~1.40 mm above that height.
 - [x] Second test print (Cube_20261111-172506.gcode, Z offset 5.56): owner reports the first layer looks great.
 - [x] Club profile: Send to OctoPrint on by default with http://OctoprintPulseXE.local (owner approved).
 
+# Members & Projects, stage 2: the Members tab (2026-11-16, uncommitted)
+- [x] EnableClubMembers (stock off, club on); MembersSession + MembersSessionCore (open on unlock, move to a new PIN
+      before it is stored, save and close before lock and on exit, drafts in memory, save 1 s after the last change);
+      Members tab with quick add, search, list, detail and state views; Restore honours the PIN check with the vault
+      open; tests (MembersSessionTests, MembersWiringTests, one vault regression test).
+- [x] Fix round after an independent review: PIN change allowed only when the file moves (or the new PIN opens it,
+      or there is no file), "Change the PIN anyway" as a worded choice; typed fields saved after a pause, each on its
+      own; failed save at lock told in a box, held, warned about at exit; drafts cleared at lock; second-window PIN
+      check; open after the rebuild; no UI-thread waits for background saves.
+- [ ] On-screen check with invented names only (see the stage 2 report); no screenshots of real data.
+- [ ] Next stages: projects (3), export/import/backups page (4), design links (5).
+
 # WHERE WE LEFT OFF (2026-11-11, end of day) — read this first next session
 Branch macos-arm64, 6 commits ahead of origin (not pushed): d61e2c877 rebrand, 150a56bd1 MatterHackers removal +
 English-only + OctoPrint client + levelling, 4e5f23017 Send + off-bed warning + tabs, 30107202e probe/grid
@@ -356,3 +368,215 @@ Access for next time (nothing secret is stored in this repo):
 Design reference kept in the repo folder (untracked): tasks/design/ebmc-ux-mockups.html (designer's three
 directions; A was chosen) and the icon before/after sheets (icons-contact-sheet-3x.png = first pass,
 icons-contact-sheet-v2-3x.png = redrawn glyphs). The session scratchpad they came from may be gone next time.
+
+# Export for laser, stage A (2026-11-14, uncommitted)
+- [x] OEM switch EnableLaserExport (stock off, club on); pure outline core in MatterControlLib/DesignTools/Laser/
+      (footprint, slice at height, SVG and DXF writers); SVG/DXF exporters; Export for laser page; command search
+      and club menus; tests (LaserOutlineTests, LaserWriterTests, LaserWiringTests).
+- [x] Measured: 100,800-triangle sphere footprint about 0.2 s, 301k-triangle height field 0.46 s, badge STL 17 ms.
+- [ ] On-screen check (plan step A9): 20 mm cube via Find a tool > laser; Plate with Hole and a text sign as SVG
+      and DXF; open in a browser/Inkscape and LightBurn and measure; owner checks XCS/xTool Studio size and that
+      the lines import as cut lines; printer-tab Export dialog still lists G-code as before.
+- [ ] Owner questions: XCS vs LightBurn, red vs black lines, whether R12 DXF imports cleanly (R2000 exists in code).
+- Sample files: run `LASER_SAMPLES_DIR=<folder> dotnet test Tests/EBMC.Tests --filter Name=WriteSamples`.
+
+# Export for laser, stage B: G-code for laser (.nc) (2026-11-14, uncommitted)
+- [x] Pure core LaserGcode.cs (machine profile, job, rules, writer, data loader); machines.json and an empty
+      materials.json from the generator; EnableLaserGcode (stock off, club on), maintainer-unlocked only; third format
+      on the Export for laser page; LaserGcodeTests.
+- [ ] Measure on the xTool S1 before anyone cuts with this file: G-code dialect (does it accept .nc at all), S range,
+      M3/M4, max speeds, work area, Y origin. Until then the S1 profile is a placeholder (verified: false).
+- [ ] Owner approves the first material presets (none are shipped).
+- [ ] On-screen check of the G-code section of the page (maintainer unlocked and locked).
+
+
+# RESUME HERE (2026-11-16, afternoon) — read this first next session
+
+State of the repo: branch `macos-arm64`, level with GitHub at `0e9107104`. Everything below is local and
+UNCOMMITTED. Commit or push only when the owner asks.
+
+## Members & Projects (in progress)
+- Stage 1 (pure core, encrypted file, `MatterControlLib/ClubMembers/Core/`): done, reviewed five times, judged fit
+  to build on.
+- Stage 2 (Members tab, quick add, list, detail panel, notes log, lock and PIN-change wiring): built, reviewed three
+  times. Last review: nothing blocks real data. 1345 tests pass. The app bundle in `dist/` was rebuilt with it.
+- NEXT: on-screen check with INVENTED names only (the review could not run the app). Needs the owner to unlock
+  the maintainer lock; the tab only exists while unlocked. Screen control lacked the macOS Screen Recording
+  permission on 2026-11-16; the owner was restarting to fix that.
+  Checklist: tab appears on unlock ("Opening the members list…") and goes on lock; quick add + Enter; search;
+  contact, date met, tags, notes log; typing survives a Simple/Advanced switch; notes typed then force-quit after
+  ~2 s are kept; lock with typed text shows a count; Change PIN (normal, and the "anyway" wording); delete
+  confirmation; wrong-PIN and unreadable views; printing and slicing unchanged.
+- Three low findings left from the last review (not blocking): a misleading notice when files saved under
+  different PINs are mixed; the "PIN not stored" advice is wrong after a restart; the "changes made here" counter
+  over-counts edits later undone.
+- Not started: stage 3 (projects), stage 4 (export/import, restore UI), stage 5 (design-file links).
+- Owner decisions so far: encrypt with the maintainer PIN; machines are free-text tags; archive by default;
+  tab named "Members", shown in both modes; the "PIN changed in another window" check applies always.
+- Before real names go in: suggest a 6–8 digit PIN. Two copies of the app can run at once on macOS.
+- Privacy rule: member data lives only in the app's per-user data folder. Invented names only in the repo.
+
+## Export for laser (parked by the owner on 2026-11-16)
+- Stages A (SVG/DXF) and B (laser G-code, `.nc`) are built and reviewed; stage C (direct send) not started.
+- Not confirmed on screen: the save step, and no laser software has opened the files.
+- Members and laser changes share six files but are kept in separate hunks so they can be committed apart.
+
+## Printer
+- Retraction thresholds 5 → 1 mm are committed, pushed and applied to the installed printer profile; not yet
+  print-tested (the stringing on jar-lid threads). Drying the spool was the other suggestion.
+- Still open from before: read back the firmware temperature limits after a printer power-cycle; print-test the
+  doubled speeds.
+
+## Outside the repo (owner's Claude Code setup, 2026-11-16)
+- A status line (context bar plus 5-hour and weekly subscription usage) and an "Orchestration" section in the
+  owner's global instructions were added, with Opus as the default sub-agent model.
+
+# PLAN (2026-11-16, evening): maintainer lock off, Members on its own passphrase — APPROVED by the owner 2026-11-16
+
+Owner decisions (2026-11-16): turn the maintainer lock off in the club build; Members gets its own passphrase.
+
+Spec: `RequireMaintainerForPrinterSettings` becomes false, so no PIN is asked anywhere and printer and material
+settings are open; the lock code stays in the repo, switched off. The Members tab is always in the tab bar when
+`EnableClubMembers` is on. Opening it asks for a Members passphrase that encrypts the file exactly as the PIN did
+(the encrypted-file code takes any text as the key, so the file format does not change). First use sets the
+passphrase (typed twice, 8 characters or more, with a line saying a forgotten passphrase cannot be recovered).
+The tab has "Lock" and "Change passphrase…". Nothing about the passphrase is stored outside the file. The old
+PIN-change wiring between the lock and Members is deleted rather than kept behind the switch, because keeping both
+doubles the session state machine. A file made under the old PIN still opens when that PIN is typed.
+
+Earlier on 2026-11-16 (done, on screen not yet confirmed): four display fixes (rows skipped by the layout so the
+quick-add bar and the log section were clipped; list date in UTC; lock notice wrapped too wide). 1349 tests pass.
+
+Steps
+- [x] 1. Lock off: `StaticData/OEMSettings/Settings.json` and `Tools/EBMC/generate_ebmc_files.py`.
+- [x] 2. Core, no UI (`ClubMembers/Core/MembersRules.cs`, `MembersVault.cs`, `Session/MembersSessionCore.cs`):
+      passphrase rules, create-list, unlock that never creates a list, change passphrase, restore check; delete the
+      PIN-change code and the Opening and WrongPin states; reword the sentences. Tests rewritten to match.
+- [x] 3. Session glue (`ClubMembers/MembersSession.cs`): tab shown whenever the feature is on; Lock, Open,
+      CreateList, ChangePassphrase; no reference to the maintainer.
+- [x] 4. Unhook the maintainer (`Maintainer.cs`, `MaintainerPinStore.cs`, `MaintainerPinPage.cs`): no reference to
+      Members; remove "Change the PIN anyway" and "Load the list again".
+- [x] 5. Tab UI (`MembersTabPage.cs`, `MemberDetailPanel.cs`): Set and Enter views, Lock and Change passphrase on
+      the open view, and the three review findings (error text that never clears, one-line notes box, texts cut
+      off when wrapped, the two rows still anchored the old way).
+- [x] 6. Laser G-code: owner chose to switch `EnableLaserGcode` off in the club build (SVG and DXF stay).
+- [x] 7. `EBMC.md`: Members row, laser row, a line that the lock is off in the club build.
+- [x] 8. Independent review of the whole change, full test run, rebuild the app.
+- [x] 9. On-screen check with invented names and a throwaway test passphrase: set, wrong, right, lock, change,
+      Simple/Advanced, force-quit keeps notes, log, Archive, delete confirmation, no lock items left in menus,
+      printer settings editable, printing and slicing unchanged.
+
+What turning the lock off also opens (stock MatterControl behaviour, flagged): opened .gcode files and plates with
+Set Temperature / Send G-Code parts are no longer refused; anyone can edit the OctoPrint key and printer settings.
+"Ready to print?" before a remote print still asks.
+
+Test data: the three invented members made today are in a file keyed to the old PIN; it will be moved aside (not
+deleted) before the on-screen check, with the owner's yes.
+
+Status 2026-11-16 18:30: steps 1-7 built; 1350 tests pass; `dist/EBMC.app` rebuilt with them. Step 8 (independent
+review) running. Step 9 (on-screen check) NOT done: the Mac's screen was locked, so the app could not open a
+window. The old test members folder was moved aside (same per-user data folder, name ending
+`-set-aside-2026-11-16-old-pin`), with the owner's yes. All of this is uncommitted.
+
+Status 2026-11-16 18:45: independent review found nothing blocking real names. Its two medium findings (a mistyped
+passphrase after a failed-save lock dropped the held key; passphrases left in the masked fields' undo history and
+copyable) and the small ones are fixed. 1353 tests pass. `dist/EBMC.app` rebuilt with all of it.
+RESUME HERE: step 9, the on-screen check, is the only step left; it needs the Mac's screen unlocked. Use a
+throwaway test passphrase and invented names. Also confirm on screen: Cmd+Z in a cleared passphrase field brings
+nothing back; Cmd+C / Cmd+X do nothing there (the right-click Cut/Copy is known to remain: it is a shared widget).
+Known and left: the app-wide message box wraps text too wide on Retina screens (`StyledMessageBoxWindow.cs` ~275,
+a one-word fix the owner has not asked for; the Members notice works around it).
+
+Status 2026-11-16 19:00: step 9 done on screen (macOS, invented names, throwaway passphrase). Seen working: no
+PIN or lock item anywhere (Printer Options menu); Members tab always present; Set view (mismatch and too-short
+refused, Cmd+Z brings nothing back, file written at once); quick add with first note; local date in the list; log
+row, entries, Archive / Unarchive, Show archived, red delete confirmation and delete; date error appears and
+clears; three-line notes box; notes typed 3 s before a force-quit kept; Enter view after restart; wrong
+passphrase refused; Change passphrase (wrong current refused; old one then fails, new one opens); drafts and the
+open list survive Simple/Advanced; Lock with typed text shows the count notice, wrapped correctly; slicing works.
+NOT checked on screen: sending a print (shared printer, not started); Cmd+C / Cmd+X blocking in passphrase
+fields; two app windows at once; restore from backup; laser SVG/DXF export (parked).
+Small things seen, not fixed: the "passphrase was changed" notice stays through a Lock until dismissed.
+Review section: what surprised — rows anchored `Center | Fit` inside a top-to-bottom Fit column are skipped by
+agg-sharp's layout, which three code reviews and 1345 tests missed; only running the app showed it. Remember:
+run the app before calling UI work reviewed. CORRECTION 2026-11-16 19:05: the owner has started adding REAL members to the
+list on this Mac. Do NOT delete or move the `Members` folder. That list is still under the throwaway test
+passphrase from the on-screen check, which appears in the session transcript: the owner should change it with
+Change passphrase. No more test typing into that list; on-screen tests need a separate data folder. The older
+set-aside folder (old PIN, invented names only) can go with the owner's yes.
+
+# PLAN (2026-11-16, 19:10): member importance and role badges — design chosen by the owner
+
+Owner's choices: an importance level per member (none, 1, 2, 3 stars) plus an optional short role typed by hand
+and shown as a badge (for example a founder is 3 stars with the badge "Founder"); the list is ordered by
+importance first, then most recent activity as today; badges and colours on the list rows and in the member
+panel; a filter above the list for "this importance or higher".
+
+Spec: two new fields on a member, `Importance` (0 to 3, default 0) and `Role` (one short line, default empty).
+Files written before this change open unchanged, with every member at 0 and no role. The role is searchable.
+Changing either is an ordinary edit. The filter is a view setting and is not stored in the file.
+
+- [x] 1. Core: fields, rules, ordering, search, export; old files still open; tests.
+- [x] 2. UI: picker and role field in the member panel; stars, colour and role badge on list rows; filter.
+- [x] 3. `EBMC.md` Members row.
+- [x] 4. Independent review (file compatibility first), full tests.
+- [x] 5. On-screen check in a SEPARATE scratch data folder, never the owner's real list.
+
+Status 2026-11-16 19:55 (importance and roles): built, 1373 tests pass, independent review found nothing blocking
+and judged the owner's existing file safe to open (the first save keeps version 1 copies in `.prev` and the day's
+backup). Seen on screen in a separate test copy on a scratch data folder: picker, role field and badge, stars and
+stripe on rows, importance-first order, star filter, search by role. Review follow-ups (role validation gaps,
+clamped sort for out-of-range values, empty-list wording, star outline clipping, boundary tests) are with the
+implementer. NOT yet in `dist/EBMC.app`: the owner's app is running from it, so the bundle is rebuilt only when
+the owner says to quit it. The members file format is now version 2: the build now in `dist/` will refuse a file
+this build has saved, so do not open the real list with the new build until the owner has the new app.
+Added outside the feature (owner to confirm): `EBMC_DATA_DIR` in `ApplicationDataStorage.cs`, an environment
+variable naming another folder for ALL user data, so a build can be tried without touching the real settings and
+members list; unset = normal behaviour, a non-absolute value stops the app. How to test on screen: publish to a
+scratch folder, wrap it as an app with a DIFFERENT bundle id, start it with `open -n <app> --env
+EBMC_DATA_DIR=<scratch>`, and confirm with `lsof` that it opened the scratch `MatterControl.db`. Setting HOME
+does NOT redirect the data folder on macOS (tried: the test copy opened the real settings database for about a
+minute; the members file was not opened or changed).
+Open question from the owner (19:22): stay on the MatterControl fork or move. Recommendation given: keep the fork
+for printing, move Members and other club-admin features to a separate small app reusing `ClubMembers/Core` and
+`Session`; waiting for the owner's answer.
+
+Status 2026-11-16 20:00: review follow-ups for importance done (1382 tests pass). On the owner's instruction the
+app was quit normally and `dist/EBMC.app` rebuilt with importance, roles and the follow-ups; it is running again
+and waiting at the Members passphrase. A safety copy of the members folder as it was before the first version 2
+save is beside it, named `Members-copy-before-version-2-2026-11-16`. Not yet seen: the owner's existing list
+opening in the new build (the owner enters the passphrase). Still open: change the throwaway passphrase; the
+fork-or-separate-app question; nothing is committed.
+
+Status 2026-11-18 13:20: the owner's existing list opened in the rebuilt app (seen on screen: filter row, three
+entries, one of them the invented test entry "Juniper Vale" left from the first on-screen check; the owner can
+delete it). On the owner's instruction the members passphrase was changed in the app to one the owner chose, and
+confirmed by Lock then Open with the new one. The throwaway passphrase no longer opens the current file; it still
+opens the older copies (`.prev`, backups from before today, `Members-copy-before-version-2-2026-11-16`).
+Owner asked to load a "MicroDuck" file into the app for nylon parts: no file with that name was found on this Mac
+(home folder, Downloads, Desktop, Documents, iCloud Drive, app library); waiting for its location.
+Remaining on-screen checks (Cmd+C/X blocking, restore from backup, light theme, star outline, Settings page and
+Find a tool lock entries) were started in the scratch test copy and NOT done; the test copy was closed.
+
+Status 2026-11-18 16:20 (failed NylonX print): small parts came loose mid-print. The slice used bed 60 C, nozzle
+260 C, no brim. The 60 comes from the NylonX preset inside the installed Pulse profile itself (bed 60, nozzle 260),
+which outranks the app's separate NylonX material file (75 C on garolite). With the owner's yes, three overrides
+were set in the app's slice settings (user layer; profile backed up first as `.printer.bak-2026-11-18-1618`):
+bed 75 C, nozzle 265 C, brim on with 8 loops. Not yet re-sliced or printed. Nozzle on the Pulse is 0.3 mm.
+2026-11-18 16:25: on the owner's yes, the club profile's NylonX preset bed temperature is now 75 C in the repo
+(profile file, generator, `EBMC.md`). The installed profile is unchanged apart from the three overrides above; a
+fresh install or re-import picks up the new preset. Not committed.
+2026-11-18 18:17: second NylonX print (bed 75, nozzle 265, no brim, 0.2 mm layers) held and finished; surface
+grainy, side-hole tops ragged. On the owner's instruction, overrides set for the next print with dry NylonG:
+layer height 0.15, bed 80 C, outside perimeter speed 35 mm/s (profile backed up as `.printer.bak-2026-11-18-1816`).
+Material preset in the app is still NylonX. Not yet sliced or printed.
+2026-11-18 18:57: on the owner's instruction, Z lift on retraction set from 0.4 to 0 in the app (override; profile
+backed up as `.printer.bak-2026-11-18-1855`). Owner also asked to raise the default Z height by 0.1 mm: NOT done,
+it is the firmware offset (M206 Z5.56 -> Z5.66, M500, home); shown to the owner, waiting for a yes and an idle printer.
+2026-11-18 19:02: MISTAKE on the firmware Z offset. The owner asked to raise the nozzle 0.1 mm; I sent M206 Z5.66 +
+M500 + G28 (read back Z5.66, firmware Z 215.66 after homing). That is the WRONG direction: on this printer (homes
+to max) a larger M206 Z makes the nozzle go LOWER (2026-11-11: "nozzle too high" was fixed by raising 4.76 to 5.56).
+The nozzle is now 0.1 mm LOWER than before. Correct value for +0.1 mm is M206 Z5.46 (then M500, G28); to undo only,
+M206 Z5.56. The correction was not sent (blocked pending the owner's yes). DO NOT PRINT until this is fixed.
+Rule: on this printer, to RAISE the nozzle, DECREASE M206 Z.
+Also set on the owner's instruction: nozzle temperature 260 C for the NylonG spool (app, effective value 260).

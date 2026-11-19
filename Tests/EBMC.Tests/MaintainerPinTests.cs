@@ -91,5 +91,22 @@ namespace EBMC.Tests
 		{
 			Assert.That(MaintainerPin.IsValidPin(pin), Is.EqualTo(expected));
 		}
+
+		[Test]
+		public void StoringAPinChecksTheDatabaseBeforeAndAfter()
+		{
+			// before: the database must hold what this window last saw; a failed read is said as such
+			Assert.That(MaintainerPinStore.BeforeStore(true, "h1", "h1"), Is.EqualTo(StoredPinCheck.Same));
+			Assert.That(MaintainerPinStore.BeforeStore(true, "h2", "h1"), Is.EqualTo(StoredPinCheck.ChangedElsewhere));
+			Assert.That(MaintainerPinStore.BeforeStore(true, null, "h1"), Is.EqualTo(StoredPinCheck.ChangedElsewhere));
+			Assert.That(MaintainerPinStore.BeforeStore(false, "h1", "h1"), Is.EqualTo(StoredPinCheck.ReadFailed));
+			Assert.That(MaintainerPinStore.ReadFailedText, Is.Not.EqualTo(MaintainerPinStore.ChangedElsewhereText));
+
+			// after: the hash read back must be the one written
+			Assert.That(MaintainerPinStore.Stored(true, "h2", "h2"), Is.True);
+			Assert.That(MaintainerPinStore.Stored(true, "h1", "h2"), Is.False);
+			Assert.That(MaintainerPinStore.Stored(false, "h2", "h2"), Is.False);
+			Assert.That(MaintainerPinStore.NotStoredText, Does.Not.Contain("members"));
+		}
 	}
 }

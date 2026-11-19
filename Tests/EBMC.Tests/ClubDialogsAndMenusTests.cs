@@ -195,7 +195,7 @@ namespace EBMC.Tests
 				ClubMenus.OpenRecent, ClubMenus.AddFile,
 				"-", ClubMenus.Edit,
 				"-", ClubMenus.Print,
-				"-", ClubMenus.Save, ClubMenus.SaveAs, ClubMenus.Export,
+				"-", ClubMenus.Save, ClubMenus.SaveAs, ClubMenus.Export, ClubMenus.ExportLaser,
 				"-", ClubMenus.ArrangeAll,
 				"-", ClubMenus.ClearBed,
 			}));

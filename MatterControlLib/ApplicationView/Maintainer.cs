@@ -103,19 +103,91 @@ namespace MatterHackers.MatterControl
 		public static string CommandPartsText => MaintainerMessages.CommandParts(s => s.Localize());
 
 		/// <summary>
-		/// Stores a new PIN. Returns false, storing nothing, if it is not 4 to 8 digits, or if a PIN is already set and
-		/// the session is not unlocked (only a maintainer may replace it).
+		/// Stores a new PIN. Returns false if it is not 4 to 8 digits, or if a PIN is already set and the session is not
+		/// unlocked (only a maintainer may replace it); then nothing is stored. Also false, with <see cref="PinRefusal"/>
+		/// saying why: another window of the app changed the PIN meanwhile, or the settings could not be read (both
+		/// checked by reading the settings database again; never for the first PIN); or the new PIN did not reach the
+		/// settings database (read back after storing).
 		/// </summary>
 		public static bool SetPin(string pin)
 		{
+			PinRefusal = null;
+
+			// what this window has seen stored, taken before anything here changes it
+			var lastConfirmed = LastConfirmedPinHash;
 			if (!MaintainerPin.IsValidPin(pin)
 				|| (HasPin && !IsUnlocked))
 			{
 				return false;
 			}
 
-			UserSettings.Instance.set(UserSettingsKey.MaintainerPin, MaintainerPin.Hash(pin));
+			// EBMC Edition: settings are read once at start, so another window of the app may have changed the PIN since;
+			// storing over it would undo that change
+			if (HasPin)
+			{
+				bool readOk = TryReadStoredPin(out var onDisk);
+				switch (MaintainerPinStore.BeforeStore(readOk, onDisk, lastConfirmed))
+				{
+					case StoredPinCheck.ChangedElsewhere:
+						PinRefusal = MaintainerPinStore.ChangedElsewhereText.Localize();
+						return false;
+
+					case StoredPinCheck.ReadFailed:
+						PinRefusal = MaintainerPinStore.ReadFailedText.Localize();
+						return false;
+				}
+			}
+
+			var hash = MaintainerPin.Hash(pin);
+			UserSettings.Instance.set(UserSettingsKey.MaintainerPin, hash);
+
+			// EBMC Edition: a write to the settings database can fail without an error: read it back
+			bool stored = MaintainerPinStore.Stored(TryReadStoredPin(out var readBack), readBack, hash);
+			if (!stored)
+			{
+				PinRefusal = MaintainerPinStore.NotStoredText.Localize();
+				return false;
+			}
+
+			lastConfirmedPinHash = hash;
 			return true;
+		}
+
+		/// <summary>
+		/// Why the last <see cref="SetPin"/> did not complete although the PIN was valid and allowed (translated), or
+		/// null.
+		/// </summary>
+		public static string PinRefusal { get; private set; }
+
+		private static string lastConfirmedPinHash;
+
+		/// <summary>
+		/// EBMC Edition: the PIN hash this window last saw in the settings database: as read at start, then each hash it
+		/// stored and read back.
+		/// </summary>
+		private static string LastConfirmedPinHash => lastConfirmedPinHash ??= UserSettings.Instance.get(UserSettingsKey.MaintainerPin);
+
+		/// <summary>
+		/// EBMC Edition: reads the PIN hash from the settings database itself (not the copy read at start). False when it
+		/// could not be read.
+		/// </summary>
+		private static bool TryReadStoredPin(out string onDisk)
+		{
+			onDisk = null;
+			try
+			{
+				var rows = DataStorage.Datastore.Instance.dbSQLite.Query<DataStorage.UserSetting>(
+					"SELECT * FROM UserSetting WHERE Name = ?;",
+					UserSettingsKey.MaintainerPin);
+
+				// the last row wins, as when the settings are loaded
+				onDisk = rows.Count == 0 ? null : rows[rows.Count - 1].Value;
+				return true;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
 		}
 
 		/// <summary>

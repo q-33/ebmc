@@ -309,6 +309,19 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 				}),
 				help: "STL, 3MF, OBJ, STEP and design files".Localize());
 
+			// Export for laser: design tabs only; its page has no printer, so it never offers G-code
+			if (LaserTools.IsEnabled
+				&& sceneContext.Printer == null)
+			{
+				Add(
+					"LaserExport",
+					"Export for laser (SVG, DXF)…".Localize(),
+					file,
+					() => LaserExportPage.Show(sceneContext),
+					() => scene.Children.Any(),
+					help: "2D outline in mm for xTool or LightBurn".Localize());
+			}
+
 			if (UiModes.SwitchEnabled)
 			{
 				var other = UiModes.IsSimple ? UiMode.Advanced : UiMode.Simple;
