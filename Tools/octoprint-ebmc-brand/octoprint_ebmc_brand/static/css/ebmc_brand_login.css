@@ -1,0 +1,57 @@
+/* EBMC Brand, login page (added through the octoprint.theming.login hook, after
+   ebmc_palette.css). OctoPrint 1.11's login page has no logo of its own; this shows the club
+   badge above the "Please log in" heading, aligned with it, and uses the club colours.
+   Colours only; sizes and spacing are OctoPrint's. */
+body {
+    background-color: var(--ebmc-paper);
+    color: var(--ebmc-ink);
+}
+
+.form-signin {
+    background-color: var(--ebmc-paper-warm);
+    border-color: var(--ebmc-line);
+}
+
+a {
+    color: var(--ebmc-blue);
+}
+
+a:hover,
+a:focus {
+    color: var(--ebmc-blue-deep);
+}
+
+.btn-primary {
+    color: var(--ebmc-cream);
+    text-shadow: none;
+    background-color: var(--ebmc-blue);
+    background-image: none;
+    filter: none;
+    border-color: var(--ebmc-blue-deep);
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    color: var(--ebmc-cream);
+    background-color: var(--ebmc-blue-deep);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus {
+    border-color: var(--ebmc-blue);
+    box-shadow: 0 0 0 3px var(--ebmc-focus-ring);
+    outline: 0;
+}
+
+input::placeholder {
+    color: var(--ebmc-muted);
+}
+
+#login .form-signin-heading::before {
+    content: "";
+    display: block;
+    width: 56px;
+    height: 56px;
+    margin: 0 0 12px;
+    background: url("../img/favicon-256x256.png") no-repeat left center / contain;
+}

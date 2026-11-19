@@ -66,6 +66,9 @@ In this repository
 * `Tools/macOS/build-app.sh`: builds `dist/EBMC.app`.
 * `Tools/octoprint-ebmc-stop/`: a small OctoPrint plugin that adds a "STOP PRINT and HOME ALL AXES" button
   under OctoPrint's temperature graph. Tested on a local OctoPrint only; see its own README before installing.
+* `Tools/octoprint-ebmc-brand/`: a separate OctoPrint plugin that shows the EBMC badge in place of OctoPrint's
+  logos and uses the club website's colours (looks only). Its images and colours come from
+  `Tools/EBMC/generate_octoprint_brand.py`.
 * `tasks/todo.md`: the working notes and plans.
 
 Credits and licences

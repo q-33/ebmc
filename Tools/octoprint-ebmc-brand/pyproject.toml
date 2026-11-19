@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "OctoPrint-EbmcBrand"
+version = "1.1.0"
+description = "Shows the East Bay Makers Club badge in place of OctoPrint's logos (looks only)."
+readme = "README.md"
+license = { text = "AGPL-3.0-or-later (code only; the EBMC badge images are not covered, see README)" }
+requires-python = ">=3.7,<4"
+dependencies = []
+
+[project.entry-points."octoprint.plugin"]
+ebmc_brand = "octoprint_ebmc_brand"
+
+[tool.setuptools]
+packages = ["octoprint_ebmc_brand"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+octoprint_ebmc_brand = ["static/*.json", "static/js/*.js", "static/css/*.css", "static/img/*.png", "static/img/*.svg"]

@@ -114,6 +114,13 @@ says 80 °C"), and two lines are added when the printer's copy of the active clu
 warns; it never stops the print. OctoPrint's Cancel can take up to 40 seconds on this firmware; use the
 power switch in an emergency.
 
+OctoPrint can show the club badge in place of its own logos (top bar, browser tab and home-screen icons, the
+picture behind the temperature graph, the login page) and use the club website's light colours (paper ground,
+ink text, club blue for links and main buttons, a thin orange accent on the active tab) with the separate EBMC
+Brand plugin (`Tools/octoprint-ebmc-brand`, images and colours from `Tools/EBMC/generate_octoprint_brand.py`).
+Danger buttons and error notices keep OctoPrint's red. It changes looks only and leaves OctoPrint's name and
+credits as they are; see its README to install it.
+
 Settings that live on the printer, not in this repository (set 2026-11-11):
 
 | Where | Setting |
@@ -122,7 +129,10 @@ Settings that live on the printer, not in this repository (set 2026-11-11):
 | Stored with `M500` | `M565 X23 Y0 Z0`, `M670 Z6` (probe travel capped at 12 mm), `M206 Z5.56` (Z offset) |
 
 The Z offset was set with the bed at 60C, the nozzle at 150C and levelling active, and confirmed by a good
-first layer. To change it, send `M206 Z<value>` then `M500` from OctoPrint's Terminal and home. The gantry is
+first layer. To change it, use "Nozzle height above the bed" in OctoPrint's Control tab (EBMC Stop plugin,
+`Tools/octoprint-ebmc-stop`): Raise or Lower by 0.02, 0.05 or 0.1 mm; it saves, homes and reads the value back.
+By hand instead: on this printer, to raise the nozzle, make the number smaller (Z homes upwards, so a larger
+`M206 Z` puts the nozzle lower). Send `M206 Z<value>`, then `M500`, home, and check with `M503`. The gantry is
 tilted about 1.1 mm across the bed; the firmware levelling compensates for it.
 
 ## Hardware notes for this printer
