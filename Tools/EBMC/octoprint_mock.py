@@ -7,7 +7,10 @@ It listens on 127.0.0.1 only. Uploaded files are kept in a temporary directory t
 Usage
 -----
     python3 Tools/EBMC/octoprint_mock.py --port 5050 --key testkey \
-        [--slow-upload-kbps N] [--state closed|operational|printing]
+        [--slow-upload-kbps N] [--state closed|operational|printing] [--exit-with-stdin] [--parent-pid PID]
+
+SIGINT and SIGTERM stop it cleanly (the uploads folder is removed). ``--exit-with-stdin`` and ``--parent-pid``
+make it stop when the program that started it ends, even if that program was killed (the UI smoke test uses both).
 
 What it implements (see https://docs.octoprint.org/en/master/api/):
 
@@ -72,6 +75,7 @@ import json
 import os
 import re
 import secrets
+import signal
 import sys
 import tempfile
 import threading
@@ -542,7 +546,41 @@ def main():
     parser.add_argument("--key", default="testkey", help="the API key clients must send in X-Api-Key")
     parser.add_argument("--slow-upload-kbps", type=float, default=None, help="throttle reading uploads to N KiB/s")
     parser.add_argument("--state", choices=("closed", "operational", "printing"), default="closed")
+    parser.add_argument("--exit-with-stdin", action="store_true",
+                        help="stop when standard input closes (the parent that started the mock has ended)")
+    parser.add_argument("--parent-pid", type=int, default=None,
+                        help="stop when this process is gone or is no longer the parent")
     args = parser.parse_args()
+
+    stop = threading.Event()
+    reason = []
+
+    def request_stop(why):
+        if not stop.is_set():
+            reason.append(why)
+            stop.set()
+
+    # SIGINT and SIGTERM stop the mock cleanly (the uploads folder is removed), also when the shell that
+    # started it in the background set SIGINT to "ignore"
+    signal.signal(signal.SIGINT, lambda signum, frame: request_stop("SIGINT"))
+    signal.signal(signal.SIGTERM, lambda signum, frame: request_stop("SIGTERM"))
+
+    if args.exit_with_stdin:
+        def watch_stdin():
+            try:
+                while sys.stdin.buffer.read(4096):
+                    pass
+            except (OSError, ValueError):
+                pass
+            request_stop("standard input closed")
+        threading.Thread(target=watch_stdin, daemon=True).start()
+
+    if args.parent_pid is not None:
+        def watch_parent():
+            while not stop.wait(0.5):
+                if os.getppid() != args.parent_pid:
+                    request_stop("parent process %d is gone" % args.parent_pid)
+        threading.Thread(target=watch_parent, daemon=True).start()
 
     with tempfile.TemporaryDirectory(prefix="octoprint-mock-") as upload_dir:
         Handler.state = MockState(args.key, args.state, upload_dir, args.slow_upload_kbps)
@@ -551,12 +589,16 @@ def main():
         sys.stderr.write("OctoPrint mock on http://127.0.0.1:%d (printer %s, uploads in %s)\n"
                          % (server.server_address[1], args.state, upload_dir))
         sys.stderr.flush()
+        serving = threading.Thread(target=server.serve_forever, daemon=True)
+        serving.start()
         try:
-            server.serve_forever()
-        except KeyboardInterrupt:
-            pass
+            while not stop.wait(0.5):
+                pass
         finally:
+            server.shutdown()
             server.server_close()
+    sys.stderr.write("OctoPrint mock stopped (%s); uploads folder removed\n" % (reason[0] if reason else "?"))
+    sys.stderr.flush()
 
 
 if __name__ == "__main__":

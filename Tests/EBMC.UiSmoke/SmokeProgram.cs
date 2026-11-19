@@ -25,7 +25,7 @@ namespace EBMC.UiSmoke
 		private const double OverallTimeoutSeconds = 420;
 
 		/// <summary>Written into the scratch folder at the start of a run; a reusing flow requires it.</summary>
-		private const string MarkerName = "ebmc-ui-smoke.marker";
+		private const string MarkerName = DataFolderGuard.MarkerName;
 
 		private static int finished;
 		private static string closeProblem;
@@ -40,6 +40,18 @@ namespace EBMC.UiSmoke
 			// type is first used, so the checks come first.
 			string flowName = Argument(args, "--flow");
 			string outDir = Argument(args, "--out");
+			string guardScratch = Argument(args, "--guard-selftest");
+			if (guardScratch != null)
+			{
+				// the folder guard against a fake real folder made in the given scratch folder (never the real one)
+				return DataFolderGuard.SelfTest(guardScratch) == 0 ? 0 : 1;
+			}
+
+			if (args.Contains("--network-selftest"))
+			{
+				return NetworkSelfTest();
+			}
+
 			if (args.Contains("--list"))
 			{
 				foreach (var f in Flows.All)
@@ -61,7 +73,8 @@ namespace EBMC.UiSmoke
 				return Refuse("give the screenshot folder as --out <absolute path>");
 			}
 
-			string refusal = CheckDataFolder(Environment.GetEnvironmentVariable("EBMC_DATA_DIR"), flow.ReusesData);
+			// the real path of both, links resolved (see DataFolderGuard)
+			string refusal = DataFolderGuard.Check(Environment.GetEnvironmentVariable("EBMC_DATA_DIR"), RealDataFolder, flow.ReusesData);
 			if (refusal != null)
 			{
 				return Refuse(refusal);
@@ -86,73 +99,80 @@ namespace EBMC.UiSmoke
 			{ IsBackground = true };
 			watchdog.Start();
 
+			// Ctrl-C: end the way a failure does, so the OctoPrint mock is stopped and the result line is printed
+			Console.CancelKeyPress += (s, e) =>
+			{
+				e.Cancel = true;
+				Finish(5, "interrupted (Ctrl-C)");
+			};
+
 			try
 			{
 				RunApplication(flow);
 			}
 			catch (Exception e)
 			{
-				Finish(1, Describe(e));
+				// a hard failure after steps that did not fit: report all of them
+				string reason = Describe(e);
+				var earlier = Smoke.DeferredFailures.Where(d => !reason.Contains(d)).ToList();
+				Finish(1, earlier.Count == 0 ? reason : string.Join(" | ", earlier) + " | then: " + reason);
 			}
 
 			Finish(0, null);
 			return 0;
 		}
 
+		/// <summary>
+		/// The watch's self-test, then a raw TCP connect to this computer's own non-loopback address (a closed port: the
+		/// connection is refused by this computer, nothing leaves it), which the watch must report as outside.
+		/// </summary>
+		private static int NetworkSelfTest()
+		{
+			NetworkWatch.Install();
+			NetworkWatch.SelfTest();
+
+			var own = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+				.Where(n => n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up)
+				.SelectMany(n => n.GetIPProperties().UnicastAddresses)
+				.Select(u => u.Address)
+				.FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !System.Net.IPAddress.IsLoopback(a));
+			if (own == null)
+			{
+				Console.WriteLine("no non-loopback IPv4 address on this computer; the outside check cannot be shown");
+				return 1;
+			}
+
+			using (var socket = new System.Net.Sockets.Socket(System.Net.Sockets.AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp))
+			{
+				try
+				{
+					socket.Connect(own, 9);
+				}
+				catch (System.Net.Sockets.SocketException e)
+				{
+					Console.WriteLine($"connect to this computer's own address {own}:9: {e.SocketErrorCode} (expected)");
+				}
+			}
+
+			var outside = NetworkWatch.OutsideSeen;
+			Console.WriteLine("reported as outside: " + (outside.Count == 0 ? "nothing" : string.Join("; ", outside)));
+			try
+			{
+				NetworkWatch.ThrowIfAny();
+				Console.WriteLine("WRONG: the watch did not fail on a non-loopback connect");
+				return 1;
+			}
+			catch (SmokeFailure e)
+			{
+				Console.WriteLine("the watch fails the step as it should: " + e.Message);
+				return 0;
+			}
+		}
+
 		private static string Argument(string[] args, string name)
 		{
 			int index = Array.IndexOf(args, name);
 			return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
-		}
-
-		private static string CheckDataFolder(string value, bool reuse)
-		{
-			if (string.IsNullOrWhiteSpace(value))
-			{
-				return "EBMC_DATA_DIR is not set; this test only runs on a throwaway data folder";
-			}
-
-			if (!Path.IsPathRooted(value))
-			{
-				return "EBMC_DATA_DIR must be an absolute path";
-			}
-
-			string real = RealDataFolder;
-			string requested = Path.GetFullPath(value);
-
-			bool Inside(string path, string folder) =>
-				path.TrimEnd('/').Equals(folder.TrimEnd('/'), StringComparison.OrdinalIgnoreCase)
-				|| path.StartsWith(folder.TrimEnd('/') + "/", StringComparison.OrdinalIgnoreCase);
-
-			if (Inside(requested, real))
-			{
-				return "EBMC_DATA_DIR points inside the real data folder " + real;
-			}
-
-			if (File.Exists(requested))
-			{
-				return "EBMC_DATA_DIR is a file: " + requested;
-			}
-
-			bool hasEntries = Directory.Exists(requested) && Directory.EnumerateFileSystemEntries(requested).Any();
-			if (reuse)
-			{
-				// only a folder this test made itself (a symbolic link to the real folder has no marker)
-				if (!File.Exists(Path.Combine(requested, MarkerName)) || new FileInfo(requested).LinkTarget != null)
-				{
-					return "this flow reuses a scratch folder a previous smoke run made (" + MarkerName + " missing): " + requested;
-				}
-
-				return null;
-			}
-
-			// Fresh means empty: this also refuses a symbolic link to the real (non-empty) folder
-			if (hasEntries)
-			{
-				return "EBMC_DATA_DIR is not empty; give a fresh folder: " + requested;
-			}
-
-			return null;
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]

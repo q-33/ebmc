@@ -27,11 +27,30 @@ PROJECT="$REPO/Tests/EBMC.UiSmoke/EBMC.UiSmoke.csproj"
 DLL="$REPO/Tests/EBMC.UiSmoke/bin/Debug/net10.0/EBMC.UiSmoke.dll"
 ALL_FLOWS=(start members members-restore modes slice laser-export update-presets presets-menu-not-club ready-to-print)
 
+STAMP="$(date +%Y%m%d-%H%M%S)"
+OUT="$REPO/out/ui-smoke/$STAMP"
+mkdir -p "$OUT"
+
+# A failed build must stop here: otherwise the DLL from an earlier build would run and could pass on old code
 echo "Building (Debug)..."
-dotnet build "$PROJECT" -c Debug -nologo -v quiet | grep -E "error|Build succeeded" || true
+set +e
+dotnet build "$PROJECT" -c Debug -nologo -v quiet > "$OUT/build.log" 2>&1
+BUILD_CODE=$?
+set -e
+if [[ $BUILD_CODE -ne 0 ]]; then
+	grep -E ": error |error [A-Z]+[0-9]+|MSB[0-9]+|error:" "$OUT/build.log" | sort -u | head -20 >&2 || true
+	echo "UI SMOKE: the build failed (dotnet build exit code $BUILD_CODE); no flow was run. Full log: $OUT/build.log" >&2
+	exit 3
+fi
+echo "Build succeeded."
 
 if [[ "${1:-}" == "--list" ]]; then
-	dotnet "$DLL" --list
+	# only the names this script accepts (the program also has internal ones the script runs itself)
+	dotnet "$DLL" --list | while IFS=$'\t' read -r name summary; do
+		if [[ " ${ALL_FLOWS[*]} " == *" $name "* ]]; then
+			printf '%-22s %s\n' "$name" "$summary"
+		fi
+	done
 	exit 0
 fi
 
@@ -47,10 +66,21 @@ for flow in "${REQUESTED[@]}"; do
 	fi
 done
 
-STAMP="$(date +%Y%m%d-%H%M%S)"
-OUT="$REPO/out/ui-smoke/$STAMP"
 TEMP_ROOT="${TMPDIR:-/tmp}"
-mkdir -p "$OUT"
+CURRENT_DATA=""
+
+# Ctrl-C or kill: the flow's own process stops the app and the OctoPrint mock; say where the scratch data is
+on_interrupt() {
+	echo >&2
+	echo "UI SMOKE: interrupted; no result. Screenshots and logs: $OUT" >&2
+	for folder in "$CURRENT_DATA" "${MEMBERS_DATA:-}"; do
+		if [[ -n "$folder" && -d "$folder" ]]; then
+			echo "Scratch data folder kept (remove it when done): $folder" >&2
+		fi
+	done
+	exit 130
+}
+trap on_interrupt INT TERM
 
 RESULTS=()
 FAILED=0
@@ -60,6 +90,7 @@ MEMBERS_FAILED=0
 run_flow() {
 	local flow="$1" data="$2" label="${3:-$1}"
 	local log="$OUT/$label.log" start end code
+	CURRENT_DATA="$data"
 	start=$(date +%s)
 	set +e
 	EBMC_DATA_DIR="$data" dotnet "$DLL" --flow "$flow" --out "$OUT/$label" 2>&1 | tee "$log"
@@ -68,6 +99,9 @@ run_flow() {
 	end=$(date +%s)
 	local reason
 	reason="$(grep -E '^UI SMOKE (PASSED|FAILED|REFUSED)' "$log" | tail -1 || true)"
+	if [[ -z "$reason" && $code -ne 0 ]]; then
+		reason="ended with exit code $code and no result line (crashed or killed); see $log"
+	fi
 	if [[ $code -eq 0 ]]; then
 		RESULTS+=("$(printf '%-24s PASS  %4ss' "$label" $((end - start)))")
 	else

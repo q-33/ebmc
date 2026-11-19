@@ -170,6 +170,29 @@ flows first set up the club printer in a fresh profile, then change that profile
 before starting the app again. Message boxes are measured: the whole text and every button
 must show without scrolling, or the step fails with the measured sizes.
 
+Safety rails, and their limits:
+
+- **Data folder.** The scratch folder is checked by its real path (symbolic links and `..`
+  resolved), and anything equal to, inside or around the real data folder is refused.
+  `Tests/EBMC.UiSmoke` checks this rule against a fake data folder with
+  `dotnet Tests/EBMC.UiSmoke/bin/Debug/net10.0/EBMC.UiSmoke.dll --guard-selftest <scratch folder>`.
+  `EBMC_DATA_DIR` does not cover everything: `~/MatterControl.json`, if you have one, is
+  still read by the app during a run.
+- **Network watch.** It sees the test process's own HTTP requests, host-name lookups and
+  socket connects, and fails the step on anything that is not loopback. A self-test at
+  every start proves it sees all three. It detects; it does not block. It cannot see child
+  processes (the mock, file dialogs) or native code that opens its own sockets.
+  `--network-selftest` shows it failing on a connect to this Mac's own network address.
+- **The mock.** The OctoPrint mock ends with the test process, even when that process is
+  killed, and removes its uploads folder. Ctrl-C prints where the scratch data folder was
+  kept.
+- **Build and Python.** A failed build stops the script before any flow runs. The first
+  build needs the network once, for the NuGet restore. The mock needs a real
+  `/usr/bin/python3` (the Command Line Tools); the flow says so if only the installer stub
+  is there.
+- **Copy and cut** in the passphrase field are tested at widget level, as Control+C/X key
+  events. The Mac host's Command-key mapping in between is not exercised.
+
 Not covered: the real printer, a real OctoPrint, typing into dialogs the test cannot
 reach, and how anything looks beyond the screenshots (look at them). Only tested with
 the screen unlocked and the display on; a locked screen or sleeping display is untested.

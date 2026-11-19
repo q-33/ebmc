@@ -730,7 +730,17 @@ the files and re-run what is missing):
   OWNER'S STANDING INSTRUCTION: independent review (opus), fix findings, MERGE into macos-arm64, run the full
   suite on the merged result, then PUSH. Then A5 (OctoPrint's own presets on the Pi, club network + yes) and
   A6 (on-screen check with the smoke runner; clear the hand overrides in the installed profile with a yes).
-- Plan B (nozzle height control in the OctoPrint plugin) NOT started: needs the printer's real M503 reply text
+- Plan B plugin part BUILT 2026-11-19 02:25 (uncommitted in `Tools/octoprint-ebmc-stop/`, version 1.1.0;
+  tested only on a local OctoPrint with a simulated Smoothieware printer; independent review was running).
+  OWNER DECISIONS 02:34: reference value 5.46 (type it into Settings > EBMC Stop at install, AFTER setting
+  M206 Z5.46 by hand as already agreed; do not bake it into the plugin's defaults); keep the range (+-0.3 mm
+  around the reference, 0.2 mm per action); STOP MUST ALWAYS WIN over a nozzle read/change (today the shared
+  busy lock refuses STOP for those seconds: change it together with the review's fixes). Also from the
+  build: M500 saves ALL live firmware settings; the SD backup's saved settings hold max temperatures 400/140
+  (M143), which would override the 300/100 staged in the config file: read M503 on the real printer to see
+  what is in force. Still open: B1 capture the live M503 text; B3 the app's "Nozzle height…" dialog.
+  A logo plugin (`Tools/octoprint-ebmc-brand/`: EBMC badge in place of OctoPrint's logos) was being built.
+- (older) Plan B was NOT started: needs the printer's real M503 reply text
   (club network) and the plugin installed.
 
 Repo state: branch macos-arm64 pushed at 61edf3cd4 (plans + notes). The plugin is in at 21db7c92c.

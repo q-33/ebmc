@@ -30,14 +30,14 @@ namespace EBMC.UiSmoke
 
 		// --- the installed profile file ---
 
-		private static string ProfileFile()
+		internal static string ProfileFile()
 		{
 			var files = Directory.GetFiles(Path.Combine(DataDir, "Profiles"), "*.printer", SearchOption.AllDirectories);
 			Require(files.Length == 1, $"expected one printer profile in the scratch folder, found {files.Length}: run the club-printer flow first");
 			return files[0];
 		}
 
-		private static JsonObject ReadProfile(string path) => JsonNode.Parse(File.ReadAllText(path)).AsObject();
+		internal static JsonObject ReadProfile(string path) => JsonNode.Parse(File.ReadAllText(path)).AsObject();
 
 		private static void WriteProfile(string path, JsonObject profile) =>
 			File.WriteAllText(path, profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
@@ -45,7 +45,7 @@ namespace EBMC.UiSmoke
 		private static JsonObject Preset(JsonObject profile, string name) =>
 			profile["MaterialLayers"].AsArray().OfType<JsonObject>().FirstOrDefault(m => (string)m["layer_name"] == name);
 
-		private static string Value(JsonObject layer, string key) => layer?[key]?.GetValue<string>();
+		internal static string Value(JsonObject layer, string key) => layer?[key]?.GetValue<string>();
 
 		/// <summary>Makes the installed profile an older one: NylonX with bed 60 and (optionally) no NylonG; hand overrides in the User layer.</summary>
 		private static void MakeProfileStale(bool removeNylonG, IDictionary<string, string> userLayer)
@@ -399,6 +399,18 @@ namespace EBMC.UiSmoke
 					string files = mock.Files();
 					Log("mock files: " + files);
 					Require(files.Contains("\"printer\": \"printing\""), "the mock is not printing after the upload (print was not requested)");
+
+					// the outcome names the file the mock stored and says it is printing
+					using (var json = JsonDocument.Parse(files))
+					{
+						var stored = json.RootElement.GetProperty("files").EnumerateArray().Select(f => f.GetProperty("name").GetString()).ToList();
+						Require(stored.Count == 1, $"the mock stored {stored.Count} files");
+						Require(box.Title == "OctoPrint", $"the outcome box is titled \"{box.Title}\", expected \"OctoPrint\"");
+						string expected = $"Printing {stored[0]} on OctoPrint.";
+						Require(box.Message.Replace("\n", " ").Replace("  ", " ").Trim() == expected,
+							$"the outcome says \"{box.Message.Replace("\n", " | ")}\", expected \"{expected}\"");
+						Log("outcome text matches: " + expected);
+					}
 				});
 
 				Step("outcome-closed", () =>
@@ -411,8 +423,10 @@ namespace EBMC.UiSmoke
 			Step("loopback-only", () =>
 			{
 				var seen = NetworkWatch.AllSeen;
-				Require(seen.All(s => s.Contains("127.0.0.1")), "a request left loopback: " + string.Join("; ", seen));
-				Log($"network: {seen.Count} requests and lookups, all to 127.0.0.1");
+				var outside = NetworkWatch.OutsideSeen;
+				Require(seen.Count > 0, "the watch saw no traffic at all, although the app talked to the mock");
+				Require(outside.Count == 0, "traffic left loopback: " + string.Join("; ", outside));
+				Log($"network: {seen.Count} requests, lookups and connects, every one loopback: " + string.Join("; ", seen.Distinct()));
 			});
 		}
 	}

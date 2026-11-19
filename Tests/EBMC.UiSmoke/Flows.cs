@@ -94,21 +94,29 @@ namespace EBMC.UiSmoke
 		/// <summary>From the welcome dialog: "Start New Design", then the badge starter on the new design tab.</summary>
 		private static void NewDesignWithBadge()
 		{
-			Welcome("welcome-new-design", () => Click("Start New Design"));
+			// StartupPage's rule: after Start New Design the stock Welcome page follows unless it was turned off. Read it
+			// before the click, so the step knows whether to wait for the page (a slow page is then not "no page")
+			bool expectWelcomePage = false;
+			Welcome("welcome-new-design", () =>
+			{
+				expectWelcomePage = Ui(() => UserSettings.Instance.get(UserSettingsKey.ShownWelcomeMessage) != "false");
+				Click("Start New Design");
+			});
 
 			Step("welcome-page-dismissed", () =>
 			{
-				// the stock Welcome page may follow a new design (until it is turned off); close it when it does
-				if (WaitFor(() => IsShown("Cancel Wizard Button"), 5))
+				if (expectWelcomePage)
 				{
-					var button = WaitForWidget("Cancel Wizard Button");
-					Log($"dialog: \"{Ui(() => button.Parents<DialogPage>().FirstOrDefault()?.WindowTitle)}\", closing it");
+					var button = WaitForWidget("Cancel Wizard Button", 20, w => w.Parents<DialogPage>().FirstOrDefault() is MatterHackers.MatterControl.Tour.WelcomePage, "(the Welcome page, which this profile shows after Start New Design)");
+					Log($"dialog: \"{Ui(() => button.Parents<DialogPage>().FirstOrDefault()?.WindowTitle)}\" (WelcomePage), closing it");
 					ClickWidget(button);
 					WaitForGone("Cancel Wizard Button");
 				}
 				else
 				{
-					Log("no further dialog");
+					// turned off: it must not come at all
+					Require(!WaitFor(() => IsShown("Cancel Wizard Button"), 5), "a dialog appeared although the Welcome page is turned off");
+					Log("the Welcome page is turned off in this profile, and none appeared");
 				}
 			});
 
@@ -366,6 +374,13 @@ namespace EBMC.UiSmoke
 
 		private static readonly byte[] Garbage = System.Text.Encoding.ASCII.GetBytes(string.Concat(Enumerable.Repeat("damaged by the EBMC UI smoke test. ", 64)));
 
+		/// <summary>Name and SHA-256 of every file in Members/Backups, taken before the app starts.</summary>
+		private static Dictionary<string, string> backupsBefore;
+
+		private static Dictionary<string, string> ListBackupHashes() =>
+			Directory.GetFiles(Path.Combine(MembersFolder, "Backups"))
+				.ToDictionary(Path.GetFileName, f => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(f))));
+
 		/// <summary>Before the app starts: keep copies, then overwrite the main file and the previous copy.</summary>
 		private static void DamageMembersFiles()
 		{
@@ -381,9 +396,42 @@ namespace EBMC.UiSmoke
 			File.Copy(prev, Path.Combine(copies, "members.ebmc.prev"), true);
 			File.WriteAllBytes(main, Garbage);
 			File.WriteAllBytes(prev, Garbage);
+			backupsBefore = ListBackupHashes();
 			Console.WriteLine("    before start: copies kept in smoke-originals/, members.ebmc and members.ebmc.prev overwritten with junk");
-			Console.WriteLine("    backups: " + string.Join(", ", Directory.GetFiles(backups).Select(Path.GetFileName)));
+			Console.WriteLine("    backups: " + string.Join(", ", backupsBefore.Select(p => $"{p.Key} (sha256 {p.Value.Substring(0, 12)}...)")));
 		}
+
+		/// <summary>
+		/// Opens a copy of a members file with the vault itself (the test passphrase, normalized as the app does) in a
+		/// folder of its own, and returns the data. The copy is removed afterwards; the file itself is only read.
+		/// </summary>
+		private static MembersData ReadWithVault(string file)
+		{
+			string folder = Path.Combine(DataDir, "smoke-verify", Guid.NewGuid().ToString("N"));
+			Directory.CreateDirectory(folder);
+			try
+			{
+				File.Copy(file, Path.Combine(folder, MembersVault.FileName));
+				var vault = new MembersVault(folder, () => DateTime.UtcNow);
+				var result = vault.Open(MembersRules.NormalizePassphrase(Passphrase));
+				vault.Close();
+				Require(result.IsOpen, $"the vault did not open {Path.GetFileName(file)} with the test passphrase ({result.Status})");
+				return result.Data;
+			}
+			finally
+			{
+				Directory.Delete(folder, true);
+			}
+		}
+
+		/// <summary>The member and project data in one comparable text (records only, not file metadata).</summary>
+		private static string Content(MembersData data) => Newtonsoft.Json.JsonConvert.SerializeObject(new
+		{
+			data.Members,
+			data.Projects,
+			data.DeletedMembers,
+			data.DeletedProjects,
+		});
 
 		private static void MembersRestoreFlow()
 		{
@@ -402,8 +450,13 @@ namespace EBMC.UiSmoke
 				Require(MembersState == MembersSessionState.Unreadable, $"state is {MembersState}, expected Unreadable");
 			});
 
+			string chosen = null;
 			Step("restore-backup", () =>
 			{
+				// the backup the app will restore, as the app chooses it (the newest daily backup, named by UTC date)
+				chosen = Ui(() => MembersSession.Core.NewestBackup);
+				Require(chosen != null, "the app offers no backup to restore");
+				Log("the app's newest backup: " + Path.GetFileName(chosen));
 				TypeInto("Members Passphrase Field", Passphrase, secret: true);
 				Click("Members Restore Backup Button");
 				WaitForWidget("Members Quick Add Name", 20, what: "(the open list after restoring)");
@@ -412,12 +465,38 @@ namespace EBMC.UiSmoke
 
 			Step("restored-contents", () =>
 			{
-				// MembersVault: the daily backup is a copy of the main file taken before the first save of the (UTC)
-				// day. Creating the list wrote the first file (no backup: there was nothing to copy); the next save,
-				// adding the first member, copied that file. So the backup is the list as created: no members.
-				var members = StoredMembers();
-				Log($"restored list: {members.Count} members");
-				Require(members.Count == 0, $"the restored backup holds {members.Count} members; by the vault's rules it is the list as created (0 members)");
+				// the list now open, the restored main file and the chosen backup, each read with the vault: the same records
+				string fromBackup = Content(ReadWithVault(chosen));
+				string fromMainFile = Content(ReadWithVault(Path.Combine(MembersFolder, MembersVault.FileName)));
+				string inApp = Ui(() => Content(MembersSession.Core.Store.Snapshot()));
+				var original = ReadWithVault(Path.Combine(DataDir, "smoke-originals", MembersVault.FileName));
+
+				int restoredCount = StoredMembers().Count;
+				Log($"chosen backup {Path.GetFileName(chosen)}: {ReadWithVault(chosen).Members.Count} members; "
+					+ $"restored list: {restoredCount} members; the damaged file held {original.Members.Count} before");
+				Require(fromMainFile == fromBackup, "the restored members.ebmc does not hold the chosen backup's records");
+				Require(inApp == fromBackup, "the list open in the app is not the chosen backup's records");
+				if (Content(original) == fromBackup)
+				{
+					Log("note: the backup and the damaged file held the same records, so this run cannot tell them apart");
+				}
+				else
+				{
+					Log("the restored records match the backup and differ from the file that was damaged");
+				}
+			});
+
+			Step("backups-untouched", () =>
+			{
+				var after = ListBackupHashes();
+				foreach (var pair in backupsBefore)
+				{
+					Require(after.TryGetValue(pair.Key, out string hash), $"the backup {pair.Key} is gone after the restore");
+					Require(hash == pair.Value, $"the backup {pair.Key} changed during the restore");
+				}
+
+				Log($"Backups/ after the restore: {string.Join(", ", after.Keys)} ({backupsBefore.Count} unchanged"
+					+ (after.Count > backupsBefore.Count ? $", {after.Count - backupsBefore.Count} new" : "") + ")");
 			});
 
 			Step("damaged-files-moved-aside", () =>
@@ -572,6 +651,10 @@ namespace EBMC.UiSmoke
 
 			Step("part-on-bed", () =>
 			{
+				string make = Ui(() => printer.Settings.OemLayer.ValueOrDefault(SettingsKey.make));
+				string model = Ui(() => printer.Settings.OemLayer.ValueOrDefault(SettingsKey.model));
+				Log($"printer profile: {make} / {model}");
+				Require(ClubPresets.IsClubPrinter(make, model), $"the printer set up is not the club printer ({make} / {model})");
 				int parts = Ui(() => printer.Bed.Scene.Children.Count);
 				Log("parts on the printer's bed: " + parts);
 				Require(parts > 0, "the printer's bed is empty: no default part to slice");
@@ -579,6 +662,18 @@ namespace EBMC.UiSmoke
 
 			Step("slice", () =>
 			{
+				// the active material preset as stored in the scratch profile file (no hand overrides of these here)
+				var profile = ReadProfile(ProfileFile());
+				string activeId = Value(profile["UserLayer"] as System.Text.Json.Nodes.JsonObject, "active_material_key")
+					?? Value(profile["OemLayer"].AsObject(), "active_material_key");
+				var preset = profile["MaterialLayers"].AsArray().OfType<System.Text.Json.Nodes.JsonObject>().First(m => Value(m, "layer_id") == activeId);
+				string nozzle = Value(preset, "temperature");
+				string bed = Value(preset, "bed_temperature");
+				Log($"active preset in the scratch profile: {Value(preset, "layer_name")}, nozzle {nozzle}, bed {bed}");
+				Require(Ui(() => printer.Settings.GetValue(SettingsKey.temperature)) == nozzle && Ui(() => printer.Settings.GetValue(SettingsKey.bed_temperature)) == bed,
+					"the printer's settings are not the active preset's temperatures (a hand override?)");
+
+				var clicked = DateTime.UtcNow.AddSeconds(-1);
 				Click("Generate Gcode Button");
 				WaitUntil(() => Ui(() => printer.Bed.LoadedGCode != null && printer.Bed.LoadedGCode.LayerCount > 0), 240, "slicing did not produce loaded G-code");
 				int layers = Ui(() => printer.Bed.LoadedGCode.LayerCount);
@@ -586,13 +681,20 @@ namespace EBMC.UiSmoke
 					.Select(f => new FileInfo(f)).OrderByDescending(f => f.LastWriteTimeUtc).FirstOrDefault();
 				Require(gcode != null && gcode.Length > 0, "no G-code file in the scratch gcode folder");
 				Require(gcode.FullName.StartsWith(DataDir) || gcode.FullName.StartsWith("/private" + DataDir), "the G-code file is not in the scratch folder");
-				Log($"G-code: {gcode.Name}, {gcode.Length} bytes, {layers} layers");
+				Require(gcode.LastWriteTimeUtc >= clicked, $"the newest G-code ({gcode.Name}, {gcode.LastWriteTimeUtc:u}) was not written by this slice");
+				string text = File.ReadAllText(gcode.FullName);
+				var nozzleLine = System.Text.RegularExpressions.Regex.Match(text, $@"^M10[49] S{System.Text.RegularExpressions.Regex.Escape(nozzle)}\b.*$", System.Text.RegularExpressions.RegexOptions.Multiline);
+				var bedLine = System.Text.RegularExpressions.Regex.Match(text, $@"^M1[49]0 S{System.Text.RegularExpressions.Regex.Escape(bed)}\b.*$", System.Text.RegularExpressions.RegexOptions.Multiline);
+				Require(nozzleLine.Success, $"the G-code has no M104/M109 S{nozzle} (the preset's nozzle temperature)");
+				Require(bedLine.Success, $"the G-code has no M140/M190 S{bed} (the preset's bed temperature)");
+				Log($"G-code: {gcode.Name}, {gcode.Length} bytes, {layers} layers, written {gcode.LastWriteTimeUtc:HH:mm:ss} UTC; "
+					+ $"\"{nozzleLine.Value.Trim()}\", \"{bedLine.Value.Trim()}\"");
 			});
 
 			Step("nothing-sent", () =>
 			{
 				var seen = NetworkWatch.AllSeen;
-				Log("network requests and name lookups seen: " + (seen.Count == 0 ? "none" : string.Join("; ", seen)));
+				Log("network requests, lookups and connects seen: " + (seen.Count == 0 ? "none" : string.Join("; ", seen)));
 				Require(seen.Count == 0, "the run made network requests (even loopback): " + string.Join("; ", seen));
 				Require(Ui(() => !printer.Connection.Printing && !printer.Connection.Paused), "the printer connection reports a print");
 			});

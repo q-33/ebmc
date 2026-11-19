@@ -649,15 +649,21 @@ namespace EBMC.UiSmoke
 		public OctoPrintMock(string key, string state)
 		{
 			string script = FindScript();
+			RequireRealPython();
+
 			var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
 			listener.Start();
 			Port = ((IPEndPoint)listener.LocalEndpoint).Port;
 			listener.Stop();
 
-			process = Process.Start(new ProcessStartInfo("/usr/bin/python3", $"-I \"{script}\" --port {Port} --key {key} --state {state}")
+			// --exit-with-stdin and --parent-pid: the mock ends by itself when this process ends, even when it is killed
+			process = Process.Start(new ProcessStartInfo(
+				"/usr/bin/python3",
+				$"-I \"{script}\" --port {Port} --key {key} --state {state} --exit-with-stdin --parent-pid {Environment.ProcessId}")
 			{
 				RedirectStandardError = true,
 				RedirectStandardOutput = true,
+				RedirectStandardInput = true,
 				UseShellExecute = false,
 			});
 			process.ErrorDataReceived += (s, e) =>
@@ -673,7 +679,38 @@ namespace EBMC.UiSmoke
 			process.BeginErrorReadLine();
 
 			Smoke.WaitUntil(() => Log.Any(l => l.StartsWith("OctoPrint mock on")), 10, "the OctoPrint mock did not start");
-			Console.WriteLine("    mock: " + Log.First());
+			string first = Log.First(l => l.StartsWith("OctoPrint mock on"));
+			var match = System.Text.RegularExpressions.Regex.Match(first, @"uploads in (.*octoprint-mock-[^)]*)\)");
+			UploadsFolder = match.Success ? match.Groups[1].Value : null;
+			Console.WriteLine("    mock: " + first);
+		}
+
+		/// <summary>The temporary folder the mock made for uploads (it removes it when it stops cleanly).</summary>
+		public string UploadsFolder { get; }
+
+		/// <summary>
+		/// On a Mac without the Command Line Tools, /usr/bin/python3 is a stub that only offers to install them.
+		/// </summary>
+		private static void RequireRealPython()
+		{
+			var check = Process.Start(new ProcessStartInfo("/usr/bin/python3", "-I -c \"import sys; print(sys.version_info[0])\"")
+			{
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				UseShellExecute = false,
+			});
+			string output = check.StandardOutput.ReadToEnd();
+			string error = check.StandardError.ReadToEnd();
+			if (!check.WaitForExit(30000))
+			{
+				check.Kill();
+			}
+
+			if (!check.HasExited || check.ExitCode != 0 || output.Trim() != "3")
+			{
+				throw new SmokeFailure("/usr/bin/python3 does not run Python 3 (on a Mac without the Command Line Tools it is only a stub; "
+					+ "install them with xcode-select --install): " + (error + output).Trim().Replace('\n', ' '));
+			}
 		}
 
 		public int Port { get; }
@@ -702,18 +739,42 @@ namespace EBMC.UiSmoke
 			}
 		}
 
+		/// <summary>
+		/// Stops the mock gracefully so it removes its uploads folder: closes its input (it then shuts down), waits,
+		/// then SIGTERM, then SIGKILL. A folder left after a forced kill is removed here (only that folder, which the
+		/// mock reported making).
+		/// </summary>
 		public void Dispose()
 		{
 			try
 			{
 				if (!process.HasExited)
 				{
-					process.Kill();
-					process.WaitForExit(5000);
+					process.StandardInput.Close();
+					if (!process.WaitForExit(5000))
+					{
+						Process.Start("/bin/kill", $"-TERM {process.Id}")?.WaitForExit(2000);
+						if (!process.WaitForExit(3000))
+						{
+							process.Kill();
+							process.WaitForExit(3000);
+						}
+					}
+				}
+
+				var stopped = Log.LastOrDefault(l => l.StartsWith("OctoPrint mock stopped"));
+				Console.WriteLine("    mock: " + (stopped ?? "killed (no clean stop)"));
+				if (UploadsFolder != null
+					&& Path.GetFileName(UploadsFolder).StartsWith("octoprint-mock-")
+					&& Directory.Exists(UploadsFolder))
+				{
+					Directory.Delete(UploadsFolder, true);
+					Console.WriteLine("    mock: removed its uploads folder after a forced stop");
 				}
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
+				Console.WriteLine("    mock: stopping it failed: " + e.Message);
 			}
 		}
 
@@ -821,15 +882,15 @@ namespace EBMC.UiSmoke
 	public sealed class NetworkWatch : EventListener
 	{
 		private static readonly object Locker = new object();
-		private static readonly List<string> Outside = new List<string>();
-		private static readonly List<string> All = new List<string>();
+		private static readonly List<(string Description, bool Loopback)> All = new List<(string, bool)>();
 		private static NetworkWatch instance;
 
 		public static void Install() => instance = new NetworkWatch();
 
 		/// <summary>
-		/// Proves the watch sees traffic before trusting "none seen": a request to a closed loopback port and a lookup
-		/// of "localhost" must both be recorded. They are then forgotten.
+		/// Proves the watch sees traffic before trusting "none seen": an HTTP request to a closed loopback port, a lookup
+		/// of "localhost" and a raw TCP connect (no HTTP) to a loopback listener must all be recorded, as loopback. They
+		/// are then forgotten.
 		/// </summary>
 		public static void SelfTest()
 		{
@@ -847,20 +908,31 @@ namespace EBMC.UiSmoke
 
 			Dns.GetHostAddresses("localhost");
 
+			var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+			listener.Start();
+			int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+			using (var socket = new System.Net.Sockets.Socket(System.Net.Sockets.AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp))
+			{
+				socket.Connect(IPAddress.Loopback, port);
+			}
+
+			listener.Stop();
+
 			lock (Locker)
 			{
-				bool sawRequest = All.Any(a => a.Contains("127.0.0.1:9/ebmc-ui-smoke-self-test"));
-				bool sawLookup = All.Any(a => a == "name lookup localhost");
-				if (!sawRequest || !sawLookup)
+				bool sawRequest = All.Any(a => a.Description.Contains("127.0.0.1:9/ebmc-ui-smoke-self-test") && a.Loopback);
+				bool sawLookup = All.Any(a => a.Description == "name lookup localhost" && a.Loopback);
+				bool sawConnect = All.Any(a => a.Description == $"socket connect 127.0.0.1:{port}" && a.Loopback);
+				if (!sawRequest || !sawLookup || !sawConnect)
 				{
-					throw new SmokeFailure($"the network watch does not work (request seen: {sawRequest}, lookup seen: {sawLookup}): {string.Join("; ", All)}");
+					throw new SmokeFailure($"the network watch does not work (HTTP request seen: {sawRequest}, lookup seen: {sawLookup}, "
+						+ $"raw connect seen: {sawConnect}): {string.Join("; ", All.Select(a => a.Description))}");
 				}
 
 				All.Clear();
-				Outside.Clear();
 			}
 
-			Console.WriteLine("EBMC UI smoke: network watch self-test passed (a loopback request and a lookup were both seen)");
+			Console.WriteLine("EBMC UI smoke: network watch self-test passed (a loopback HTTP request, a lookup and a raw socket connect were all seen)");
 		}
 
 		public static IReadOnlyList<string> AllSeen
@@ -869,25 +941,37 @@ namespace EBMC.UiSmoke
 			{
 				lock (Locker)
 				{
-					return All.ToList();
+					return All.Select(a => a.Description).ToList();
+				}
+			}
+		}
+
+		/// <summary>What was seen that was not loopback.</summary>
+		public static IReadOnlyList<string> OutsideSeen
+		{
+			get
+			{
+				lock (Locker)
+				{
+					return All.Where(a => !a.Loopback).Select(a => a.Description).Distinct().ToList();
 				}
 			}
 		}
 
 		public static void ThrowIfAny()
 		{
-			lock (Locker)
+			var outside = OutsideSeen;
+			if (outside.Count > 0)
 			{
-				if (Outside.Count > 0)
-				{
-					throw new SmokeFailure("network traffic outside this computer was attempted: " + string.Join("; ", Outside.Distinct()));
-				}
+				throw new SmokeFailure("network traffic outside this computer was attempted: " + string.Join("; ", outside));
 			}
 		}
 
 		protected override void OnEventSourceCreated(EventSource eventSource)
 		{
-			if (eventSource.Name == "System.Net.Http" || eventSource.Name == "System.Net.NameResolution")
+			if (eventSource.Name == "System.Net.Http"
+				|| eventSource.Name == "System.Net.NameResolution"
+				|| eventSource.Name == "System.Net.Sockets")
 			{
 				EnableEvents(eventSource, EventLevel.Informational);
 			}
@@ -895,37 +979,89 @@ namespace EBMC.UiSmoke
 
 		protected override void OnEventWritten(EventWrittenEventArgs e)
 		{
-			string host = null;
 			string description = null;
+			bool loopback = false;
 			if (e.EventSource.Name == "System.Net.Http" && e.EventName == "RequestStart" && e.Payload?.Count >= 3)
 			{
-				host = e.Payload[1]?.ToString();
+				string host = e.Payload[1]?.ToString() ?? "";
 				description = $"HTTP {e.Payload[0]}://{host}:{e.Payload[2]}{(e.Payload.Count > 3 ? e.Payload[3] : "")}";
+				loopback = IsLoopback(host);
 			}
 			else if (e.EventSource.Name == "System.Net.NameResolution" && e.EventName == "ResolutionStart" && e.Payload?.Count >= 1)
 			{
-				host = e.Payload[0]?.ToString();
+				string host = e.Payload[0]?.ToString() ?? "";
 				description = "name lookup " + host;
+				loopback = IsLoopback(host);
+			}
+			else if (e.EventSource.Name == "System.Net.Sockets" && e.EventName == "ConnectStart" && e.Payload?.Count >= 1)
+			{
+				string address = e.Payload[0]?.ToString() ?? "";
+				var endpoint = ParseSocketAddress(address);
+				if (endpoint == null && address.StartsWith("Unix", StringComparison.Ordinal))
+				{
+					// a Unix domain socket never leaves the computer
+					description = "socket connect (Unix domain) " + address;
+					loopback = true;
+				}
+				else
+				{
+					description = endpoint == null ? "socket connect (unreadable address) " + address : "socket connect " + endpoint;
+					loopback = endpoint != null && IPAddress.IsLoopback(endpoint.Address);
+				}
 			}
 
-			if (host == null)
+			if (description == null)
 			{
 				return;
 			}
 
 			lock (Locker)
 			{
-				All.Add(description);
-				if (!IsLoopback(host))
-				{
-					Outside.Add(description);
-				}
+				All.Add((description, loopback));
 			}
 		}
 
-		private static bool IsLoopback(string host)
+		/// <summary>
+		/// The runtime writes the address as SocketAddress.ToString(): "InterNetwork:16:{p,p,a,b,c,d,...}" (port in the
+		/// first two bytes, big-endian, then the IPv4 bytes) or "InterNetworkV6:28:{p,p,flow x4,16 address bytes,...}".
+		/// </summary>
+		public static IPEndPoint ParseSocketAddress(string text)
 		{
-			host = host.Trim('[', ']');
+			int open = text.IndexOf('{');
+			int close = text.LastIndexOf('}');
+			if (open < 0 || close < open)
+			{
+				return null;
+			}
+
+			var bytes = new List<byte>();
+			foreach (string part in text.Substring(open + 1, close - open - 1).Split(','))
+			{
+				if (!byte.TryParse(part.Trim(), out byte b))
+				{
+					return null;
+				}
+
+				bytes.Add(b);
+			}
+
+			if (text.StartsWith("InterNetworkV6", StringComparison.Ordinal) && bytes.Count >= 22)
+			{
+				return new IPEndPoint(new IPAddress(bytes.Skip(6).Take(16).ToArray()), bytes[0] << 8 | bytes[1]);
+			}
+
+			if (text.StartsWith("InterNetwork", StringComparison.Ordinal) && bytes.Count >= 6)
+			{
+				return new IPEndPoint(new IPAddress(bytes.Skip(2).Take(4).ToArray()), bytes[0] << 8 | bytes[1]);
+			}
+
+			return null;
+		}
+
+		/// <summary>True for "localhost" and any loopback address (127.0.0.0/8, ::1).</summary>
+		public static bool IsLoopback(string host)
+		{
+			host = (host ?? "").Trim('[', ']');
 			return host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
 				|| (IPAddress.TryParse(host, out var address) && IPAddress.IsLoopback(address));
 		}
