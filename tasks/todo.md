@@ -581,10 +581,119 @@ M206 Z5.56. The correction was not sent (blocked pending the owner's yes). DO NO
 Rule: on this printer, to RAISE the nozzle, DECREASE M206 Z.
 Also set on the owner's instruction: nozzle temperature 260 C for the NylonG spool (app, effective value 260).
 
+# PLANS (written 2026-11-18, 23:58): three improvements — APPROVED by the owner 23:55 ("yes to all three, start with C"). Owner decisions under A and B answered 23:56. C1 spike started 23:56.
+
+Based on three read-only code searches the same evening (facts below carry file references from them; none
+re-checked by hand yet). Suggested order: C first (its spike is small and it then checks A and B on screen),
+then A, then B (B needs the club network and the printer).
+
+## Plan A: one source of truth for material settings, and a real pre-print summary
+
+What the search found. Settings resolve User > Scene > Material preset > Quality preset > profile base > defaults
+(`PrinterSettings.cs` DefaultLayerCascade). The files under `StaticData/Materials/` are import templates only and
+never feed a slice. The preset that counts is the copy inside the INSTALLED profile, a per-user copy that repo
+changes do not reach: that is how the installed NylonX still said bed 60 after the repo said 75. A "Ready to
+print?" dialog already exists on the OctoPrint path only (`OctoPrintSender.cs` ConfirmationText): material name,
+nozzle, bed; no layer height, no brim, nothing about hand overrides. There is no NylonG preset anywhere in the
+club profile. No test covers the precedence order or the preset values.
+
+Spec. The club profile in the repo is the one definition of each material. The app notices when the installed
+profile's club presets differ from the bundled ones and offers to update them (shows the differences, backs up
+first, never silently). The pre-print dialog becomes a summary of what will actually be sliced: material,
+nozzle, bed, layer height, brim, and for each value whether it comes from the preset or was changed by hand
+("bed 80 C, changed by hand; NylonG preset says 75"). It warns, it does not block.
+
+- [ ] A1. Owner decisions (below), then add a NylonG preset and settle NylonX in `Tools/EBMC/generate_ebmc_files.py`;
+      regenerate the profile; update `EBMC.md`.
+- [ ] A2. Trace how a profile is copied from StaticData to the user's data folder and what re-import does to
+      MaterialLayers (not traced yet). Then: a pure comparison "installed club presets vs bundled" and an
+      "Update club presets…" action in Printer options (diff shown, `.printer.bak-<date>` written first).
+- [ ] A3. Pure summary builder in `MatterControl.Printing` (inputs: settings; output: lines with value, source
+      layer via GetValueAndLayerName, and the preset's value when overridden). Use it in the existing OctoPrint
+      "Ready to print?" dialog. Local USB printing has no such dialog; add the same summary at the top of
+      `ApplicationController.PrintPart` only if the owner wants it (the club printer prints through OctoPrint).
+- [ ] A4. Tests in `Tests/EBMC.Tests`: precedence order; club profile has NylonX and NylonG with the agreed
+      values; summary text for preset-only, overridden, G-code-file cases; preset comparison.
+- [ ] A5. OctoPrint's own temperature presets on the Pi (NylonX/NylonG bed 80 today) set to the agreed values:
+      club network and the owner's yes.
+- [ ] A6. Independent review (opus); on-screen check with the Plan C runner; then clear the hand overrides in
+      the owner's installed profile with the owner's yes (backup first).
+Check: with the installed profile deliberately stale in a scratch data folder, the app offers the update; the
+summary shows a hand-changed bed temperature with the preset's value beside it.
+Owner decisions (answered 2026-11-18 23:56): NylonG preset nozzle 260, bed 80. NylonX bed 80 (nozzle stays 265;
+this supersedes the 75 put in the repo on 2026-11-18). Still to confirm when A1 is built: NylonG fan and
+retraction values (default: copy NylonX's). Summary on local USB printing: not asked for; skip unless requested.
+
+## Plan B: nozzle height as a plain control, with read-back
+
+What the search found. The app cannot send a G-code command through OctoPrint or read a reply: it only
+uploads jobs, starts/cancels, and reads state and temperatures (`OctoPrintClient.cs`). The app's firmware
+settings page understands Marlin and Repetier only; nothing ever recognises Smoothieware. The Z Offset arrows
+on the print panel are an app-side first-layer offset, not the firmware value. `EBMC.md` tells the user to send
+`M206 Z<value>` by hand with no word on direction and no read-back.
+
+Why this design. The value lives in the firmware and only the OctoPrint server can both send commands and read
+replies, so the rule belongs there, in one place: extend the EBMC OctoPrint plugin rather than teach the app a
+second way to talk to the printer. The app then gets a small dialog that calls the plugin.
+
+Spec. "Raise nozzle 0.05 mm" / "Lower nozzle 0.05 mm" (step choices 0.02, 0.05, 0.1). The plugin, only from the
+idle Operational state: reads the stored offset (M503), computes the new M206 Z with the printer's sign rule
+(a setting, default "raising the nozzle DECREASES M206 Z", as on this printer), refuses a change larger than
+0.2 mm in one action or outside a window around a configured reference, sends M206 + M500 + G28, reads back
+with M503, and reports before/after; if the read-back differs it says so loudly. Every change is appended to a
+log on the Pi. One confirmation naming the direction in words ("the nozzle will sit 0.05 mm HIGHER above the
+bed"). Same permission as other printer control.
+
+- [ ] B1. Capture the printer's real M503 reply text (Smoothieware format unknown to us) from the Pi's serial
+      log: club network. Until then build against a recorded sample placeholder, marked as such.
+- [ ] B2. Plugin: `nozzle_height` read and adjust commands, reply parsing through OctoPrint's received-line
+      hook, bounds, log; a panel in OctoPrint's Control tab. Tests on the local OctoPrint with the virtual
+      printer scripted to answer M503 in the captured format, including a wrong read-back and a busy printer.
+- [ ] B3. App: `OctoPrintClient` call to the plugin, a "Nozzle height…" entry in Printer options, the mock
+      server in `Tools/EBMC/octoprint_mock.py` extended, tests in `Tests/EBMC.Tests`.
+- [ ] B4. `EBMC.md`: replace the hand-typed M206 instruction with the control and state the sign rule.
+- [ ] B5. Read-only "what the firmware holds" lines in the same panel (stored Z offset; temperature limits if
+      Smoothieware reports them, to be confirmed in B1).
+- [ ] B6. Independent review (opus), install with the plugin (no print running, owner's yes), first use with
+      the owner watching the first layer.
+Depends on: the STOP/HOME plugin being installed (same plugin). Does NOT replace the pending manual fix: apply
+M206 Z5.46 by hand first as agreed.
+Owner decisions (answered 2026-11-18 23:56): steps 0.02, 0.05 and 0.1 mm, limit 0.2 mm per action. Panel in
+OctoPrint first, then the app dialog (my recommendation; the owner did not object).
+
+## Plan C: automated on-screen smoke test on the Mac
+
+What the search found. agg-sharp's own automation (`Submodules/agg-sharp/GuiAutomation/AutomationRunner.cs`,
+plain net6.0) clicks and types by widget name INSIDE the app, so it needs no macOS Accessibility or Screen
+Recording permission. The existing automation test projects are Windows-only (WinForms). The Mac host is GLFW
+with OpenGL 2.1 and has no screenshot code. EBMC widgets already have names ("Members Tab", "Members Create
+List Button", "Simple Mode Segment", "Laser Export Button"…). In Release builds UI-callback exceptions are
+swallowed by an empty catch in the submodule's `UiThread.cs`, so a smoke run must use a Debug build or it will
+miss them. `EBMC_DATA_DIR` already redirects all user data.
+
+Spec. One command (`Tools/macOS/ui-smoke.sh`) builds the app in Debug, starts it in-process on a fresh temp
+data folder, runs scripted flows by widget name, saves a PNG after each step, and exits non-zero on any
+exception, missing widget or timeout. Flows: start and dismiss the welcome; Members (create list with a
+throwaway passphrase, add an invented member, set importance and role, lock, reopen, damage the files and
+restore from backup); Simple/Advanced switch keeps the page; slice the default part on the club profile
+without sending; Export for laser writes an SVG to the temp folder.
+
+- [ ] C1. Spike: a new `Tests/EBMC.UiSmoke` project (net10.0) that starts the GLFW host, clicks ONE named widget
+      through AutomationRunner and saves one PNG (add a framebuffer read to the host's own `NativeGL`). Finds
+      out early: whether a window opens with the screen locked, and whether name-to-coordinate mapping works on
+      the GLFW window (untested). Stop and re-plan if either fails.
+- [ ] C2. The flows above, each a small named test; screenshots to `out/ui-smoke/<run>/`.
+- [ ] C3. `ui-smoke.sh`, a section in `MACOS.md` (and correct its stale "not yet tried on a Mac" table).
+- [ ] C4. Prove it catches things: on a scratch copy, throw in a click handler and rename a widget; show both
+      runs fail with a clear message.
+- [ ] C5. Independent review (opus). Then use it for the two Members checks still open (restore from backup,
+      light theme via a second run with the theme setting changed in the test copy).
+Not in scope: CI, Windows, driving the real printer.
+Owner decisions: none needed to start.
+
 ## RESUME HERE (written 2026-11-18, 23:30) — read this first
 
-Repo state: branch macos-arm64, pushed at c04d8f02f. UNCOMMITTED: this file; `Tools/octoprint-ebmc-stop/` (new,
-untracked). Commit only when the owner asks.
+Repo state: branch macos-arm64, pushed at 21db7c92c (plugin included). Commit only when the owner asks.
 
 FIRST, before any print on the Pulse:
 - Firmware Z offset is still the mistaken M206 Z5.66 (nozzle 0.1 mm LOWER than before 2026-11-18).
@@ -594,12 +703,13 @@ FIRST, before any print on the Pulse:
 
 OctoPrint "STOP PRINT and HOME ALL AXES" button (`Tools/octoprint-ebmc-stop/`, pip-installable plugin):
 - Built and tested on a local OctoPrint 1.11.8 with the virtual printer. NOT installed on the Pi.
-- An independent review found defects; a fix pass was RUNNING when these notes were written (result not seen:
-  check the files and ask for a fresh review before trusting it). The defects: (A) G-code was sent on the
-  PrintCancelled event, which fires before OctoPrint's own after-cancel script, so the two interleave: must
-  send only from the idle Operational state; (B) on the 60 s timeout it homed anyway: must send nothing and
-  show an error; (D) must refuse during an SD upload and never send while paused; (E) upper-case lines and
-  skip lines not starting with G/M/T; (F) busy flag not cleared if cancel throws.
+- An independent review found defects (cancel-script interleave, homing after a timeout, SD upload, junk
+  settings lines, stuck busy flag). ALL FIXED and retested locally 23:38, committed and pushed as 21db7c92c:
+  it now waits for the idle Operational state before sending, sends nothing on a 60 s timeout (sticky FAILED
+  notice), refuses during an SD upload (the old code would have deleted the upload), upper-cases lines and
+  skips anything that is not a G/M/T command.
+  NOT DONE: a second independent review of the fixes (do before installing); anything on the real printer or
+  Smoothieware (how it answers OctoPrint's M108 on cancel is unknown).
 - Owner agreed (23:25): default after-stop G-code is `G28` ONLY (no Z+10 lift: this printer homes Z up first,
   and has no soft Z max).
 - The printer runs SMOOTHIEWARE (edge-d82d66f), not Marlin: Z homes to max first, order ZYX (from the
@@ -621,6 +731,7 @@ Members on-screen checks (owner: do these 2026-11-19):
 - Small things seen: a click made straight after setting importance can be lost while the panel rebuilds.
 
 Still open:
+- THREE PLANS just above this section (material settings, nozzle height, UI smoke test) await the owner's yes.
 - NylonG tuning: needs a photo of the latest part and what to improve. Overrides now: layer 0.15, bed 80,
   nozzle 260, outer wall 35 mm/s, Z lift off, brim off.
 - OctoPrint presets NylonX/NylonG are bed 80; the repo club NylonX preset is 75 and there is no NylonG
