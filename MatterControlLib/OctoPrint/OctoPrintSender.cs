@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using MatterHackers.Agg;
 using MatterHackers.Agg.UI;
 using MatterHackers.Localizations;
+using MatterHackers.MatterControl.ClubUi;
 using MatterHackers.MatterControl.DataStorage;
 using MatterHackers.MatterControl.Library;
 using MatterHackers.MatterControl.Library.Export;
@@ -26,6 +27,12 @@ namespace MatterHackers.MatterControl.OctoPrint
 		private static int busy;
 
 		private static int busyMessageShowing;
+
+		/// <summary>
+		/// EBMC Edition: a Send or Upload task is running (slicing, uploading or waiting for "Ready to print?"). One runs
+		/// at a time for the whole app, whatever the printer.
+		/// </summary>
+		public static bool IsBusy => Volatile.Read(ref busy) != 0;
 
 		public static void SendBed(PrinterConfig printer, bool startPrint)
 		{
@@ -346,8 +353,8 @@ namespace MatterHackers.MatterControl.OctoPrint
 		}
 
 		/// <summary>
-		/// The "Ready to print?" text for this printer: the active material preset's name and the temperatures it will
-		/// heat to. Read on the UI thread.
+		/// The "Ready to print?" text for this printer: the active material preset's name and the summary of what will
+		/// be sliced (PrintSummary). Read on the UI thread.
 		/// </summary>
 		private static string ConfirmationText(PrinterConfig printer)
 		{
@@ -358,15 +365,16 @@ namespace MatterHackers.MatterControl.OctoPrint
 				return OctoPrintMessages.ConfirmPrintBodyGeneric(s => s.Localize());
 			}
 
+			// EBMC Edition: what will be sliced (material, temperatures, layer heights, brim), where each value comes from,
+			// and what the preset says when it was changed by hand; plus a line when the active club preset is older
+			// than the club's current one. It warns; it never stops the print.
 			var settings = printer.Settings;
-			double? bedTemperature = settings.GetValue<bool>(SettingsKey.has_heated_bed)
-				? settings.GetValue<double>(SettingsKey.bed_temperature)
-				: (double?)null;
+			var summary = PrintSummary.Build(new PrinterSettingsSummarySource(settings), s => s.Localize());
 
 			return OctoPrintMessages.ConfirmPrintBody(
 				settings.MaterialLayer?.Name,
-				settings.GetValue<double>(SettingsKey.temperature),
-				bedTemperature,
+				summary.Select(line => line.Text),
+				ClubPresetsAction.ActivePresetNotice(printer),
 				s => s.Localize());
 		}
 
@@ -406,15 +414,17 @@ namespace MatterHackers.MatterControl.OctoPrint
 					return;
 				}
 
-				// The same page and size StyledMessageBox.ShowMessageBox uses, kept so it can be closed on Stop
+				// The same page StyledMessageBox.ShowMessageBox uses, kept so it can be closed on Stop. EBMC Edition: sized
+				// to the text (at least the stock 400 x 300), so the pre-print summary does not scroll out of sight
+				var (width, height) = ClubDialogRules.MessageBoxSize(message);
 				window = DialogWindow.Show(new StyledMessageBox.MessageBoxPage(
 					(response) => answer.TrySetResult(response),
 					message,
 					caption,
 					StyledMessageBox.MessageType.YES_NO,
 					null,
-					400,
-					300,
+					width,
+					height,
 					yes,
 					no,
 					ApplicationController.Instance.Theme));

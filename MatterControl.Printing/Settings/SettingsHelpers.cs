@@ -242,38 +242,11 @@ namespace MatterHackers.MatterControl.SlicerConfiguration
 		{
 			get
 			{
-				if (!printerSettings.GetValue<bool>(SettingsKey.has_swappable_bed)
-					|| !ActiveMaterialHasAnyBedTemperatures)
-                {
-					return SettingsKey.bed_temperature;
-                }
-
-				switch (printerSettings.GetValue(SettingsKey.bed_surface))
-				{
-					case "Blue Tape":
-						return SettingsKey.bed_temperature_blue_tape;
-
-					case "BuildTak":
-						return SettingsKey.bed_temperature_buildtak;
-
-					case "Garolite":
-						return SettingsKey.bed_temperature_garolite;
-
-					case "Glass":
-						return SettingsKey.bed_temperature_glass;
-
-					case "Kapton":
-						return SettingsKey.bed_temperature_kapton;
-
-					case "PEI":
-						return SettingsKey.bed_temperature_pei;
-
-					case "Polypropylene":
-						return SettingsKey.bed_temperature_pp;
-
-					default:
-						return SettingsKey.bed_temperature;
-				}
+				// EBMC Edition: the selection lives in PrintSummary so the pre-print summary shows the same key
+				return PrintSummary.ActiveBedTemperatureKey(
+					printerSettings.GetValue<bool>(SettingsKey.has_swappable_bed),
+					ActiveMaterialHasAnyBedTemperatures,
+					printerSettings.GetValue(SettingsKey.bed_surface));
 			}
 		}
 

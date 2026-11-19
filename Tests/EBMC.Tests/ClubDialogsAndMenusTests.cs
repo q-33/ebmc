@@ -162,7 +162,7 @@ namespace EBMC.Tests
 			{
 				"#Show", ClubMenus.ShowPrinter, ClubMenus.ShowControls, ClubMenus.ShowTerminal,
 				"-",
-				"#Maintenance", ClubMenus.Calibrate, ClubMenus.UpdateSettings, ClubMenus.RestoreSettings, ClubMenus.ImportSettings, ClubMenus.ExportSettings, ClubMenus.Eeprom,
+				"#Maintenance", ClubMenus.Calibrate, ClubMenus.UpdateSettings, ClubMenus.UpdateClubPresets, ClubMenus.RestoreSettings, ClubMenus.ImportSettings, ClubMenus.ExportSettings, ClubMenus.Eeprom,
 				"-",
 				ClubMenus.MaintainerLock,
 				"-",
@@ -180,7 +180,7 @@ namespace EBMC.Tests
 			{
 				"#Show", ClubMenus.ShowPrinter,
 				"-",
-				"#Maintenance", ClubMenus.Calibrate, ClubMenus.UpdateSettings, ClubMenus.RestoreSettings, ClubMenus.ImportSettings, ClubMenus.ExportSettings, ClubMenus.Eeprom,
+				"#Maintenance", ClubMenus.Calibrate, ClubMenus.UpdateSettings, ClubMenus.UpdateClubPresets, ClubMenus.RestoreSettings, ClubMenus.ImportSettings, ClubMenus.ExportSettings, ClubMenus.Eeprom,
 				"-",
 				ClubMenus.ResetSettings, ClubMenus.DeletePrinter,
 			}));

@@ -317,6 +317,31 @@ namespace MatterHackers.MatterControl.OctoPrint
 		}
 
 		/// <summary>
+		/// EBMC Edition: the question before a remote print with the summary of what will be sliced
+		/// (<c>PrintSummary</c> lines: material, temperatures, layer heights and brim, each with where it comes from) in
+		/// place of the single heating sentence. <paramref name="notice"/> (optional) is one more line after the summary,
+		/// such as a club preset that differs from the club's current one. It warns; it never stops the print.
+		/// </summary>
+		public static string ConfirmPrintBody(string materialName, IEnumerable<string> summaryLines, string notice, Func<string, string> localize)
+		{
+			localize = localize ?? (s => s);
+
+			string material = string.IsNullOrWhiteSpace(materialName) ? localize("the right material") : materialName.Trim();
+
+			var text = localize("Is the bed empty and clean?")
+				+ "\n" + Format(localize("Is {0} loaded?"), material)
+				+ "\n\n" + string.Join("\n", summaryLines ?? Array.Empty<string>());
+
+			if (!string.IsNullOrWhiteSpace(notice))
+			{
+				text += "\n\n" + notice.Trim();
+			}
+
+			return text + "\n\n" + localize("The printer will heat, home, and probe the bed,")
+				+ "\n" + localize("then print.");
+		}
+
+		/// <summary>
 		/// The page to open for "Open OctoPrint": the approval page the server returned, if it is an absolute
 		/// http or https address (anything else, such as file: or a custom scheme, is ignored), otherwise the
 		/// OctoPrint address itself.

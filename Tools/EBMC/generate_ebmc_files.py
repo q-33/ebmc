@@ -52,11 +52,23 @@ heights = {'Coarse': '0.2', 'Standard': '0.15', 'Fine': '0.1'}
 for q in p['QualityLayers']:
     q['layer_height'] = heights[q['layer_name']]
 nylonx = [m for m in p['MaterialLayers'] if m['layer_name'] == 'NylonX'][0]
-# Bed raised from 60 to 75 on 2026-11-18 (owner approved): small NylonX parts came loose at 60 with no brim.
-nylonx.update({'temperature': '265', 'bed_temperature': '75', 'min_fan_speed': '0', 'max_fan_speed': '0',
+# Bed raised from 60 to 75 on 2026-11-18 after small NylonX parts came loose at 60 with no brim, then to 80
+# (owner's decision 2026-11-18 23:56, same as the NylonG preset).
+nylonx.update({'temperature': '265', 'bed_temperature': '80', 'min_fan_speed': '0', 'max_fan_speed': '0',
                'bridge_fan_speed': '100', 'first_layer_extrusion_width': '110%',
                'retract_restart_extra': '0', 'retract_restart_extra_time_to_apply': '0'})
 o['active_material_key'] = nylonx['layer_id']
+# NylonG preset (owner's decision 2026-11-18 23:56: nozzle 260, bed 80). The stock S-232 has none. Fan,
+# first-layer width and retraction values are copied from the club's NylonX preset; density and cost come
+# from StaticData/Materials/_MatterHackers/NylonG.material. The layer_id is fixed (not random per run) so an
+# installed profile's NylonG preset can be matched to this one by "Update club presets".
+assert not [m for m in p['MaterialLayers'] if m['layer_name'] == 'NylonG'], 'stock S-232 now has NylonG; review'
+nylong = {'layer_name': 'NylonG', 'layer_id': '837244a6-03d8-46d2-8f84-4ecc607da4d9',
+          'temperature': '260', 'bed_temperature': '80', 'filament_density': '1.1', 'filament_cost': '64'}
+for k in ('min_fan_speed', 'max_fan_speed', 'raft_fan_speed_percent', 'bridge_fan_speed',
+          'first_layer_extrusion_width', 'retract_restart_extra', 'retract_restart_extra_time_to_apply'):
+    nylong[k] = nylonx[k]
+p['MaterialLayers'].insert(p['MaterialLayers'].index(nylonx) + 1, nylong)
 for k in ('retract_restart_extra', 'retract_restart_extra_time_to_apply'):
     p['StagedUserSettings'].pop(k, None)
 W(f'StaticData/Profiles/{MAKE}/{MODEL}.printer', p)
