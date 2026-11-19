@@ -15,8 +15,8 @@ by MatterHackers.
 |---|---|---|
 | Printer profile | New make "East Bay Makers Club", model "Pulse S-232 Mosquito" | `StaticData/Profiles/East Bay Makers Club/Pulse S-232 Mosquito.printer`, `StaticData/Profiles/oemprofiles.json` |
 | Profile list | Bundled makes/models are merged into the cached or server list so the club profile always shows | `MatterControlLib/SettingsManagement/OemSettings.cs` |
-| Theme | "East Bay Makers Club Dark" (the default) and "East Bay Makers Club Light", both from the club website palette | `StaticData/Themes/System/EBMC/` |
-| Default theme | A new user profile starts in the dark club theme | `MatterControlLib/ApplicationView/AppContext.cs` |
+| Theme | One theme, "East Bay Makers Club Dark" (themeset `EBMC-Dark`), from the club website palette. The build locks it (`LockedThemeSet` in the OEM settings): no theme or colour pickers, and the stock themes are not offered | `StaticData/Themes/System/EBMC/`, `StaticData/OEMSettings/Settings.json`, `MatterControlLib/ApplicationView/Themes/ThemeLock.cs` |
+| Default theme | A new user profile starts in the club theme (and so does every profile while the theme is locked) | `MatterControlLib/ApplicationView/AppContext.cs` |
 | Vendor services removed | No Upgrade or Store tab, update check, account sign-in, Community links, "Shop filament" button or Pro upsell; the interface tour no longer opens at every start; the first-run vendor agreement page is skipped. Controlled by `ShowVendorServices`, `ShowTourOnStartup` and `ShowLicenseAgreement` in the OEM settings (set any to `true` to restore) | `StaticData/OEMSettings/Settings.json`, `MatterControlLib/PartPreviewWindow/MainViewWidget.cs`, `MatterControlLib/ApplicationView/BrandMenuButton.cs`, `MatterControlLib/ApplicationView/Application.cs` and three others |
 | MatterHackers references | About shows "East Bay Makers Club edition", an acknowledgement of MatterControl and MatterHackers, and MatterControl's own BSD licence beside the bundled ones; MatterHackers help, store and forum links, remote images and product panels are removed or hidden while `ShowVendorServices` is off (links and image or text fetches from in-app help text and dialogs are blocked; code paths used only by stock, non-club printer profiles with a vendor SKU can still contact the vendor's product service); the affiliate code is cleared; only the club's own assemblies name the club as company (the agg-sharp and MatterSlice submodule assemblies keep their own). Credits are in `NOTICE.md` | `MatterControlLib/DialogPages/AboutPage.cs`, `MatterControlLib/ApplicationView/ApplicationController.cs`, `MatterControlLib/History/PrintHistoryEditor.cs`, `MatterControlLib/Library/Widgets/AddMaterialWidget.cs`, `StaticData/License/`, `Directory.Build.targets`, `NOTICE.md` and others |
 | Printer list | Printer setup offers only the club printer; the stock "Setup New Pulse" shortcut is hidden. Controlled by `PrinterWhiteList` in the OEM settings | `StaticData/OEMSettings/Settings.json`, `MatterControlLib/Library/Widgets/AddPrinterWidget.cs`, `MatterControlLib/DialogPages/StartupPage.cs`, `MatterControlLib/SettingsManagement/OemSettings.cs` |
@@ -37,7 +37,7 @@ by MatterHackers.
 | Slicing | Ordinary meshes are sent to the slicer again (upstream's pinned `agg-sharp` marks them not printable) | `MatterControlLib/DesignTools/PrintableExtensions.cs` |
 
 The data files are produced by `Tools/EBMC/generate_ebmc_files.py` from the stock S-232 profile
-and the stock light themes. Re-run it from the repository root after changing a value:
+and the stock Modern dark theme. Re-run it from the repository root after changing a value:
 
     python Tools/EBMC/generate_ebmc_files.py .
 
@@ -139,10 +139,11 @@ From the CSS variables on eastbaymakersclub.com: blue `#0648D8`, deep blue `#003
 orange `#FF3D12`, deep orange `#D42609`, green `#087F5B`, yellow `#FFDF69`, ink `#050505`,
 soft ink `#38322C`, muted `#71685E`, paper `#F4EDE3`, warm paper `#FBF6ED`, cream `#FFF7EA`.
 
-The dark theme uses warm near-black grounds built from the ink colours (`#1F1C19`, `#151311`,
-`#2B2723`), paper-tinted text (`#EDE6DA`) and the club orange as its accent. The club blue and
-green are too dark to read on that ground, so its accent choices include lightened versions
-(`#6C9BFF`, `#35B98B`); those two are not from the website.
+The club build has one theme, a dark one. It uses warm near-black grounds built from the ink
+colours (`#1F1C19`, `#151311`, `#2B2723`), paper-tinted text (`#EDE6DA`), the club orange as its
+accent and the club yellow for quality presets. The club blue and green are too dark to read on
+that ground, so its accent choices include lightened versions (`#6C9BFF`, `#35B98B`); those two
+are not from the website.
 
 Not done: the full "East Bay Makers Club" wordmark is not included (only the EBMC badge is).
 

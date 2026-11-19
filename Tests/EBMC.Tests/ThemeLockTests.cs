@@ -17,7 +17,7 @@ namespace EBMC.Tests
 		private static readonly (string, IEnumerable<string>)[] Providers =
 		{
 			("Modern", new[] { "Modern-Dark", "Modern-Light" }),
-			("EBMC", new[] { "EBMC-Dark", "EBMC-Paper" }),
+			("EBMC", new[] { "EBMC-Dark" }),
 		};
 
 		[Test]
@@ -63,6 +63,33 @@ namespace EBMC.Tests
 					.Select(Path.GetFileNameWithoutExtension);
 				Assert.That(ThemeLock.ProviderFor(locked, new[] { ("EBMC", clubThemes) }), Is.EqualTo("EBMC"));
 			}
+		}
+
+		[Test]
+		public void ClubThemeFolderHoldsOnlyTheDarkTheme()
+		{
+			string root = RepoRoot();
+			var themesets = Directory.GetFiles(Path.Combine(root, "StaticData", "Themes", "System", "EBMC"), "*.themeset")
+				.Select(Path.GetFileName)
+				.ToArray();
+			Assert.That(themesets, Is.EqualTo(new[] { "EBMC-Dark.themeset" }), "the club build has one theme");
+
+			using (var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "StaticData", "OEMSettings", "Settings.json"))))
+			{
+				Assert.That(document.RootElement.GetProperty("LockedThemeSet").GetString() + ".themeset", Is.EqualTo(themesets[0]));
+			}
+		}
+
+		private static string RepoRoot()
+		{
+			var directory = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
+			while (directory != null && !File.Exists(Path.Combine(directory.FullName, "StaticData", "OEMSettings", "Settings.json")))
+			{
+				directory = directory.Parent;
+			}
+
+			Assert.That(directory, Is.Not.Null);
+			return directory.FullName;
 		}
 	}
 }

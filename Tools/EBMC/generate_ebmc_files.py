@@ -77,48 +77,8 @@ idx = J('StaticData/Profiles/oemprofiles.json')
 idx[MAKE] = {MODEL: {'ShortProfileID': 'EBMC-Pulse-S-232-Mosquito', 'ProfileToken': '', 'DeviceToken': ''}}
 open(os.path.join(root,'StaticData/Profiles/oemprofiles.json'),'w',encoding='utf-8',newline='').write(json.dumps(idx))  # keep upstream single-line format
 
-# ---------- club theme (palette read from eastbaymakersclub.com CSS variables) ----------
-BLUE, BLUE_DEEP, ORANGE, ORANGE_DEEP = '#0648D8', '#0034A8', '#FF3D12', '#D42609'
-GREEN, YELLOW, INK, SOFT_INK, MUTED = '#087F5B', '#FFDF69', '#050505', '#38322C', '#71685E'
-PAPER, PAPER_WARM, CREAM = '#F4EDE3', '#FBF6ED', '#FFF7EA'
-LINE, LINE_SOFT = '#D9CFBF', '#E6DDCE'
-def field(bg, border, text=INK, light=None):
-    d = {'BackgroundColor': bg, 'ForegroundColor': '#00000000', 'BorderColor': border, 'TextColor': text}
-    if light: d['LightTextColor'] = light
-    return d
-def recolor(t, bg, tabbar, inactive):
-    t = copy.deepcopy(t)
-    t.update({
-        'TextColor': INK,
-        'PresetColors': {'MaterialPreset': ORANGE, 'QualityPreset': YELLOW, 'UserOverride': BLUE + '96'},
-        'IsDarkTheme': False,
-        'BackgroundColor': bg, 'TabBarBackground': tabbar, 'InactiveTabColor': inactive,
-        'InteractionLayerOverlayColor': bg + 'F0', 'SplitterBackground': LINE,
-        'AccentMimimalOverlay': BLUE + '50', 'PrimaryAccentColor': BLUE,
-        'BedColor': PAPER, 'BedBackgroundColor': LINE_SOFT, 'PrinterBedTextColor': MUTED,
-        'BorderColor': SOFT_INK, 'BorderColor40': MUTED, 'BorderColor20': LINE,
-        'PopupBorderColor': LINE, 'RowBorder': LINE_SOFT,
-        'DisabledColor': MUTED, 'SplashAccentColor': PAPER, 'SectionBackgroundColor': PAPER,
-    })
-    t['EditFieldColors'] = {
-        'Focused': field(CREAM, ORANGE, light=MUTED),
-        'Hovered': field(CREAM, ORANGE, text='#00000000'),
-        'Inactive': field(CREAM, LINE, light=MUTED)}
-    t['DropList'] = {
-        'Open': field(LINE, '#00000000'), 'Focused': field(LINE_SOFT, ORANGE),
-        'Hovered': field(LINE_SOFT, ORANGE), 'Inactive': field(CREAM, LINE)}
-    if 'BedGridColors' in t: t['BedGridColors']['Line'] = LINE
-    return t
-W('StaticData/Themes/System/EBMC/EBMC-Paper.json',
-  recolor(J('StaticData/Themes/System/Light/Light-White.json'), PAPER_WARM, PAPER, LINE_SOFT))
-W('StaticData/Themes/System/EBMC/EBMC-Paper-Menu.json',
-  recolor(J('StaticData/Themes/System/Solarized/Solarized-Light-Menu.json'), PAPER, LINE, LINE_SOFT))
-W('StaticData/Themes/System/EBMC/EBMC-Paper.themeset', {
-    'Name': 'East Bay Makers Club Light', 'DefaultColorIndex': 0,
-    'AccentColors': [BLUE, BLUE_DEEP, ORANGE, ORANGE_DEEP, GREEN, SOFT_INK],
-    'ThemeID': 'EBMC-Paper', 'MenuThemeID': 'EBMC-Paper-Menu'})
-
-# ---------- club dark theme (the default): the same palette on the site's ink colours ----------
+# ---------- club theme (the only one): palette read from eastbaymakersclub.com CSS variables, on the site's ink colours ----------
+ORANGE, ORANGE_DEEP, YELLOW = '#FF3D12', '#D42609', '#FFDF69'
 D_BG, D_TAB, D_RAISED, D_LINE = '#1F1C19', '#151311', '#2B2723', '#3D3731'
 D_TEXT, D_MUTED = '#EDE6DA', '#9A9186'
 D_FIELD = '#262320'

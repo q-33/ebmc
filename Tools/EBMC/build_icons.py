@@ -6,7 +6,7 @@ Usage (from the repo root):
 
     --preview-dir DIR   also write contact sheets into DIR:
                           icons-contact-sheet.png      every mapped icon, old vs new, at 1x and 2x,
-                                                       tinted on the dark and the light club theme
+                                                       tinted on the club dark theme and on a light ground
                           icons-contact-sheet-3x.png   the same sheet magnified 3x (nearest neighbour)
                           icons-custom-128.png         only the custom glyphs, at 128 px
     --compare-ref REF   git revision the "old" column is read from (default HEAD), via `git show`
@@ -124,9 +124,9 @@ PAINT_VALUES = {"none", "currentColor", "#000", "#000000", "black"}
 NUMERIC = re.compile(r"^[-+0-9.eE ,]*$")
 PATH_DATA = re.compile(r"^[MmLlHhVvCcSsQqTtAaZz0-9eE.,+\- \t\r\n]*$")
 
-# Preview colours: the club themes in StaticData/Themes/System/EBMC/
+# Preview colours: the club theme (StaticData/Themes/System/EBMC/EBMC-Dark) and a light ground to check contrast
 DARK = ("#EDE6DA", "#1F1C19")    # EBMC-Dark text, workspace background
-LIGHT = ("#050505", "#FBF6ED")   # EBMC-Paper text, workspace background
+LIGHT = ("#050505", "#FBF6ED")   # near-black text on warm paper (not a club theme)
 
 
 def fail(message):
@@ -338,7 +338,7 @@ def get_font(size):
 
 
 def contact_sheet(repo, ref, entries, new_images, out_dir):
-    """Rows: one per icon. Columns: dark theme old 1x/2x | new 1x/2x, light theme old | new."""
+    """Rows: one per icon. Columns: dark theme old 1x/2x | new 1x/2x, light ground old | new."""
     font = get_font(11)
     label_w, cell, gap, row_h = 230, 40, 8, 44
     panel_w = 4 * cell + 3 * gap

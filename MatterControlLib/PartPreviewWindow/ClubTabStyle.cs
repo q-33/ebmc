@@ -17,8 +17,8 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 	/// EBMC Edition: design values and drawing geometry for the "A. Club label" top bar and tab strip.
 	/// Lengths are in device independent units: multiply by GuiWidget.DeviceScale before use
 	/// (the helpers below take the scale and do it for you). Point sizes are passed straight to
-	/// TextWidget, which applies DeviceScale itself. Colours always come from the theme so the
-	/// dark and the light club themes both work.
+	/// TextWidget, which applies DeviceScale itself. Colours always come from the theme
+	/// (the club dark theme, or a stock theme when the theme is not locked).
 	/// This class depends only on agg-sharp so the geometry can be rendered offline.
 	/// </summary>
 	public static class ClubTabStyle
@@ -123,7 +123,7 @@ namespace MatterHackers.MatterControl.PartPreviewWindow
 
 		// ---- Colours (all from the theme) ----
 
-		/// <summary>Subtle line colour: #3D3731 on EBMC-Dark, #D9CFBF on EBMC-Paper.</summary>
+		/// <summary>Subtle line colour: #3D3731 on EBMC-Dark.</summary>
 		public static Color LineColor(ThemeConfig theme) => theme.BorderColor20;
 
 		public static Color MutedTextColor(ThemeConfig theme) => theme.TextColor.WithAlpha(MutedTextAlpha);
