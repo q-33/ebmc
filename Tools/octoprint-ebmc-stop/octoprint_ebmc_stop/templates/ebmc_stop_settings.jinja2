@@ -1,0 +1,34 @@
+<h3>EBMC Stop</h3>
+<form class="form-horizontal" onsubmit="return false;">
+    <div class="control-group">
+        <div class="controls">
+            <label class="checkbox">
+                <input type="checkbox" data-bind="checked: settings.plugins.ebmc_stop.heaters_off">
+                Switch heaters off first (M104 S0, M140 S0)
+            </label>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label">After-stop G-code</label>
+        <div class="controls">
+            <textarea rows="6" class="input-block-level" style="font-family: monospace"
+                      data-bind="value: settings.plugins.ebmc_stop.after_stop_gcode"></textarea>
+            <span class="help-block">
+                Sent only once the print has been cancelled and the printer is idle
+                (after OctoPrint's own "after print job is cancelled" script).
+                One command per line. Lines starting with ";" are ignored. Each line is
+                upper-cased (except the text of M117/M118 messages). Lines that do not start with G, M or T followed by a
+                number (for example G28, M104, T0) are skipped and logged, because
+                Smoothieware would run them as console commands.
+            </span>
+            <span class="help-block">
+                <strong>Why the default is only G28:</strong> on this printer Z homes
+                <em>upwards</em> (to Z max) first, so G28 already lifts the nozzle away
+                from the part before X and Y move, and a relative lift near the top of
+                travel would drive into the stop. On a printer that homes Z
+                <em>downwards</em> onto the bed, plain G28 can crash the nozzle into the
+                part: do not use this default there.
+            </span>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,9 @@
+<div id="ebmc_stop_panel" class="row-fluid">
+    <button type="button" class="btn btn-danger btn-large btn-block ebmc-stop-button"
+            data-bind="click: confirmStop, enable: canStop">
+        STOP PRINT and HOME ALL AXES
+    </button>
+    <p class="ebmc-stop-note" data-bind="visible: !canStop()">
+        <small data-bind="text: disabledReason"></small>
+    </p>
+</div>

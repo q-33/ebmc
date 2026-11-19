@@ -1,0 +1,15 @@
+#ebmc_stop_panel {
+    margin-top: 10px;
+}
+
+#ebmc_stop_panel .ebmc-stop-button {
+    font-size: 20px;
+    font-weight: bold;
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+
+#ebmc_stop_panel .ebmc-stop-note {
+    margin-top: 4px;
+    text-align: center;
+}

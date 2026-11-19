@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "OctoPrint-EbmcStop"
+version = "1.0.0"
+description = "A large red button under the Temperature tab that stops the print and homes the printer."
+readme = "README.md"
+license = { text = "AGPL-3.0-or-later" }
+requires-python = ">=3.7,<4"
+dependencies = []
+
+[project.entry-points."octoprint.plugin"]
+ebmc_stop = "octoprint_ebmc_stop"
+
+[tool.setuptools]
+packages = ["octoprint_ebmc_stop"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+octoprint_ebmc_stop = ["templates/*.jinja2", "static/js/*.js", "static/css/*.css"]
