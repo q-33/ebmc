@@ -581,25 +581,54 @@ M206 Z5.56. The correction was not sent (blocked pending the owner's yes). DO NO
 Rule: on this printer, to RAISE the nozzle, DECREASE M206 Z.
 Also set on the owner's instruction: nozzle temperature 260 C for the NylonG spool (app, effective value 260).
 
-## RESUME HERE (written 2026-11-18, 22:35)
+## RESUME HERE (written 2026-11-18, 23:30) — read this first
 
-Committed and pushed today: branch macos-arm64 at 0304580d2 (Members, laser export parked, NylonX bed 75,
-version 1.0). App rebuilt; window title not yet looked at.
+Repo state: branch macos-arm64, pushed at c04d8f02f. UNCOMMITTED: this file; `Tools/octoprint-ebmc-stop/` (new,
+untracked). Commit only when the owner asks.
 
-FIRST, before any print:
-- Firmware Z offset is still the mistaken M206 Z5.66 (nozzle 0.1 mm LOWER than before today).
-  To RAISE the nozzle, DECREASE M206 Z. Owner to choose 5.46 (raise 0.1 as asked) or 5.56 (undo only);
-  then M206 + M500 + G28 with the printer idle and the owner present.
+FIRST, before any print on the Pulse:
+- Firmware Z offset is still the mistaken M206 Z5.66 (nozzle 0.1 mm LOWER than before 2026-11-18).
+  Rule: to RAISE the nozzle, DECREASE M206 Z. Owner chose 5.46. NOT applied: the Mac was off the club network
+  (OctoPrint unreachable from the 10.x network at home). When on the club network, printer idle, owner present:
+  M206 Z5.46 + M500 + G28, then read back with M503.
 
-Then:
-- OctoPrint: large red "STOP PRINT and HOME ALL AXES" button under the temperature section. Not started.
-  Needs a small plugin and an OctoPrint restart (never during a print). Show the plugin first.
-- NylonG print still needs refinement (owner: "better, but still needs work"). Current overrides: layer
-  0.15, bed 80, nozzle 260, outer wall 35 mm/s, Z lift off, brim off. Ask for a photo of the latest part.
-- OctoPrint presets NylonX and NylonG are now bed 80; the repo club NylonX preset is 75 and there is no
-  NylonG preset in the Pulse profile. Ask whether to align them.
-- Still open from before: on-screen checks of Members (copy/cut blocking, restore from backup, light theme),
-  old Members copies that open with the throwaway passphrase, the invented test entry "Juniper Vale",
-  keeping EBMC_DATA_DIR, laser export.
-- The MicroDuck work moved to its own repo (folder `microduck/`, ignored here); its plan is in its own
-  tasks/todo.md.
+OctoPrint "STOP PRINT and HOME ALL AXES" button (`Tools/octoprint-ebmc-stop/`, pip-installable plugin):
+- Built and tested on a local OctoPrint 1.11.8 with the virtual printer. NOT installed on the Pi.
+- An independent review found defects; a fix pass was RUNNING when these notes were written (result not seen:
+  check the files and ask for a fresh review before trusting it). The defects: (A) G-code was sent on the
+  PrintCancelled event, which fires before OctoPrint's own after-cancel script, so the two interleave: must
+  send only from the idle Operational state; (B) on the 60 s timeout it homed anyway: must send nothing and
+  show an error; (D) must refuse during an SD upload and never send while paused; (E) upper-case lines and
+  skip lines not starting with G/M/T; (F) busy flag not cleared if cancel throws.
+- Owner agreed (23:25): default after-stop G-code is `G28` ONLY (no Z+10 lift: this printer homes Z up first,
+  and has no soft Z max).
+- The printer runs SMOOTHIEWARE (edge-d82d66f), not Marlin: Z homes to max first, order ZYX (from the
+  SD-card backups in `printer-config/`; not watched on the machine). First press: empty bed.
+- At install (club network, no print running, owner's yes, OctoPrint restart): look at Settings > GCODE
+  Scripts "after print job is cancelled"; the default has M84 (motors off) before our G28.
+
+Members on-screen checks (owner: do these 2026-11-19):
+- SEEN 2026-11-18 in a scratch test copy (separate bundle id, EBMC_DATA_DIR, invented names): window title
+  "EBMC 1.0"; Cmd+C / Cmd+X in the passphrase field copy and cut nothing; star outlines and role badge fine;
+  no lock entries in the EBMC menu, Settings or Find a tool.
+- NOT done: restore from backup (damage main file + .prev in the scratch folder, reopen, expect the
+  Unreadable view with "Restore newest backup"); light theme (club build locks the theme with
+  `LockedThemeSet` = EBMC-Dark, so change that in the TEST COPY's bundled OEM settings only).
+- Blocked on 2026-11-18 by macOS Screen Recording not granted to the upgraded Claude Code (2.1.328): the
+  owner must quit and reopen the terminal app after granting it. The scratch test copy lived in that
+  session's scratchpad; rebuild it (copy dist/EBMC.app, change the bundle id, ad-hoc re-sign, start with
+  `open -n <app> --env EBMC_DATA_DIR=<scratch>`, confirm with lsof) if it is gone.
+- Small things seen: a click made straight after setting importance can be lost while the panel rebuilds.
+
+Still open:
+- NylonG tuning: needs a photo of the latest part and what to improve. Overrides now: layer 0.15, bed 80,
+  nozzle 260, outer wall 35 mm/s, Z lift off, brim off.
+- OctoPrint presets NylonX/NylonG are bed 80; the repo club NylonX preset is 75 and there is no NylonG
+  preset in the Pulse profile. Ask whether to align them.
+- Old Members copies still open with the throwaway passphrase; invented entry "Juniper Vale" in the real
+  list; keeping EBMC_DATA_DIR; laser export (parked).
+- This shell: `grep` printed "unknown option" errors after the Claude Code upgrade; use /usr/bin/grep.
+- Owner's global CLAUDE.md changed 2026-11-18: sub-agents use sonnet for lookups/summaries/mechanical work,
+  opus for code, design, hardware and all verification. Check that a call passing `sonnet` really runs on
+  sonnet (settings has CLAUDE_CODE_SUBAGENT_MODEL=opus).
+- MicroDuck lives in its own repo (folder `microduck/`, ignored here); its plan is in its tasks/todo.md.
