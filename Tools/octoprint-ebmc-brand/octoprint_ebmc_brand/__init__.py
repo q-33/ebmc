@@ -37,7 +37,7 @@ class EbmcBrandPlugin(octoprint.plugin.AssetPlugin):
 
 
 __plugin_name__ = "EBMC Brand"
-__plugin_version__ = "1.1.0"
+__plugin_version__ = "1.2.0"
 __plugin_description__ = (
     "Shows the East Bay Makers Club badge in place of OctoPrint's logos and uses the club's colours."
 )

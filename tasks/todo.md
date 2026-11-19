@@ -691,7 +691,80 @@ without sending; Export for laser writes an SVG to the temp folder.
 Not in scope: CI, Windows, driving the real printer.
 Owner decisions: none needed to start.
 
-## RESUME HERE (updated 2026-11-19, 00:12) — read this first
+## RESUME HERE (updated 2026-11-19, 03:06) — read this first
+
+STATE NOW. Where this block and older text below disagree, this block wins.
+
+Repo: branch macos-arm64. Pushed up to 92142d809. Local, not pushed: c804895ca (OctoPrint branding plugin,
+first pass). Sub-agents do not survive a new session: check files and re-run what is missing.
+
+BRANDING SECOND PASS DONE 2026-11-19 15:25, committed and pushed (version 1.2.0): ink top bar with an orange
+line whatever the Appearance colour, ink panel headings, ink outlines and hard shadows, blue primary, yellow
+highlights, danger still red; computed-colour audit clean except the graph legend swatches. Known leftovers:
+the G-code viewer's bed area stays white (hard-coded in OctoPrint), the webcam box reads black. Owner may
+still choose: cream mark or orange tile on the bar; ink or yellow panel headings; Cancel button red or not.
+(The note below was written while it was still running.)
+- Branding plugin SECOND PASS (`Tools/octoprint-ebmc-brand/`, uncommitted edits): the owner wants the top bar
+  and everything else in OctoPrint on the club palette (https://eastbaymakersclub.com). Direction given: solid
+  INK top bar with cream text and an orange underline, always (ignore OctoPrint's Appearance colour); every
+  element on palette (audit computed colours); the site's ink outlines and hard shadows; primary actions blue,
+  plain buttons warm paper, yellow for highlights, orange only as accent; DANGER STAYS RED, `.btn-danger`
+  never recoloured. OWNER'S STANDING INSTRUCTION: when it is done, look at the screenshots, then COMMIT AND
+  PUSH. Open owner decisions from pass one: Cancel (print) button red or not; a dark variant (about half a day).
+
+DONE AND PUSHED tonight:
+- Plan C, on-screen smoke test: `Tools/macOS/ui-smoke.sh all`, twelve flows, independently reviewed, findings
+  fixed (failed build fails the run; mock cannot outlive the test; symlink-proof data-folder guard; socket
+  connects watched; restore flow compares with the backup). Found and fixed a real bug: club toasts with an
+  icon threw (swallowed in Release). Untested: screen locked, display asleep.
+- Plan A, material settings: NylonX 265/80, NylonG 260/80 (fans off like NylonX; density 1.1, cost 64);
+  "Update club presets…" in Printer options; fuller "Ready to print?" summary; both dialogs seen on screen
+  through the smoke flows and fit. 1433 unit tests pass.
+- No light theme: the club build has one dark theme; EBMC-Paper removed.
+- OctoPrint plugin `Tools/octoprint-ebmc-stop/` 1.2.0: STOP/HOME (default G28 only) plus the nozzle height
+  control (Plan B plugin part), independently reviewed twice, findings fixed, 38 tests. STOP always wins.
+
+NOT INSTALLED ANYWHERE: both OctoPrint plugins. Everything about them is tested only on a local OctoPrint
+with a simulated printer.
+
+WHEN ON THE CLUB NETWORK (printer idle, owner present, a yes for each step), in this order:
+1. Read the live settings first: M503 in OctoPrint's Terminal; save the text (it is the missing "B1" capture:
+   confirms the `M206 X.. Y.. Z..` line format the plugin parses, and shows which max temperatures are in
+   force: the SD backup's saved settings say M143 400/140, the staged config says 300/100).
+2. Fix the Z offset by hand as agreed: the stored value is believed to be 5.66 (0.1 mm too LOW); send
+   M206 Z5.46, M500, G28, then M503 to read back. Rule: to RAISE the nozzle, make M206 Z SMALLER.
+3. Install the two plugins (no print running; needs an OctoPrint restart; README in each folder). In
+   Settings > EBMC Stop type the reference 5.46 (from the live read). Keep the range (+-0.3, 0.2 per action).
+   Leave OctoPrint's Appearance colour at default. Check "after print job is cancelled" in GCODE Scripts
+   (default has M84 before our G28) and that the firmware-error handling is still "disconnect".
+4. First STOP press with an EMPTY bed. First nozzle change: one 0.02 mm Raise, then check a first layer.
+5. A5: set OctoPrint's own temperature presets to NylonX 265/80, NylonG 260/80.
+6. In the app, with a yes: "Update club presets…" on the installed profile (it lists the hand overrides
+   that will still win; clear those afterwards so the presets apply).
+
+STILL OPEN (no network needed):
+- Plan B3: the app's "Nozzle height…" dialog calling the plugin (not started).
+- Members: old copies still open with the throwaway passphrase; test entry "Juniper Vale" in the real list;
+  the fork-or-separate-app question; laser export parked.
+- NylonG tuning: needs a photo of the latest part.
+- Print-test what the profile ships (speeds 70/250, retraction threshold 1 mm): improvement 5 of the review.
+- The app-wide message box wraps slightly too wide (StyledMessageBoxWindow.cs ~275); the two Plan A boxes
+  no longer depend on it; not asked for.
+- Clean-up, with a yes: the Plan A clone at `microduck/.claude/worktrees/agent-ab994f2712724217c/` (merged)
+  and local branch `plan-a-material-settings`; MicroDuck shows `.claude/` as untracked: add it to .gitignore.
+
+OUTSIDE THE REPOS:
+- Duck mod `~/.claude/mods/duck-animations` v0.6.0 (global through CLAUDE_CODE_PLUGIN_DIRS): three-row
+  coloured duck; its water is a status line (current tool, turn time, tool count, agents working); one lane
+  per working sub-agent (task, model, time, tools, current step); finished babies regroup behind the main
+  duck until the turn ends; tricks name milestones. 12 tests pass. NEVER seen on a real screen by Claude:
+  ask the owner how it looks and fix from their description. Earlier versions kept as .bak files.
+- Global CLAUDE.md: sub-agent model rule is now "sonnet for lookups, opus for code/design/hardware/all
+  verification". Sonnet calls did run on Sonnet.
+- Push only when the owner says push (the permission system refuses otherwise).
+
+(older notes follow)
+## (older) RESUME notes from 00:12
 
 OWNER DECISION 2026-11-19 01:44: NO light theme. The club build has one theme, the current dark EBMC. Every
 "light theme" check in these notes is DROPPED. Correction to an earlier note: a club light theme DID exist

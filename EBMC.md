@@ -115,9 +115,9 @@ warns; it never stops the print. OctoPrint's Cancel can take up to 40 seconds on
 power switch in an emergency.
 
 OctoPrint can show the club badge in place of its own logos (top bar, browser tab and home-screen icons, the
-picture behind the temperature graph, the login page) and use the club website's light colours (paper ground,
-ink text, club blue for links and main buttons, a thin orange accent on the active tab) with the separate EBMC
-Brand plugin (`Tools/octoprint-ebmc-brand`, images and colours from `Tools/EBMC/generate_octoprint_brand.py`).
+picture behind the temperature graph, the login page) and take on the club website's look (an ink top band
+with an orange line, paper ground, ink-outlined panels with hard shadows, ink panel headings, club blue for main
+buttons, yellow highlights, orange only as an accent) with the separate EBMC Brand plugin (`Tools/octoprint-ebmc-brand`, images and colours from `Tools/EBMC/generate_octoprint_brand.py`).
 Danger buttons and error notices keep OctoPrint's red. It changes looks only and leaves OctoPrint's name and
 credits as they are; see its README to install it.
 

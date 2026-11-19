@@ -9,38 +9,41 @@ restores stock OctoPrint.
 
 What changes:
 
-- **Top bar:** the badge replaces the green tentacle beside the instance name. It is drawn
-  in the top bar's own text colour. With Settings > Appearance colour "default" the bar
-  looks like the club site's header (paper, ink badge and name, soft-ink links that turn
-  blue). If the owner picks another Appearance colour, OctoPrint's coloured bar is used
-  instead and the badge follows its text colour (dark on light bars, light on dark).
+- **Top bar:** the badge replaces the green tentacle beside the instance name, drawn in
+  cream on the club's ink band.
 - **Browser tab and home-screen icons:** the club's app icon (orange tile, cream badge).
   OctoPrint's "Colorize favicon" setting still tints it when a bar colour is chosen.
 - **Temperature tab:** a faint badge replaces the octopus behind the graph.
 - **Login page:** the badge sits above "Please log in", aligned with it (OctoPrint has no
   logo there), in the club colours.
 - **First-run wizard, last page:** the badge replaces the tentacle picture.
-- **Colours:** see "Colours" below.
+- **Colours and shapes:** see "Colours and shapes" below.
 
-## Colours
+## Colours and shapes
 
 Taken from the club website's own CSS and used the way the site uses them:
 
-| OctoPrint | Club colour |
+| OctoPrint | Club look |
 |---|---|
-| Page ground | paper `#F4EDE3` |
-| Text | ink `#050505` |
-| Panels, tabs' content, dialogs, menus, default buttons | warm paper `#FBF6ED`, borders ink at 24 % |
-| Links, primary buttons (Print, Upload, Save, Log in), progress bars, focus rings, selected menu items | blue `#0648D8` (hover deep blue `#0034A8`), cream text `#FFF7EA` |
-| Active tab | a thin orange `#FF3D12` line on top (the site's orange marker), nothing else orange |
-| Secondary text, placeholders | muted `#71685E` |
+| Top bar | solid ink band, cream name, links and badge, an orange line along the bottom; always, whatever colour is chosen in Settings > Appearance |
+| Page ground | paper `#F4EDE3` with the site's faint ink grid |
+| Sidebar panels (Connection, State, Files, ...) | ink heading bars with cream text; warm-paper body; 2px ink outline; hard offset shadow |
+| Tab content, dialogs, menus, popovers, notices | warm paper `#FBF6ED`, ink outlines, hard offset shadows, 2px corners |
+| Plain buttons | warm paper, ink outline and text, small hard shadow; pressed: yellow |
+| Primary buttons (Print, Upload, Save, confirm ticks, Log in), links, progress bars, focus rings, dropdown hover | blue `#0648D8` (hover deep blue `#0034A8`), cream text `#FFF7EA` |
+| Highlights: selected file, active settings menu item and pills, table header rows | yellow `#FFDF69` with ink text |
+| Active tab | an orange `#FF3D12` line on top; orange is used nowhere else except the top bar's line |
+| Terminal, tooltips, labels, the webcam box | ink with cream text |
+| Temperature graph | ink frame, soft-ink labels, faint ink grid; the lines keep OctoPrint's colours (hot end red/pink, bed blue/light blue); event marks in palette (cancel stays red) |
 | Notices | success: green edge on a green tint; info: deep blue on a blue tint; warning: on a yellow tint |
-| Danger (STOP, delete/cancel confirmations, error notices) | OctoPrint's own red, unchanged (error notice text a darker red so it reads) |
+| Danger (STOP, delete/cancel confirmations, error notices) | OctoPrint's own red, never recoloured (danger buttons only get the 2px corners and the hard shadow; error notice text is a darker red so it reads) |
 
 Every colour is a CSS variable in `static/css/ebmc_palette.css`, generated from the same
-palette as the desktop app's badge artwork. The site's typeface (Berkeley Mono) is a
-commercial font, so OctoPrint keeps its own font. The webcam view, the G-code viewer's
-drawing area and its layer slider keep OctoPrint's look.
+palette as the desktop app's badge artwork. Colours that OctoPrint draws on canvases (the
+temperature graph's frame and grid, the G-code viewer's grid) are set from those variables by
+`static/js/ebmc_brand.js`. The site's typeface (Berkeley Mono) is a commercial font, so
+OctoPrint keeps its own font. The G-code viewer's bed area stays white: OctoPrint's viewer
+paints it white in code with no option to change it.
 
 Not changed:
 - The login page's browser-tab icon stays OctoPrint's: that page loads no plugin scripts.
@@ -106,11 +109,16 @@ applies to the badge image, the files generated from it and the badge meshes.
   `#navbar .navbar-inner .brand span` and draws `img/badge.svg` as a CSS mask in
   `currentColor` on `::before`, at OctoPrint's 20 x 20 px.
 - Graph: the same stylesheet replaces the background image of `#temperature-graph`.
-- Colours: `static/css/ebmc_brand.css` recolours Bootstrap 2 and OctoPrint selectors
-  (`body`, `a`, `.btn`, `.btn-primary`, `.nav-tabs`, `.nav-pills`, `.accordion-group`,
-  `.table`, `.well`, `pre`, `.progress .bar`, `.dropdown-menu`, `.nav-list`, `.modal`,
-  `.alert-*` which PNotify uses, form focus, `#navbar .navbar-inner.default`,
-  `#files .gcode_files .entry`) with colours only. `.btn-danger` is never touched.
+- Colours and shapes: `static/css/ebmc_brand.css` restyles Bootstrap 2 and OctoPrint
+  selectors (`body`, `a`, `.btn`, `.btn-primary`, `.nav-tabs`, `.nav-pills`, `.nav-list`,
+  `.accordion-group`/`.accordion-heading`, `.table`, `.well`, `pre`, `.progress .bar`,
+  `.dropdown-menu`, `.modal`, `.alert-*` which PNotify uses, `.label`/`.badge`,
+  `.tooltip`/`.popover`, `.slider`, form fields, `#navbar .navbar-inner` with every
+  Appearance colour, `#files .gcode_files .entry`, `#term`, `#webcam_img_container`,
+  `.temperature-mark-*`). `.btn-danger` keeps its colours.
+- Canvas colours: `static/js/ebmc_brand.js` adds the palette's grid colours to the
+  temperature graph's flot options and calls the G-code viewer's public
+  `GCODE.renderer.setOption({colorGrid})`.
 - Icons: `static/js/ebmc_brand.js` points the `<link>` elements in the page head
   (`shortcut icon`, `mask-icon`, `mask-icon-theme`, `apple-touch-icon`, `manifest`) at this
   plugin's files when the plugin bundle loads. OctoPrint has no supported hook for these

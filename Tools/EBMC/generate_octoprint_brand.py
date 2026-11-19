@@ -98,28 +98,50 @@ DERIVED = {
     # the stock #B94A48 on #F2DEDE is 3.9:1.
     "error-text": "#953B39",
     "error-bg": "#F2DEDE",
+    # On the ink top bar and ink panel headings: hover is cream at 14 % over ink.
+    "ink-hover": mix(CLUB["cream"], CLUB["ink"], 0.14),
+}
+INK_RGB = rgb_of(CLUB["ink"])
+# The site's hard offset shadows (--shadow is 8px 8px 0 ink at 10 %; cards 5px 6px; some 8px 9px 0 ink).
+SHADOWS = {
+    "shadow": "5px 6px 0 rgba(%d, %d, %d, 0.10)" % INK_RGB,
+    "shadow-small": "3px 3px 0 rgba(%d, %d, %d, 0.14)" % INK_RGB,
+    "shadow-strong": "8px 9px 0 %s" % CLUB["ink"],
+    "grid-line": "rgba(%d, %d, %d, 0.14)" % INK_RGB,
+    "grid-faint": "rgba(%d, %d, %d, 0.03)" % INK_RGB,   # the site's page grid
 }
 
 # (label, text, background) pairings the stylesheets use; WCAG AA needs 4.5:1 for normal text.
 PAIRS = [
     ("body text: ink on paper", "ink", "paper"),
     ("text in panels: ink on warm paper", "ink", "paper-warm"),
-    ("navbar links: soft ink on paper", "soft-ink", "paper"),
+    ("secondary text, inactive tabs: soft ink on paper", "soft-ink", "paper"),
     ("links: blue on warm paper", "blue", "paper-warm"),
     ("links: blue on paper", "blue", "paper"),
     ("link hover: deep blue on warm paper", "blue-deep", "paper-warm"),
     ("primary button: cream on blue", "cream", "blue"),
     ("primary button hover: cream on deep blue", "cream", "blue-deep"),
     ("default button: ink on warm paper", "ink", "paper-warm"),
-    ("inactive tab: soft ink on paper", "soft-ink", "paper"),
-    ("secondary text (sizes, dates): muted on warm paper", "muted", "paper-warm"),
+    ("file sizes and dates: soft ink on warm paper", "soft-ink", "paper-warm"),
     ("placeholder: muted on white field", "muted", WHITE),
     ("success notice: soft ink on success tint (green edge)", "soft-ink", "success-bg"),
     ("success marks: green on warm paper", "green", "paper-warm"),
     ("info notice: deep blue on info tint", "blue-deep", "info-bg"),
     ("warning notice: soft ink on yellow tint", "soft-ink", "warning-bg"),
     ("error notice: dark error red on Bootstrap error tint", "error-text", "error-bg"),
-    ("dropdown hover / active list item: cream on blue", "cream", "blue"),
+    ("dropdown hover: cream on blue", "cream", "blue"),
+    ("top bar, panel headings, terminal, tooltips: cream on ink", "cream", "ink"),
+    ("top bar hover: cream on ink-hover", "cream", "ink-hover"),
+    ("highlights (selected file, active menu item, table headers): ink on yellow", "ink", "yellow"),
+    ("labels/badges: cream on ink", "cream", "ink"),
+    ("labels/badges and graph marks: cream on green", "cream", "green"),
+    ("graph marks: cream on soft ink", "cream", "soft-ink"),
+    ("graph frame and axis labels: soft ink on warm paper", "soft-ink", "paper-warm"),
+    ("code: soft ink on paper", "soft-ink", "paper"),
+    ("failed-print file title: dark error red on yellow", "error-text", "yellow"),
+    ("failed-print file title: dark error red on warm paper", "error-text", "paper-warm"),
+    ("links on yellow highlights: blue on yellow", "blue", "yellow"),
+    ("disabled pagination: muted on warm paper", "muted", "paper-warm"),
     ("progress bar text: cream on blue", "cream", "blue"),
 ]
 
@@ -146,6 +168,8 @@ def palette_css():
     for k, v in allc.items():
         lines.append("    --ebmc-%s: %s;" % (k, v))
     lines.append("    --ebmc-focus-ring: rgba(%d, %d, %d, 0.30);" % rgb_of(CLUB["blue"]))
+    for k, v in SHADOWS.items():
+        lines.append("    --ebmc-%s: %s;" % (k, v))
     lines.append("}")
     return "\n".join(lines) + "\n"
 

@@ -24,5 +24,11 @@
     --ebmc-warning-line: #FFDF69;
     --ebmc-error-text: #953B39;
     --ebmc-error-bg: #F2DEDE;
+    --ebmc-ink-hover: #282725;
     --ebmc-focus-ring: rgba(6, 72, 216, 0.30);
+    --ebmc-shadow: 5px 6px 0 rgba(5, 5, 5, 0.10);
+    --ebmc-shadow-small: 3px 3px 0 rgba(5, 5, 5, 0.14);
+    --ebmc-shadow-strong: 8px 9px 0 #050505;
+    --ebmc-grid-line: rgba(5, 5, 5, 0.14);
+    --ebmc-grid-faint: rgba(5, 5, 5, 0.03);
 }

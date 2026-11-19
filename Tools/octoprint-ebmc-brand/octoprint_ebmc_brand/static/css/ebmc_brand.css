@@ -1,9 +1,17 @@
-/* EBMC Brand: the club badge in place of OctoPrint's logos (looks only). */
+/* EBMC Brand: the club badge in place of OctoPrint's logos, and the club website's look
+   (eastbaymakersclub.com): paper ground with a faint ink grid, a solid ink top band with an
+   orange marker line, ink section headings, warm-paper panels with ink outlines and hard
+   offset shadows, 2px corners, blue primary actions, yellow highlights with ink text, orange
+   only as an accent. Every colour is a variable from ebmc_palette.css (generated).
 
-/* Navbar: OctoPrint draws a 20x20 tentacle as the background of ".brand span", in a colour
-   chosen per instance colour (index.jinja2 "a.brand > span"; octoprint.less ".brand"). The
-   badge is drawn in the navbar's own text colour instead, through a mask, so it follows
-   every instance colour and the transparent variant. Size and spacing stay as before. */
+   Danger is never restyled: .btn-danger keeps Bootstrap's red fill, border and text (it only
+   gets the site's corner radius and hard shadow), error notices keep Bootstrap's red. */
+
+/* ===== Logos ============================================================================ */
+
+/* Navbar mark: OctoPrint draws a 20x20 tentacle as the background of ".brand span"
+   (index.jinja2 "a.brand > span"; octoprint.less ".brand"). The badge replaces it, drawn
+   through a mask in the bar's text colour (cream on the ink bar). Same size and spacing. */
 #navbar .navbar-inner .brand span {
     background-image: none !important;
     position: relative;
@@ -35,21 +43,18 @@ img[src$="img/tentacle-56x56.png"] {
     height: 56px;
 }
 
-/* ======================================================================================
-   Club colours, after eastbaymakersclub.com: paper ground, ink text, warm-paper cards and
-   default buttons, club blue for links, primary actions and focus, club orange only as a
-   thin accent. Colours only: no sizes, spacing or borders widths change. Every colour is a
-   variable from ebmc_palette.css (generated). Danger keeps Bootstrap's red, untouched, so
-   STOP, Cancel-confirm and error notices never look like a club colour.
-   ====================================================================================== */
+/* ===== Page ============================================================================= */
 
-/* Page ground and text (bootstrap "body") */
+/* Paper ground with the site's faint ink grid (bootstrap "body"). */
 body {
-    background-color: var(--ebmc-paper);
     color: var(--ebmc-ink);
+    background-color: var(--ebmc-paper);
+    background-image:
+        linear-gradient(90deg, var(--ebmc-grid-faint) 1px, transparent 1px),
+        linear-gradient(0deg, var(--ebmc-grid-faint) 1px, transparent 1px);
+    background-size: 22px 22px;
 }
 
-/* Links (bootstrap "a") */
 a {
     color: var(--ebmc-blue);
 }
@@ -59,45 +64,104 @@ a:focus {
     color: var(--ebmc-blue-deep);
 }
 
-/* Top bar, only for Settings > Appearance colour "default" (octoprint.less ".navbar-inner-color";
-   any other colour the owner picks keeps OctoPrint's look). The club site's header: no colour
-   band, ink name, soft-ink links that turn blue with a blue underline. */
-#navbar .navbar-inner.default {
-    background-color: var(--ebmc-paper);
-    background-image: none;
-    filter: none;
-    border-color: var(--ebmc-line);
-}
-
-#navbar .navbar-inner.default .brand {
+::selection {
     color: var(--ebmc-ink);
-    text-shadow: none;
+    background-color: var(--ebmc-yellow);
 }
 
-#navbar .navbar-inner.default .nav > li > a {
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"],
+progress {
+    accent-color: var(--ebmc-blue);
+}
+
+hr,
+legend {
+    border-color: var(--ebmc-line-soft);
+}
+
+legend {
+    color: var(--ebmc-ink);
+}
+
+.muted,
+.help-block,
+.help-inline {
     color: var(--ebmc-soft-ink);
-    text-shadow: none;
 }
 
-#navbar .navbar-inner.default .nav > li > a:hover,
-#navbar .navbar-inner.default .nav > li > a:focus,
-#navbar .navbar-inner.default .nav > li.dropdown.open > .dropdown-toggle {
+code,
+pre {
+    color: var(--ebmc-soft-ink);
+    background-color: var(--ebmc-paper);
+    border-color: var(--ebmc-line-soft);
+}
+
+.text-success {
+    color: var(--ebmc-green);
+}
+
+.text-error {
+    color: var(--ebmc-error-text);
+}
+
+.text-info {
     color: var(--ebmc-blue);
-    background-color: transparent;
-    background-image: none;
-    filter: none;
-    box-shadow: inset 0 -2px 0 var(--ebmc-blue);
 }
 
-/* Default buttons (bootstrap ".btn"): warm paper, ink text, as the site's plain buttons.
-   Coloured variants keep their own rules. */
+.text-warning {
+    color: var(--ebmc-soft-ink);
+}
+
+/* ===== Top bar: a solid ink band with an orange marker line, always ====================
+   Overrides every Settings > Appearance colour and the "transparent" option
+   (octoprint.less ".navbar-inner-color" for #navbar .navbar-inner.<colour>[.transparent]). */
+#navbar .navbar-inner {
+    background-color: var(--ebmc-ink) !important;
+    background-image: none !important;
+    filter: none !important;
+    border-color: var(--ebmc-ink) !important;
+    box-shadow: inset 0 -3px 0 var(--ebmc-orange) !important;
+}
+
+#navbar .navbar-inner .brand,
+#navbar .navbar-inner .nav > li > a {
+    color: var(--ebmc-cream) !important;
+    text-shadow: none !important;
+}
+
+#navbar .navbar-inner .brand .caret,
+#navbar .navbar-inner .nav > li > a .caret {
+    border-top-color: var(--ebmc-cream) !important;
+    border-bottom-color: var(--ebmc-cream) !important;
+}
+
+#navbar .navbar-inner .nav > li > a:hover,
+#navbar .navbar-inner .nav > li > a:focus,
+#navbar .navbar-inner .nav > li.dropdown.open > .dropdown-toggle,
+#navbar .navbar-inner .nav > li.dropdown.active > .dropdown-toggle {
+    color: var(--ebmc-cream) !important;
+    background-color: var(--ebmc-ink-hover) !important;
+    background-image: none !important;
+    filter: none !important;
+}
+
+/* ===== Buttons ==========================================================================
+   Plain buttons: warm paper, ink outline and text, the site's 2px corners and a small hard
+   shadow. Primary: club blue with cream text. Danger: untouched colours. */
+.btn {
+    border-radius: 2px;
+}
+
 .btn:not(.btn-primary):not(.btn-danger):not(.btn-warning):not(.btn-success):not(.btn-info):not(.btn-inverse):not(.btn-link) {
     color: var(--ebmc-ink);
     text-shadow: none;
     background-color: var(--ebmc-paper-warm);
     background-image: none;
     filter: none;
-    border-color: var(--ebmc-line);
+    border-color: var(--ebmc-ink);
+    box-shadow: var(--ebmc-shadow-small);
 }
 
 .btn:not(.btn-primary):not(.btn-danger):not(.btn-warning):not(.btn-success):not(.btn-info):not(.btn-inverse):not(.btn-link):hover,
@@ -107,124 +171,72 @@ a:focus {
     background-color: var(--ebmc-paper);
 }
 
-/* Primary buttons (bootstrap ".btn-primary": Print, confirm, Save, Log in): club blue. */
+.btn:not(.btn-primary):not(.btn-danger):not(.btn-warning):not(.btn-success):not(.btn-info):not(.btn-inverse):not(.btn-link).active,
+.btn:not(.btn-primary):not(.btn-danger):not(.btn-warning):not(.btn-success):not(.btn-info):not(.btn-inverse):not(.btn-link):active {
+    background-color: var(--ebmc-yellow);
+    box-shadow: none;
+}
+
 .btn-primary {
     color: var(--ebmc-cream);
     text-shadow: none;
     background-color: var(--ebmc-blue);
     background-image: none;
     filter: none;
-    border-color: var(--ebmc-blue-deep);
+    border-color: var(--ebmc-ink);
+    box-shadow: var(--ebmc-shadow-small);
 }
 
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary:active,
-.btn-primary.active,
-.btn-primary.disabled,
-.btn-primary[disabled] {
+.btn-primary.active {
     color: var(--ebmc-cream);
     background-color: var(--ebmc-blue-deep);
 }
 
 .btn-primary.disabled,
 .btn-primary[disabled] {
+    color: var(--ebmc-cream);
     background-color: var(--ebmc-blue);
 }
 
-/* Tabs (bootstrap ".nav-tabs"; octoprint.less ".tab-content") */
-.nav-tabs {
-    border-bottom-color: var(--ebmc-line);
+/* Danger: shape only (corners and the hard shadow). Fill, border and text stay Bootstrap's. */
+.btn-danger {
+    box-shadow: var(--ebmc-shadow-small);
 }
 
-.nav-tabs > li > a {
+/* Inside button groups and input groups the shadows would overlap: outline only. */
+.btn-group > .btn,
+.input-append .btn,
+.input-prepend .btn,
+.btn-group > .btn-primary,
+.input-append .btn-primary,
+.input-prepend .btn-primary {
+    box-shadow: none !important;
+}
+
+.btn-group.open .btn.dropdown-toggle {
+    background-color: var(--ebmc-yellow);
+}
+
+.input-append .add-on,
+.input-prepend .add-on {
     color: var(--ebmc-soft-ink);
-}
-
-.nav-tabs > li > a:hover,
-.nav-tabs > li > a:focus {
-    color: var(--ebmc-blue);
-    background-color: var(--ebmc-hover);
-    border-color: var(--ebmc-line-soft) var(--ebmc-line-soft) var(--ebmc-line);
-}
-
-.nav-tabs > .active > a,
-.nav-tabs > .active > a:hover,
-.nav-tabs > .active > a:focus {
-    color: var(--ebmc-ink);
-    background-color: var(--ebmc-paper-warm);
-    border-color: var(--ebmc-line);
-    border-bottom-color: transparent;
-    /* the club orange as a thin accent, like the site's orange markers */
-    box-shadow: inset 0 3px 0 var(--ebmc-orange);
-}
-
-.octoprint-container .tab-content {
-    background-color: var(--ebmc-paper-warm);
+    text-shadow: none;
+    background-color: var(--ebmc-paper);
     border-color: var(--ebmc-line);
 }
 
-.octoprint-container .tab-content h1 {
-    color: var(--ebmc-ink);
-    border-bottom-color: var(--ebmc-line-soft);
-}
-
-/* Sidebar panels (bootstrap ".accordion-group"): Connection, State, Files... */
-.accordion-group {
-    background-color: var(--ebmc-paper-warm);
+/* ===== Forms ============================================================================ */
+select,
+textarea,
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+.uneditable-input {
     border-color: var(--ebmc-line);
+    border-radius: 2px;
 }
 
-.accordion-inner {
-    border-top-color: var(--ebmc-line-soft);
-}
-
-/* Lists in panels: files (octoprint.less ".gcode_files .entry") */
-#files .gcode_files .entry {
-    border-bottom-color: var(--ebmc-line-soft);
-}
-
-#files .gcode_files .entry:hover {
-    background-color: var(--ebmc-hover);
-}
-
-#files .gcode_files .entry .uploaded,
-#files .gcode_files .entry .size,
-#files .gcode_files .entry .additionalInfo,
-#files .gcode_files .entry .internal {
-    color: var(--ebmc-muted);
-}
-
-/* Tables and wells (bootstrap ".table", ".well") */
-.table th,
-.table td,
-.table-bordered,
-.table-bordered th,
-.table-bordered td {
-    border-color: var(--ebmc-line-soft);
-}
-
-.table-hover tbody tr:hover > td,
-.table-hover tbody tr:hover > th {
-    background-color: var(--ebmc-hover);
-}
-
-.table-striped tbody > tr:nth-child(odd) > td,
-.table-striped tbody > tr:nth-child(odd) > th {
-    background-color: var(--ebmc-paper);
-}
-
-.well {
-    background-color: var(--ebmc-paper);
-    border-color: var(--ebmc-line-soft);
-}
-
-pre {
-    background-color: var(--ebmc-paper);
-    border-color: var(--ebmc-line-soft);
-}
-
-/* Form focus (bootstrap "input:focus" etc.): the site's blue focus ring */
 input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
 textarea:focus,
 select:focus,
@@ -244,11 +256,242 @@ textarea::-webkit-input-placeholder {
     color: var(--ebmc-muted);
 }
 
-/* Progress bars (bootstrap ".progress .bar"); coloured variants keep their own colours. */
+input[disabled],
+select[disabled],
+textarea[disabled],
+input[readonly],
+select[readonly],
+textarea[readonly] {
+    background-color: var(--ebmc-paper);
+}
+
+/* ===== Tabs ============================================================================= */
+.nav-tabs {
+    border-bottom-color: var(--ebmc-ink);
+}
+
+.nav-tabs > li > a {
+    color: var(--ebmc-soft-ink);
+    border-radius: 2px 2px 0 0;
+}
+
+.nav-tabs > li > a:hover,
+.nav-tabs > li > a:focus {
+    color: var(--ebmc-blue);
+    background-color: var(--ebmc-hover);
+    border-color: var(--ebmc-line-soft) var(--ebmc-line-soft) var(--ebmc-ink);
+}
+
+.nav-tabs > .active > a,
+.nav-tabs > .active > a:hover,
+.nav-tabs > .active > a:focus {
+    color: var(--ebmc-ink);
+    background-color: var(--ebmc-paper-warm);
+    border-color: var(--ebmc-ink);
+    border-bottom-color: transparent;
+    box-shadow: inset 0 3px 0 var(--ebmc-orange);
+}
+
+.octoprint-container .tab-content {
+    background-color: var(--ebmc-paper-warm);
+    border-color: var(--ebmc-ink);
+    border-radius: 0 0 2px 2px;
+    box-shadow: var(--ebmc-shadow);
+}
+
+.octoprint-container .tab-content h1 {
+    color: var(--ebmc-ink);
+    border-bottom-color: var(--ebmc-line-soft);
+}
+
+.nav-pills > li > a {
+    border-radius: 2px;
+}
+
+.nav-pills > .active > a,
+.nav-pills > .active > a:hover,
+.nav-pills > .active > a:focus {
+    color: var(--ebmc-ink);
+    background-color: var(--ebmc-yellow);
+}
+
+/* ===== Sidebar panels: ink heading bars with cream text, like the site's ink sections === */
+.accordion-group {
+    background-color: var(--ebmc-paper-warm);
+    border: 2px solid var(--ebmc-ink);
+    border-radius: 2px;
+    box-shadow: var(--ebmc-shadow);
+}
+
+.accordion-heading {
+    background-color: var(--ebmc-ink);
+}
+
+.octoprint-container .accordion-group .accordion-heading a.accordion-toggle,
+.octoprint-container .accordion-group .accordion-heading .accordion-heading-button > a,
+.octoprint-container .accordion-group .accordion-heading [class^="icon-"],
+.octoprint-container .accordion-group .accordion-heading [class*=" icon-"],
+.octoprint-container .accordion-group .accordion-heading .fas,
+.octoprint-container .accordion-group .accordion-heading .far {
+    color: var(--ebmc-cream);
+}
+
+.octoprint-container .accordion-group .accordion-heading a.accordion-toggle:hover,
+.octoprint-container .accordion-group .accordion-heading .accordion-heading-button > a:hover {
+    color: var(--ebmc-yellow);
+}
+
+.accordion-inner {
+    border-top-color: var(--ebmc-ink);
+}
+
+/* Files list (octoprint.less "#files .gcode_files .entry"); the selected file is the one
+   OctoPrint shows in bold: it gets the site's yellow highlight. */
+#files .gcode_files .entry {
+    border-bottom-color: var(--ebmc-line-soft);
+}
+
+#files .gcode_files .entry:hover {
+    background-color: var(--ebmc-hover);
+}
+
+#files .gcode_files .entry:has(.title[style*="bold"]) {
+    background-color: var(--ebmc-yellow);
+}
+
+/* File titles carry the last print's result (OctoPrint's text-success / text-error). On the
+   yellow selected row green would be 3.8:1, so that title is ink there; a failed one stays
+   red (dark error red, 5.4:1 on yellow). */
+#files .gcode_files .entry:has(.title[style*="bold"]) .title.text-success {
+    color: var(--ebmc-ink);
+}
+
+#files .gcode_files .entry .title.text-error {
+    color: var(--ebmc-error-text);
+}
+
+#files .gcode_files .entry .uploaded,
+#files .gcode_files .entry .size,
+#files .gcode_files .entry .additionalInfo,
+#files .gcode_files .entry .internal {
+    color: var(--ebmc-soft-ink);
+}
+
+/* ===== Tables, wells ==================================================================== */
+.table th,
+.table td,
+.table-bordered,
+.table-bordered th,
+.table-bordered td {
+    border-color: var(--ebmc-line-soft);
+}
+
+.table-bordered {
+    border-color: var(--ebmc-ink);
+    border-radius: 2px;
+}
+
+.table thead th,
+#temperature-table tr:first-child > th {
+    color: var(--ebmc-ink);
+    background-color: var(--ebmc-yellow);
+}
+
+.table-hover tbody tr:hover > td,
+.table-hover tbody tr:hover > th {
+    background-color: var(--ebmc-hover);
+}
+
+.table-striped tbody > tr:nth-child(odd) > td,
+.table-striped tbody > tr:nth-child(odd) > th {
+    background-color: var(--ebmc-paper);
+}
+
+.well {
+    background-color: var(--ebmc-paper);
+    border-color: var(--ebmc-ink);
+    border-radius: 2px;
+    box-shadow: var(--ebmc-shadow);
+}
+
+/* ===== Labels, badges, tooltips, popovers =============================================== */
+.label,
+.badge {
+    color: var(--ebmc-cream);
+    text-shadow: none;
+    background-color: var(--ebmc-ink);
+    border-radius: 2px;
+}
+
+.label-success,
+.badge-success {
+    background-color: var(--ebmc-green);
+}
+
+.label-info,
+.badge-info {
+    background-color: var(--ebmc-blue);
+}
+
+.label-warning,
+.badge-warning {
+    color: var(--ebmc-ink);
+    background-color: var(--ebmc-yellow);
+}
+
+.label-important,
+.badge-important {
+    color: #fff;
+    background-color: #b94a48; /* Bootstrap's own danger red, unchanged */
+}
+
+.tooltip-inner {
+    color: var(--ebmc-cream);
+    background-color: var(--ebmc-ink);
+    border-radius: 2px;
+}
+
+.tooltip.top .tooltip-arrow {
+    border-top-color: var(--ebmc-ink);
+}
+
+.tooltip.right .tooltip-arrow {
+    border-right-color: var(--ebmc-ink);
+}
+
+.tooltip.bottom .tooltip-arrow {
+    border-bottom-color: var(--ebmc-ink);
+}
+
+.tooltip.left .tooltip-arrow {
+    border-left-color: var(--ebmc-ink);
+}
+
+.popover {
+    color: var(--ebmc-ink);
+    background-color: var(--ebmc-paper-warm);
+    border: 2px solid var(--ebmc-ink);
+    border-radius: 2px;
+    box-shadow: var(--ebmc-shadow);
+}
+
+.popover-title {
+    color: var(--ebmc-cream);
+    background-color: var(--ebmc-ink);
+    border-bottom-color: var(--ebmc-ink);
+}
+
+/* ===== Progress bars (bootstrap ".progress .bar"): club blue, so the orange stays a thin
+   accent and no large warm-coloured block competes with the red STOP button. */
+.progress {
+    border-radius: 2px;
+}
+
 .progress:not(.progress-success):not(.progress-warning):not(.progress-danger):not(.progress-info) {
     background-color: var(--ebmc-paper);
     background-image: none;
     filter: none;
+    box-shadow: inset 0 0 0 1px var(--ebmc-ink);
 }
 
 .progress:not(.progress-success):not(.progress-warning):not(.progress-danger):not(.progress-info) > .bar:not(.bar-success):not(.bar-warning):not(.bar-danger):not(.bar-info) {
@@ -258,9 +501,20 @@ textarea::-webkit-input-placeholder {
     filter: none;
 }
 
-/* Menus (bootstrap ".dropdown-menu", ".nav-list" in the settings dialog) */
+/* ===== Menus ============================================================================ */
 .dropdown-menu {
     background-color: var(--ebmc-paper-warm);
+    border: 2px solid var(--ebmc-ink);
+    border-radius: 2px;
+    box-shadow: var(--ebmc-shadow);
+}
+
+.dropdown-menu > li > a {
+    color: var(--ebmc-ink);
+}
+
+.dropdown-menu .divider {
+    background-color: var(--ebmc-line-soft);
 }
 
 .dropdown-menu > li > a:hover,
@@ -274,31 +528,61 @@ textarea::-webkit-input-placeholder {
     filter: none;
 }
 
+.navbar .nav > li > .dropdown-menu::after {
+    border-bottom-color: var(--ebmc-paper-warm);
+}
+
+.navbar .nav > li > .dropdown-menu::before {
+    border-bottom-color: var(--ebmc-ink);
+}
+
+.nav-header {
+    color: var(--ebmc-soft-ink);
+}
+
+/* Settings and wizard menus (bootstrap ".nav-list"): the active item is a yellow highlight. */
 .nav-list > .active > a,
 .nav-list > .active > a:hover,
 .nav-list > .active > a:focus {
-    color: var(--ebmc-cream);
+    color: var(--ebmc-ink);
     text-shadow: none;
-    background-color: var(--ebmc-blue);
+    background-color: var(--ebmc-yellow);
 }
 
-/* Dialogs (bootstrap ".modal") */
+/* ===== Dialogs ========================================================================== */
 .modal {
     background-color: var(--ebmc-paper-warm);
+    border: 2px solid var(--ebmc-ink);
+    border-radius: 2px;
+    box-shadow: var(--ebmc-shadow-strong);
 }
 
 .modal-header {
-    border-bottom-color: var(--ebmc-line-soft);
+    border-bottom-color: var(--ebmc-ink);
 }
 
 .modal-footer {
     background-color: var(--ebmc-paper);
-    border-top-color: var(--ebmc-line-soft);
+    border-top-color: var(--ebmc-ink);
+    border-radius: 0 0 2px 2px;
     box-shadow: none;
 }
 
-/* Notices (bootstrap ".alert", also PNotify with OctoPrint's bootstrap2 styling).
-   Error notices keep Bootstrap's red. */
+.modal-backdrop,
+.modal-backdrop.fade.in {
+    background-color: var(--ebmc-ink);
+}
+
+/* ===== Notices (bootstrap ".alert", also PNotify with OctoPrint's bootstrap2 styling) ==== */
+.alert {
+    border-radius: 2px;
+}
+
+.ui-pnotify .alert {
+    border: 2px solid var(--ebmc-ink);
+    box-shadow: var(--ebmc-shadow);
+}
+
 .alert:not(.alert-success):not(.alert-info):not(.alert-error):not(.alert-danger) {
     color: var(--ebmc-soft-ink);
     background-color: var(--ebmc-warning-bg);
@@ -306,12 +590,29 @@ textarea::-webkit-input-placeholder {
     text-shadow: none;
 }
 
+.alert:not(.alert-success):not(.alert-info):not(.alert-error):not(.alert-danger) h4 {
+    color: inherit;
+}
+
+.ui-pnotify .alert:not(.alert-success):not(.alert-info):not(.alert-error):not(.alert-danger) {
+    border-color: var(--ebmc-ink);
+}
+
 .alert-success {
     color: var(--ebmc-soft-ink);
     background-color: var(--ebmc-success-bg);
     border-color: var(--ebmc-success-line);
-    box-shadow: inset 4px 0 0 var(--ebmc-green);
     text-shadow: none;
+}
+
+.alert-success:not(.ui-pnotify-container),
+.ui-pnotify .alert-success {
+    box-shadow: inset 4px 0 0 var(--ebmc-green);
+}
+
+.ui-pnotify .alert-success {
+    border-color: var(--ebmc-ink);
+    box-shadow: inset 4px 0 0 var(--ebmc-green), var(--ebmc-shadow);
 }
 
 .alert-info {
@@ -321,28 +622,165 @@ textarea::-webkit-input-placeholder {
     text-shadow: none;
 }
 
+.ui-pnotify .alert-info {
+    border-color: var(--ebmc-ink);
+}
+
 .alert-success h4,
 .alert-info h4 {
     color: inherit;
 }
 
-.alert:not(.alert-success):not(.alert-info):not(.alert-error):not(.alert-danger) h4 {
-    color: inherit;
-}
-
-/* Pills (bootstrap ".nav-pills", e.g. the settings dialog's sub-sections) */
-.nav-pills > .active > a,
-.nav-pills > .active > a:hover,
-.nav-pills > .active > a:focus {
-    color: var(--ebmc-cream);
-    background-color: var(--ebmc-blue);
-}
-
 /* Error notices keep Bootstrap's red; only the text is Bootstrap's darker error red so it
-   reads at 4.5:1 (stock is 3.9:1). */
+   reads at 4.5:1 (stock is 3.9:1), and the outline is red, not ink. */
 .alert-error,
 .alert-danger,
 .alert-error h4,
 .alert-danger h4 {
     color: var(--ebmc-error-text);
+}
+
+.ui-pnotify .alert-error,
+.ui-pnotify .alert-danger {
+    border-color: var(--ebmc-error-text);
+}
+
+/* ===== Temperature graph: event marks in palette (octoprint.less ".temperature-mark-*");
+   "cancel" keeps OctoPrint's red. The graph frame and grid are set in ebmc_brand.js. */
+.temperature-mark-label {
+    color: var(--ebmc-cream);
+    background-color: var(--ebmc-soft-ink);
+}
+
+.temperature-mark-type-print {
+    background-color: var(--ebmc-green);
+}
+
+.temperature-mark-type-pause {
+    color: var(--ebmc-ink);
+    background-color: var(--ebmc-yellow);
+}
+
+.temperature-mark-type-resume,
+.temperature-mark-type-done {
+    background-color: var(--ebmc-blue);
+}
+
+.temperature-mark-type-connected,
+.temperature-mark-type-disconnected {
+    background-color: var(--ebmc-ink);
+}
+
+#temperature-graph .legend > div {
+    background-color: var(--ebmc-paper-warm) !important;
+}
+
+#temperature-graph .legend table {
+    color: var(--ebmc-ink);
+}
+
+/* ===== Terminal: an ink panel with cream text, like the site's ink sections ============= */
+#term #terminal-output,
+#term #terminal-output-lowfi {
+    color: var(--ebmc-cream);
+    background-color: var(--ebmc-ink);
+    border-color: var(--ebmc-ink);
+    border-radius: 2px;
+}
+
+/* ===== Webcam box: ink instead of black (classicwebcam.css, octoprint.less) ============= */
+#webcam_img_container,
+#webcam_plugins_container {
+    background-color: var(--ebmc-ink);
+    color: var(--ebmc-cream);
+    border-radius: 2px;
+}
+
+/* ===== Sliders (octoprint.css ".slider .slider-*": G-code viewer layers, feed/flow) ====== */
+.slider .slider-track {
+    background-color: var(--ebmc-paper);
+    background-image: none;
+    border-color: var(--ebmc-ink);
+    border-radius: 2px;
+    box-shadow: none;
+}
+
+.slider .slider-selection,
+.slider .slider-selection:hover,
+.slider .slider-selection:focus,
+.slider .slider-selection:active {
+    color: var(--ebmc-cream);
+    text-shadow: none;
+    background-color: var(--ebmc-blue);
+    background-image: none;
+    filter: none;
+    box-shadow: none;
+}
+
+.slider .slider-handle,
+.slider .slider-handle:hover,
+.slider .slider-handle:focus,
+.slider .slider-handle:active {
+    color: var(--ebmc-ink);
+    text-shadow: none;
+    background-color: var(--ebmc-paper-warm);
+    background-image: none;
+    filter: none;
+    border-color: var(--ebmc-ink);
+    box-shadow: none;
+    opacity: 1;
+}
+
+/* ===== Remaining stock greys found by the colour audit =================================== */
+/* Footer links (octoprint.css ".footer ul li a") */
+.footer ul li a {
+    color: var(--ebmc-soft-ink);
+}
+
+/* Read-only fields such as the temperature offsets (bootstrap ".uneditable-input") */
+.uneditable-input {
+    color: var(--ebmc-soft-ink);
+    background-color: var(--ebmc-paper);
+}
+
+/* Graph tick labels and legend swatch outlines (flot writes these as inline styles) */
+#temperature-graph .flot-text {
+    color: var(--ebmc-soft-ink) !important;
+}
+
+#temperature-graph .legendColorBox > div {
+    border-color: var(--ebmc-line) !important;
+}
+
+/* Plugin manager list (pluginmanager.css) */
+#settings_plugin_pluginmanager_pluginlist {
+    border-top-color: var(--ebmc-line-soft);
+}
+
+/* EBMC Stop's nozzle panel: only the divider line of its own stylesheet (that plugin is
+   not edited; its buttons use the Bootstrap classes styled above). */
+#control #ebmc_nozzle_panel {
+    border-top-color: var(--ebmc-line-soft);
+}
+
+/* Disabled pagination links (timelapse lists) */
+.pagination ul > .disabled > a,
+.pagination ul > .disabled > span {
+    color: var(--ebmc-muted);
+    background-color: transparent;
+}
+
+.pagination ul > li > a,
+.pagination ul > li > span {
+    border-color: var(--ebmc-line);
+}
+
+.pagination ul > .active > a,
+.pagination ul > .active > span {
+    color: var(--ebmc-ink);
+    background-color: var(--ebmc-yellow);
+}
+
+#gcode .canvas_container canvas {
+    outline: 1px solid var(--ebmc-ink);
 }

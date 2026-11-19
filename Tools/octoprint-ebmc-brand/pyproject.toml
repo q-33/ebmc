@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "OctoPrint-EbmcBrand"
-version = "1.1.0"
+version = "1.2.0"
 description = "Shows the East Bay Makers Club badge in place of OctoPrint's logos (looks only)."
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later (code only; the EBMC badge images are not covered, see README)" }
