@@ -68,7 +68,8 @@ Starting point is the factory `Pulse/S-232.printer`. Changed values:
 | Extra length on restart | 0.5 mm | 0 |
 | Skirt loops | 2 | 4 |
 | Infill overlap | 50% | 20% |
-| NylonX nozzle / bed temperature | 255C / 55C | 265C / 75C |
+| NylonX nozzle / bed temperature | 255C / 55C | 265C / 80C |
+| NylonG preset | none | 260C / 80C; fans, first-layer width and retraction as NylonX |
 | Default material | none | NylonX |
 
 ### Status of these values: provisional
@@ -79,8 +80,12 @@ Starting point is the factory `Pulse/S-232.printer`. Changed values:
 - Retraction (2 mm, 5 mm travel threshold) was chosen to cure stringing but the confirming
   print did not finish, because the bed thermistor circuit failed. Treat it as untested.
 - NylonX nozzle temperature is 265C, set by the club on 2026-11-11 (the factory preset is 255C).
-- NylonX bed temperature is 75C, raised from 60C on 2026-11-18 after small parts came loose (the factory preset is 55C).
-  It has not yet been confirmed by a completed print at this value.
+- NylonX bed temperature is 80C (the factory preset is 55C): raised from 60C to 75C on 2026-11-18 after small parts
+  came loose, then set to 80C by the owner the same night. It has not yet been confirmed by a completed print at this value.
+- NylonG (260C / 80C) was added on 2026-11-19 at the owner's request; its density and cost are from the
+  MatterHackers NylonG material file. It has not been printed.
+- These presets reach a computer only when its installed copy of the profile is updated: Printer options >
+  Update club presets… shows the differences, backs the installed profile up and replaces only the club presets.
 - A layer shift on tall thin walls was still present on the last completed print.
 
 ## Printing through OctoPrint
