@@ -31,4 +31,35 @@
             </span>
         </div>
     </div>
+
+    <h4>Nozzle height (Control tab)</h4>
+    <div class="control-group">
+        <label class="control-label">Reference M206 Z</label>
+        <div class="controls">
+            <input type="text" class="input-small" data-bind="value: settings.plugins.ebmc_stop.reference_z">
+            <span class="help-block">
+                The confirmed good value, for example the value that gave a good first layer.
+                While this is empty, the nozzle height can be read but not changed.
+                Every change must stay within the window below around this value.
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label">Window (mm, &plusmn;)</label>
+        <div class="controls">
+            <input type="number" step="0.01" min="0" class="input-small" data-bind="value: settings.plugins.ebmc_stop.max_total_mm">
+            <span class="help-block">A change that would leave reference &plusmn; this value is refused. One action never moves more than 0.2 mm.</span>
+        </div>
+    </div>
+    <div class="control-group">
+        <div class="controls">
+            <span class="help-block">
+                Direction: on this printer Z homes up to Z max, so a larger M206 Z puts the
+                nozzle lower; raising the nozzle makes the number smaller. This is the
+                <code>raise_decreases_m206</code> setting. It is deliberately not offered here;
+                for a printer that works the other way, change it in <code>config.yaml</code>
+                (see the plugin's README).
+            </span>
+        </div>
+    </div>
 </form>

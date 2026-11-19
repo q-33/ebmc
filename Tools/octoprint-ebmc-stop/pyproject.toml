@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "OctoPrint-EbmcStop"
-version = "1.0.0"
-description = "A large red button under the Temperature tab that stops the print and homes the printer."
+version = "1.2.0"
+description = "STOP PRINT and HOME button and a nozzle height (M206 Z) control for OctoPrint on a Smoothieware printer."
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.7,<4"

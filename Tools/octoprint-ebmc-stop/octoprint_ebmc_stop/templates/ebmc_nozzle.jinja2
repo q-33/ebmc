@@ -1,0 +1,17 @@
+<div id="ebmc_nozzle_panel" class="ebmc-nozzle">
+    <h4>Nozzle height above the bed</h4>
+    <p>
+        Stored value (firmware home offset): <strong data-bind="text: storedText"></strong>
+        <button type="button" class="btn btn-small" data-bind="click: read, enable: canAct">Read</button>
+    </p>
+    <p class="muted" data-bind="visible: firmwareText, text: firmwareText"></p>
+    <form class="form-inline" onsubmit="return false;">
+        <label>Step
+            <select class="input-small" data-bind="options: steps, optionsText: stepLabel, value: step, enable: canAct"></select>
+        </label>
+        <button type="button" class="btn" data-bind="click: raise, enable: canAct">Raise nozzle</button>
+        <button type="button" class="btn" data-bind="click: lower, enable: canAct">Lower nozzle</button>
+    </form>
+    <p class="ebmc-nozzle-note" data-bind="visible: disabledReason, text: disabledReason"></p>
+    <p class="ebmc-nozzle-note" data-bind="visible: referenceNote, text: referenceNote"></p>
+</div>

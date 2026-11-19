@@ -103,6 +103,8 @@ $(function () {
         // Sent by the server once the G-code has actually been sent, or on failure.
         self.onDataUpdaterPluginMessage = function (plugin, data) {
             if (plugin !== "ebmc_stop" || !data) return;
+            // Nozzle height messages belong to the other panel.
+            if (data.type && data.type.indexOf("nozzle_") === 0) return;
             self.awaitingResult = false;
             self.closeProgress();
             if (data.type === "sent") {

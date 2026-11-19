@@ -13,3 +13,13 @@
     margin-top: 4px;
     text-align: center;
 }
+
+#ebmc_nozzle_panel {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+}
+
+#ebmc_nozzle_panel .ebmc-nozzle-note {
+    font-size: 12px;
+}
