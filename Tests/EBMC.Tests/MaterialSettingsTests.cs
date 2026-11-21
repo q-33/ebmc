@@ -156,14 +156,18 @@ namespace EBMC.Tests
 			Assert.That(nylonX.Id, Is.EqualTo(NylonXId));
 			Assert.That(nylonX.Values[SettingsKey.temperature], Is.EqualTo("265"));
 			Assert.That(nylonX.Values[SettingsKey.bed_temperature], Is.EqualTo("80"));
+			// slower, longer small layers for both nylons (fan is off, so time is the only cooling)
+			Assert.That(nylonX.Values[SettingsKey.min_print_speed], Is.EqualTo("8"));
+			Assert.That(nylonX.Values[SettingsKey.slowdown_below_layer_time], Is.EqualTo("25"));
+			Assert.That(nylonX.Values[SettingsKey.retract_lift], Is.EqualTo("0.2"));
 
 			var nylonG = presets.Single(p => p.Name == "NylonG");
 			Assert.That(nylonG.Id, Is.EqualTo(NylonGId));
-			Assert.That(nylonG.Values[SettingsKey.temperature], Is.EqualTo("260"));
+			Assert.That(nylonG.Values[SettingsKey.temperature], Is.EqualTo("255"));
 			Assert.That(nylonG.Values[SettingsKey.bed_temperature], Is.EqualTo("80"));
 
-			// NylonG's fans, first-layer width and retraction are NylonX's
-			foreach (string key in new[] { "min_fan_speed", "max_fan_speed", "bridge_fan_speed", "raft_fan_speed_percent", "first_layer_extrusion_width", "retract_restart_extra", "retract_restart_extra_time_to_apply" })
+			// NylonG's fans, first-layer width, retraction and small-layer slow-down are NylonX's
+			foreach (string key in new[] { "min_fan_speed", "max_fan_speed", "bridge_fan_speed", "raft_fan_speed_percent", "first_layer_extrusion_width", "retract_restart_extra", "retract_restart_extra_time_to_apply", "min_print_speed", "slowdown_below_layer_time", "retract_lift" })
 			{
 				Assert.That(nylonG.Values[key], Is.EqualTo(nylonX.Values[key]), key);
 			}

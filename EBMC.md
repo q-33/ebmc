@@ -73,7 +73,9 @@ Starting point is the factory `Pulse/S-232.printer`. Changed values:
 | Skirt loops | 2 | 4 |
 | Infill overlap | 50% | 20% |
 | NylonX nozzle / bed temperature | 255C / 55C | 265C / 80C |
-| NylonG preset | none | 260C / 80C; fans, first-layer width and retraction as NylonX |
+| NylonG preset | none | 255C / 80C; fans, first-layer width and retraction as NylonX |
+| NylonX and NylonG small layers | slowest 15 mm/s, 15 s per layer | slowest 8 mm/s, 25 s per layer |
+| NylonX and NylonG Z lift on retraction | 0.4 mm (profile value) | 0.2 mm |
 | Default material | none | NylonX |
 
 ### Status of these values: provisional
@@ -86,8 +88,11 @@ Starting point is the factory `Pulse/S-232.printer`. Changed values:
 - NylonX nozzle temperature is 265C, set by the club on 2026-11-11 (the factory preset is 255C).
 - NylonX bed temperature is 80C (the factory preset is 55C): raised from 60C to 75C on 2026-11-18 after small parts
   came loose, then set to 80C by the owner the same night. It has not yet been confirmed by a completed print at this value.
-- NylonG (260C / 80C) was added on 2026-11-19 at the owner's request; its density and cost are from the
-  MatterHackers NylonG material file. It has not been printed.
+- NylonG (255C / 80C; the nozzle was 260C until 2026-11-20) was added on 2026-11-19 at the owner's request; its
+  density and cost are from the MatterHackers NylonG material file.
+- NylonX and NylonG slow down further on small layers (slowest speed 8 mm/s, at least 25 s per layer; the profile's
+  values for other materials stay 15 mm/s and 15 s). Set on 2026-11-20 after the narrow top of a tapering
+  NylonX part came out rough with the fan off. Not yet confirmed by a print.
 - These presets reach a computer only when its installed copy of the profile is updated: Printer options >
   Update club presets… shows the differences, backs the installed profile up (`<file>.bak-<date>`) and replaces
   the club presets with the club's (a club preset edited on that computer, or one of its own presets with a club

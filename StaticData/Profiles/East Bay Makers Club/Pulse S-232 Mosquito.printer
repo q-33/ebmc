@@ -117,12 +117,15 @@
       "max_fan_speed": "0",
       "raft_fan_speed_percent": "0",
       "bridge_fan_speed": "100",
-      "first_layer_extrusion_width": "110%"
+      "first_layer_extrusion_width": "110%",
+      "min_print_speed": "8",
+      "slowdown_below_layer_time": "25",
+      "retract_lift": "0.2"
     },
     {
       "layer_name": "NylonG",
       "layer_id": "837244a6-03d8-46d2-8f84-4ecc607da4d9",
-      "temperature": "260",
+      "temperature": "255",
       "bed_temperature": "80",
       "filament_density": "1.1",
       "filament_cost": "64",
@@ -132,7 +135,10 @@
       "bridge_fan_speed": "100",
       "first_layer_extrusion_width": "110%",
       "retract_restart_extra": "0",
-      "retract_restart_extra_time_to_apply": "0"
+      "retract_restart_extra_time_to_apply": "0",
+      "min_print_speed": "8",
+      "slowdown_below_layer_time": "25",
+      "retract_lift": "0.2"
     },
     {
       "layer_name": "Pro Flex",
